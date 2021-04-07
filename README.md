@@ -1,70 +1,53 @@
-# Getting Started with Create React App
+# AdMiRe User App
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+The client application has to be run in a separated thread from the server. 
+To do it so run:
+```bash
+npm start
+```
+* Runs by default in port 3000. 
+* Is proxying any routes tarting with /api to the backend server.
 
-## Available Scripts
+Any configuration needed should be changed on the .env file next to this README file.
 
-In the project directory, you can run:
 
-### `npm start`
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+## Aditional Info
+We are using the common used ***create-react-app*** framework. All api callbacks are set up to be proxied under the ***/api*** path. This frameworks allows automatic reloading by default. 
 
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
+**.env** contains all environment variables used by any node project. In this case we set the HTTPS and certs using this.
 
-### `npm test`
+**.cert** is not commited within the repo. This folder should be placed by the root of the project and containing the key.pem and cert.pem. Checkout the ***Adding HTTPS to react app*** linked below in order to generate such certificates.
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+**setupProxy.js** is a module with a reserved name that is fetch by the create-react-app framework in order to manually setup proxy redirects.
 
-### `npm run build`
+**jsconfig.json** allows to define the basepath, useful cleaner imports
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+## Some useful links
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+* [Tutorial 1](https://daveceddia.com/create-react-app-express-backend/)
+* [Tutorial 2](https://www.techomoro.com/how-to-create-a-react-frontend-express-backend-and-connect-them-together/)
+* [Proxying backend requests](https://create-react-app.dev/docs/proxying-api-requests-in-development/)
+* [Adding HTTPS to react app](https://www.freecodecamp.org/news/how-to-set-up-https-locally-with-create-react-app/)
+* [Make import path based on Root in React](https://dev-yakuza.posstree.com/en/react/root-import/)
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+### Other Interesitng links:
+* [How do I do AJAX requests in React?](https://daveceddia.com/ajax-requests-in-react/)
+* [Podria ser una buena guia para añadir una BBDD](https://dev.to/pacheco/my-fullstack-setup-node-js-react-js-and-mongodb-2a4k)
+* [**ReactRouter** without webpack](https://www.pluralsight.com/guides/using-react-router-with-cdn-links)
+* [Create react components without JSX](https://stackoverflow.com/questions/54018182/how-to-make-script-type-both-text-babel-and-module)
+* [**React.createElement** method examples](https://reactgo.com/react-createelement-example/)
 
-### `npm run eject`
+### Design utils and ideas
+React Bootstrap compiles to regular bootstrap HTML so its fully compatible with any existing example (except maybe adding some minor attribute naming exceptions)
+Bootstrap Icons and Font-Awesome icons may be used
+* [2019 Trends](https://webflow.com/blog/20-web-design-trends-for-2019)
+* ["Bootstrap 4"](https://getbootstrap.com/docs/4.0/)
+* ["Bootstrap 5"](https://getbootstrap.com/docs/5.0/)
+* [react-bootstrap 4 Components](https://react-bootstrap.netlify.app/components/alerts)
+* [react-bootstrap 5 Components](https://react-bootstrap-v5.netlify.app/components/alerts/)
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+* [Font-Awesome Icons](https://fontawesome.com/icons?d=gallery)
+* [Bootstrap Icons](https://icons.getbootstrap.com/)
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
-
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+* [Bootstrap Sidebar](https://bootstrapious.com/p/bootstrap-sidebar)
