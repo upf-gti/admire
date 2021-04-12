@@ -24,7 +24,6 @@ We are using the common used ***create-react-app*** framework. All api callbacks
 **jsconfig.json** allows to define the basepath, useful cleaner imports
 
 ## Some useful links
-
 * [Tutorial 1](https://daveceddia.com/create-react-app-express-backend/)
 * [Tutorial 2](https://www.techomoro.com/how-to-create-a-react-frontend-express-backend-and-connect-them-together/)
 * [Proxying backend requests](https://create-react-app.dev/docs/proxying-api-requests-in-development/)
@@ -32,6 +31,8 @@ We are using the common used ***create-react-app*** framework. All api callbacks
 * [Make import path based on Root in React](https://dev-yakuza.posstree.com/en/react/root-import/)
 
 ### Other Interesitng links:
+* [Modern React Tutorial Videos](https://www.youtube.com/watch?v=j942wKiXFu8&list=PL4cUxeGkcC9gZD-Tvwfod2gaISzfRiP9d&index=1)
+* [Functional Components vs Class Components in React](https://www.twilio.com/blog/react-choose-functional-components)
 * [How do I do AJAX requests in React?](https://daveceddia.com/ajax-requests-in-react/)
 * [Podria ser una buena guia para añadir una BBDD](https://dev.to/pacheco/my-fullstack-setup-node-js-react-js-and-mongodb-2a4k)
 * [**ReactRouter** without webpack](https://www.pluralsight.com/guides/using-react-router-with-cdn-links)
