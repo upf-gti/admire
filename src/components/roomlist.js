@@ -5,8 +5,8 @@ export default function RoomList({rooms}){
     return (<>
         {rooms.map( (v,k,a) => {
             return (
-                <Link to={`rooms/${v.id}`}>
-                    <li key={k}>{v.id}</li>;
+                <Link key={k} to={`rooms/${v.id}`}>
+                    <li>{v.id}</li>
                 </Link>);
         })}
     </>);

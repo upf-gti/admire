@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
+import { Row } from 'react-bootstrap';
 import { useParams } from 'react-router-dom';
 import { rtcClient, appClient, mediaAdapter } from 'extra/bra';
 
 import V404 from 'views/v404';
 
-export default function Room()
+export default function Room({setNavItems})
 {
     const { roomId } = useParams();
     const [ valid, setValid ]       = useState(null);
@@ -31,6 +32,8 @@ export default function Room()
         return <V404 title='Room does not exist' description='some description'/>;
     }
     return (<>
-        <h1>Room {roomId}</h1>
+        <Row id="title" className="m-auto align-self-center" >{/*Title*/}
+            <h1 style={{color:"hsl(210, 11%, 85%)", marginTop:"1rem"}}>#{roomId}</h1>
+        </Row>
     </>)
 }

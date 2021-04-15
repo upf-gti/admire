@@ -1,37 +1,32 @@
 import { useState, useEffect, useRef } from 'react';
 import { rtcClient, appClient, mediaAdapter } from 'extra/bra';
 
+import Navbar from 'components/nav';
 import RoomList from 'components/roomlist';
 
-export default function Lobby({user, setLogin}) {
+export default function Lobby({user, setLogin, setNavItem}) {
 
     const [rooms, setRooms] = useState(null);
     const roomIdRef = useRef(null);
 
     useEffect(() => {
-            appClient.on("logout_response",      onLogOut);
+            console.log('A');
+            setNavItem('New Room +', <li>hola</li>);
             appClient.on('get_rooms_response',   onGetRooms);
             appClient.on('create_room_response', onCreateRoom);
             appClient.getRooms();
         return () => {
-            appClient.off("logout_response",      onLogOut);
+            setNavItem('New Room +', null);
             appClient.off('get_rooms_response',   onGetRooms);
             appClient.off('create_room_response', onCreateRoom);
         }
-    }, []);
+    }, [user]);
     
-    function doLogOut(){
-        appClient.logout();
-    }
-
-    function onLogOut(){
-        setLogin(null);
-    }
-
     function doCreateRoom()
     {
         console.log('create room');
         appClient.createRoom(roomIdRef.current.value);
+        //document.location(`/rooms/${roomIdRef.current.value}`);
     }
 
     function onCreateRoom(event)
@@ -56,7 +51,7 @@ export default function Lobby({user, setLogin}) {
 
     return (<>
         <h2>Lobby</h2>
-        <button onClick={doLogOut}> Logout </button>
+        
         { user.type !== "0" && <input ref={roomIdRef} placeholder='roomId'/> }
         { user.type !== "0" && <button onClick={doCreateRoom}> new room </button> }
         {rooms && <RoomList rooms={rooms}/>}

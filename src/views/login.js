@@ -1,5 +1,10 @@
 import { useRef, useEffect } from 'react';
 import { rtcClient, appClient, mediaAdapter } from 'extra/bra';
+import { Container, Card, Image, Button, Form } from 'react-bootstrap';
+
+import AnimatedBackground from 'components/animatedBackground';
+
+import login_img from "assets/img/login.png"
 
 export default function Login({ setLogin }) {
 
@@ -23,9 +28,41 @@ export default function Login({ setLogin }) {
     }, []);
 
     return (<>
-        <h2>Login</h2>
-        <input ref={userRef} id='user' placeholder='id' />
-        <input ref={passRef} id='pass' placeholder='password' />
-        <button onClick={doSubmit}>submit</button>
+        <AnimatedBackground color1="#232727" color2="#666" speed={3}/>
+
+        <Container className="d-flex vh-100">
+            <div className="m-auto align-self-center">
+
+            <Card className="shadow-lg" style={{ width: '18rem' }}>
+                <Image src={login_img} fluid style={{
+                    userDrag: "none", 
+                    userSelect: "none",
+                    MsUserSelect: "none",
+                    MozUserSelect: "none",
+                    WebkitUserDrag: "none",
+                    WebkitUserSelect: "none",
+                    maxHeight: "25vh",
+                    objectFit: "cover",
+                    objectPosition: "top"
+                    }}/>
+                <Card.Body>
+                    <h2>Login</h2>
+                    <Form noValidate>
+
+                        <Form.Group className="mb-2" controlId="formLoginID">
+                            <Form.Control  ref={userRef} placeholder='id' />
+                        </Form.Group>
+
+                        <Form.Group className="mb-2" controlId="formLoginID">
+                            <Form.Control  ref={passRef} placeholder='password' />
+                        </Form.Group>
+
+                        <Button variant="primary" size="m" onClick={doSubmit}>Submit</Button>
+
+                    </Form>
+                </Card.Body>
+            </Card>
+            </div>
+        </Container>
     </>);
 }
