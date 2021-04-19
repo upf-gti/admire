@@ -4,15 +4,15 @@ nav.js (c) 2021
 Desc: 
 //icons https://icons.getbootstrap.com/#usage
 Created:  2021-01-16T09:17:06.826Z
-Modified: 2021-02-25T13:42:23.751Z
+Modified: 2021-04-19T14:58:03.164Z
 */
 
 import React from 'react';
-import { Image, Col, Row } from 'react-bootstrap';
+import { Image, Col, Row, Button } from 'react-bootstrap';
 import { Link } from "react-router-dom";
 
-import './Navbar.css';
-import Logo from 'assets/img/logo.png';
+import './Navbar.scss';
+import Logo from 'assets/img/logo-nav.png';
 
 let count = 0;
 export class NavItem extends React.Component {
@@ -45,7 +45,7 @@ export class NavItem extends React.Component {
     );
 
     return (
-      <li key={key} onClick={this.props.onClick}>
+      <li id={this.props.id} key={key} onClick={this.props.onClick}>
         <a>
             <i className={this.props.icon} style={this.props.style}></i>
             {this.props.title}
@@ -118,23 +118,23 @@ export default class Navbar extends React.Component {
         <nav id="sidebar">
 
           <Row className="sidebar-header">
-            <Col xs={4}><Image id="logo" className="App-logo" src={Logo} rounded /></Col>
+            <Col xs={4}><Image id="logo" className="App-logo" src={Logo}/></Col>
             <Col style={{ paddingLeft: 0 }}>
               <h3>AdMiRe:</h3>
-              {<h5>{`${this.props.user.type !== "0" ? "Admin" : "User"} ${ this.props.user.id }`}</h5>}
+              <h5>{`${this.props.user.type !== "0" ? "Admin" : "User"} ${ this.props.user.id }`}</h5>
             </Col>
           </Row>
 
 
-          <ul className="list-unstyled components">
-            <p>Main Menu</p>
+          <ul className="list-unstyled">
+            <h5>Main Menu</h5>
             {(()=>Object.values(this.state.items))()}
             {this.props.children}
           </ul>
 
-
-          <ul className="list-unstyled">
-            <NavItem k="-2" icon="bi bi-power" title="Logout" onClick={this.props.doLogOut}/>
+          <ul id="nav-footer" className="list-unstyled">
+            <Button id="logout" size="sm" variant="outline-light" onClick={this.props.doLogOut}> LogOut <i className="bi bi-door-open"/> </Button>
+            {/*<NavItem k="-2" icon="bi bi-door-open" id="logout" title="LogOut" onClick={this.props.doLogOut}/>*/}
           </ul>
 
 

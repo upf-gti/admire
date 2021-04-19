@@ -8,6 +8,7 @@ import Login from 'views/login';
 import Lobby from 'views/lobby';
 import Navbar from 'components/Navbar';
 
+import "./app.scss";
 
 export default function App() {
     const [login, setLogin] = useState(null);
@@ -75,7 +76,7 @@ export default function App() {
 
     return (<>
         <Router>
-            <div className="wrapper">
+            <div className="app wrapper">
                 <Navbar user={login} doLogOut={doLogOut}/>
                 <div id="content">
                 <Switch>

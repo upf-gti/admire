@@ -3,7 +3,7 @@ Author: Hermann Plass (hermann.plass@gmail.com)
 animatedBackground.js (c) 2021
 Desc: [animated background](https://www.csscodelab.com/react-wave-background-animation/)
 Created:  2021-01-15T22:10:42.169Z
-Modified: 2021-02-25T11:22:27.140Z
+Modified: 2021-04-19T13:31:46.018Z
 */
 
 import React from 'react';

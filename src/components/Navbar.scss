@@ -1,0 +1,222 @@
+/* Shrinking the sidebar from 250px to 80px and center aligining its content*/
+@import "variables.scss";
+
+/* ---------------------------------------------------
+    CONTENT STYLE
+----------------------------------------------------- */
+
+#content {
+    /*width: 100%;*/
+    width: calc(100% - 250px);
+    padding: 40px;
+    min-height: 100vh;
+    transition: all 0.3s;
+    position: absolute;
+    top: 0;
+    right: 0;
+
+    &.active {
+        /*width: 100%;*/
+        width: calc(100% - 250px);
+    }
+}
+
+
+
+/* ---------------------------------------------------
+    SIDEBAR STYLE
+----------------------------------------------------- */
+#sidebar {
+    width:235px;
+    padding-top:3rem;
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    
+    color: #fff;
+    text-align: center;
+    font-family: $principal_font;
+    
+    background-color: $color4;
+    box-shadow: 3px 3px 3px rgba(0, 0, 0, 0.2);
+    
+    /*left: -250px;*/
+    transition: all 0.3s;
+    overflow-y: scroll;
+    overflow-x: hidden;
+    
+    z-index: 999;
+
+    &.active {
+        left: 0;
+    }
+    
+    .sidebar-header
+    {   
+        padding: 20px;
+
+        h3{
+            font-family: $principal_font;
+            font-weight: 700;
+            margin-bottom: -.5rem;
+        }
+        h5{
+            font-family: $principal_font;
+            font-weight: 100;
+            font-size:85%;
+            margin-top:.25rem;
+        }
+    }
+    
+    #logo{
+        width: 100%;
+        height: auto;
+        margin-left: 1rem;
+    }
+
+    //ul {}
+
+    #nav-footer
+    {
+        position:absolute;
+        bottom:-20px;
+        padding: 1.5rem 0;
+        width:100%;
+
+        #logout
+        {
+            border-radius: 20px;
+            padding-left:  2rem;
+            padding-right: 2rem;
+        }
+    }
+}
+
+#overlay {
+    display: none;
+    position: fixed;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 998;
+    opacity: 0;
+    transition: all 0.5s ease-in-out;
+
+    &.active {
+        display: block;
+        opacity: 1;
+    }
+}
+
+
+
+/* ---------------------------------------------------
+    MEDIAQUERIES
+----------------------------------------------------- */
+@media (max-width: 823px) {
+
+    #sidebar {
+        margin-left: -250px;
+
+        &.active{
+            margin-left: 0;
+        }
+    }
+
+    #content {
+        width: 100%;
+        padding: 20px 0;
+
+        &.active {
+            /*width: calc(100% - 250px);*/
+            width: 100%;
+        }
+    }
+    
+    #sidebarCollapse{
+        display: block;
+    }
+
+    #overlay{
+        &.active {
+            pointer-events: unset;
+            display: block;
+            opacity: 1;
+            transition: opacity .25s ease-in-out;
+        }
+    }
+}
+
+
+
+a,
+a:hover,
+a:focus {
+    color: inherit;
+    text-decoration: none;
+    transition: all 0.3s;
+}
+
+
+/*
+#sidebar ul.components {
+    border-bottom: .1px solid white;
+}
+
+#sidebar ul p {
+    color: #fff;
+    padding: 10px;
+    font-family: Montserrat;
+    text-transform: capitalize;
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin: 0 auto;
+    padding-bottom: 0;
+    padding-top: 0;
+}
+
+#sidebar ul li a {
+    padding: 10px;
+    font-size: 1.1em;
+    display: block;
+    text-decoration: none;
+    font-family: Lato;
+    font-weight:500;
+    color: white;
+}
+
+#sidebar ul li a:hover {
+    color: #333737;
+    background: #fff;
+}
+
+#sidebar ul li.active>a,
+#sidebar a[aria-expanded="true"] 
+{
+    color: #fff;
+    background: #333737;
+}
+
+#sidebar ul li i::before{
+    line-height: 1.3 !important;
+    padding-right: 5px;
+}
+
+#sidebar a[data-toggle="collapse"] {
+    position: relative;
+}
+
+.dropdown-toggle::after {
+    display: block;
+    position: absolute;
+    top: 50%;
+    right: 20px;
+    transform: translateY(-50%);
+}
+
+#sidebar ul ul a {
+    font-size: 0.9em !important;
+    padding-left: 30px !important;
+    background: #6d7fcc;
+}*/

@@ -1,16 +1,7 @@
+
 :root {
   --scroll-fg: rgba(1,1,1,.15);
   --scroll-bg: #7386D5;
-}
-
-.bi{
-  top: -1px;
-  position: relative;
-}
-
-.vh-90
-{
-  height: 90vh!important;
 }
 
 body,html{
@@ -34,26 +25,7 @@ code {
     monospace;
 }
 
-* {
-  scrollbar-width: thin;
-  scrollbar-color: var(--scroll-fg) var(--scroll-bg);
-}
 
-/* Works on Chrome, Edge, and Safari */
-*::-webkit-scrollbar {
-    width: 6px;
-    margin-right: -10px;
-}
-
-*::-webkit-scrollbar-track {
-    background: var(--scroll-bg);   
-}
-
-*::-webkit-scrollbar-thumb {
-    background-color: var(--scroll-fg);
-    border-radius: 20px;
-    border: 3px solid var(--scroll-bg);
-}
 
 /* ---------------------------------------------------
     APP
@@ -171,3 +143,4 @@ code {
       transition: all .25s linear;
   }
 }
+

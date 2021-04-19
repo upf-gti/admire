@@ -1,0 +1,57 @@
+/*
+Author: Hermann Plass (hermann.plass@gmail.com)
+login.css (c) 2021
+Desc: description
+Created:  2021-04-19T12:48:45.099Z
+Modified: 2021-04-19T14:05:16.905Z
+*/
+
+@import "variables.scss";
+
+html{
+    background-color: $background;
+}
+
+.login
+{
+    .card {
+        border:none;
+        background-color: transparent;
+        backdrop-filter: blur(27px);
+    }
+
+    #login-logo {
+        padding:1rem;
+        -webkit-user-drag: none;
+        user-select: none;
+        object-fit: cover;
+        object-position: top;
+        //user-drag: none; 
+    }
+
+    #title {
+        //font-family: $principal_font;
+        color: $color6;
+        font-size: 3rem;
+    }
+
+    #subtitle {
+        font-family: $principal_font;
+        color: $color5;
+    }
+
+    input {
+        background-color: $color2;
+        border-color: $color2;
+        border-radius: .75rem;
+        font-family: $principal_font;
+    }
+
+    button {
+        position:relative;
+        width: 7rem;
+        border-radius: .75rem;
+        left:25%;
+        font-family: $principal_font;
+    }
+}

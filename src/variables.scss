@@ -1,0 +1,27 @@
+/*==========================================
+    COLORS
+==========================================*/
+$background: #1B222E;
+$color1:#2A313C;
+$color2:#494E58;
+$color3:#4A66AC;
+$color4:#0584C6;
+$color5:#A0CEFF;
+$color6:#D1D3D5;
+
+
+/*==========================================
+    FONTS
+==========================================*/
+@font-face {
+    font-family: "Comfortaa";
+    src: url("./assets/fonts/Comfortaa-Bold.ttf")     format("ttf"),
+         url("./assets/fonts/Comfortaa-Bold.ttf")     format("ttf"),
+         url("./assets/fonts/Comfortaa-Light.ttf")    format("ttf"),
+         url("./assets/fonts/Comfortaa-Medium.ttf")   format("ttf"),
+         url("./assets/fonts/Comfortaa-Regular.ttf")  format("ttf"),
+         url("./assets/fonts/Comfortaa-SemiBold.ttf") format("ttf"),
+}
+
+$principal_font: 'Comfortaa', sans-serif;
+$secondary_font: 'Comfortaa', sans-serif;
