@@ -4,14 +4,14 @@ nav.js (c) 2021
 Desc: 
 //icons https://icons.getbootstrap.com/#usage
 Created:  2021-01-16T09:17:06.826Z
-Modified: 2021-04-19T14:58:03.164Z
+Modified: 2021-04-20T10:18:17.063Z
 */
 
 import React from 'react';
 import { Image, Col, Row, Button } from 'react-bootstrap';
 import { Link } from "react-router-dom";
 
-import './Navbar.scss';
+import './navbar.scss';
 import Logo from 'assets/img/logo-nav.png';
 
 let count = 0;
@@ -113,6 +113,20 @@ export default class Navbar extends React.Component {
   //TODO: setTitle method
 
   render() {
+
+    let CollapseButtonCallback = (e) => {
+      document.getElementById("sidebar").classList.add("active");
+      document.getElementById("overlay").classList.add("active");
+      document.querySelectorAll(".collapse.in").forEach((v, k, a) => { v.classList.toggle("in"); });
+      document.querySelectorAll('a[aria-expanded=true]').forEach((v, k, a) => { v.attr('aria-expanded', 'false'); });
+    };
+
+    let OverlayCallback = () => {
+      document.querySelectorAll("#sidebar, #content, #overlay").forEach((v, k, a) => { v.classList.toggle("active"); });
+      document.querySelectorAll('.collapse.in').forEach((v, k, a) => { v.classList.toggle("in"); });
+      document.querySelectorAll('a[aria-expanded=true]').forEach((v, k, a) => { v.attr('aria-expanded', 'false'); });
+    };
+
     return (
       <>
         <nav id="sidebar">
@@ -139,18 +153,8 @@ export default class Navbar extends React.Component {
 
 
         </nav>
-        <div id="overlay" onClick={() => {
-          document.querySelectorAll("#sidebar, #content, #overlay").forEach((v, k, a) => { v.classList.toggle("active"); });
-          document.querySelectorAll('.collapse.in').forEach((v, k, a) => { v.classList.toggle("in"); });
-          document.querySelectorAll('a[aria-expanded=true]').forEach((v, k, a) => { v.attr('aria-expanded', 'false'); });
-        }}></div>
-
-        <button type="button" id="sidebarCollapse" className="btn btn-info" onClick={(e) => {
-          document.getElementById("sidebar").classList.add("active");
-          document.getElementById("overlay").classList.add("active");
-          document.querySelectorAll(".collapse.in").forEach((v, k, a) => { v.classList.toggle("in"); });
-          document.querySelectorAll('a[aria-expanded=true]').forEach((v, k, a) => { v.attr('aria-expanded', 'false'); });
-        }}><i className="bi bi-text-left"></i></button>
+        <div id="overlay" onClick={OverlayCallback}></div>
+        <Button size="sm" variant="outline-light" id="sidebarCollapse" onClick={CollapseButtonCallback}> <i className="bi bi-list"/> </Button>
       </>
     );
   }

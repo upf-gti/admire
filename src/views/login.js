@@ -17,10 +17,19 @@ export default function Login({ setLogin }) {
     }
 
     function onLogin(event) {
-        setLogin({ id: event.userId, type: event.userType });
-        console.log('logged', event);
+        switch(event.status)
+        {
+            case 'ok':
+                setLogin({ id: event.userId, type: event.userType });
+                console.log('logged', event);
+                break;
+            case 'error': 
+                //TODO: show error toast
+                console.error('error', event.description);
+                break;
+        }
     }
-
+    
     useEffect(() => { //Acts like 'componentWillMount'
             appClient.on("login_response", onLogin);
         return () => {//Acts like /componentWillUnmount'
@@ -29,7 +38,7 @@ export default function Login({ setLogin }) {
     }, []);
 
     return (<>
-        <AnimatedBackground color1="#232727" color2="#666" speed={3}/>
+        <AnimatedBackground color1="#1B222E" color2="#666" speed={3}/>
 
         <Container className="login d-flex vh-100">
             <div className="m-auto align-self-center">
@@ -51,7 +60,7 @@ export default function Login({ setLogin }) {
                             <Form.Control  ref={passRef} placeholder='password' />
                         </Form.Group>
 
-                        <Button variant="primary" size="m" onClick={doSubmit}>submit</Button>
+                        <Button variant="primary" size="m" onClick={doSubmit} >submit</Button>
 
                     </Form>
                 </Card.Body>

@@ -1,0 +1,40 @@
+@import "variables.scss";
+
+#lobby
+{
+    #title{
+        color:$color3;
+        font-weight: bold;
+        font-family: $principal_font;
+    }
+}
+#create-room-modal
+{
+    
+    .modal-header
+    {
+        color:white;
+    }
+
+    .modal-content
+    {
+        box-shadow: 0 0 30px rgba(0,0,0,.5);
+
+        background-color: $color1 !important;
+        input{
+            border-radius:10px;
+            border-color:$color2;
+            background-color: $color2;
+            font-family: $principal_font;
+        }
+    }
+
+    .modal-footer{
+        text-align: center;
+    }
+
+    button{
+        font-family: $principal_font;
+        border-radius:20px;
+    }
+}

@@ -64,48 +64,9 @@ code {
   background-color: #F4F5F7 !important;
 }
 
-#content {
-  /*width: 100%;*/
-  width: calc(100% - 250px);
-  padding: 40px;
-  min-height: 100vh;
-  transition: all 0.3s;
-  position: absolute;
-  top: 0;
-  right: 0;
-  background-color: #F4F5F7;
-}
 
-#content.active {
-  /*width: 100%;*/
-  width: calc(100% - 250px);
-}
 
-#sidebarCollapse{
-  display: none;
-  position:fixed;
-  z-index: 100;
-  margin:1rem;
-}
 
-#overlay {
-  display: block;
-  pointer-events: none;
-  position: fixed;
-  width: 100vw;
-  height: 100vh;
-  background: rgba(0, 0, 0, 0.7);
-  z-index: 998;
-  opacity: 0;
-  transition: opacity .25s ease-in-out;
-}
-
-#overlay.active {
-  pointer-events: unset;
-  display: block;
-  opacity: 0;
-  transition: opacity .25s ease-in-out;
-}
 
 /* ---------------------------------------------------
     MEDIAQUERIES

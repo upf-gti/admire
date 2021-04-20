@@ -21,6 +21,12 @@
     }
 }
 
+#sidebarCollapse{
+    display: none;
+    position:fixed;
+    z-index: 100;
+    margin:1rem;
+  }
 
 
 /* ---------------------------------------------------

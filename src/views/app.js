@@ -6,7 +6,7 @@ import { rtcClient, appClient, mediaAdapter } from 'extra/bra';
 import Room from 'views/room';
 import Login from 'views/login';
 import Lobby from 'views/lobby';
-import Navbar from 'components/Navbar';
+import Navbar from 'components/navbar';
 
 import "./app.scss";
 
@@ -34,7 +34,7 @@ export default function App() {
         }
     }, [appUrl, rtcUrl]);
 
-    function onConnect() {
+    function onConnect(event) {
         console.log(`App client connected to ${appUrl}`);
         setFetching(true);
         appClient.autologin();
