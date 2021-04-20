@@ -8,8 +8,6 @@ import "style.scss";
 import App from "views/app";
 
 ReactDOM.render(
-  <React.StrictMode>
   <App/>
-  </React.StrictMode>,
-  document.getElementById('root')
+  ,document.getElementById('root')
 );

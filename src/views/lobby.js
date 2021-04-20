@@ -1,4 +1,4 @@
-import { Container, Card, Button, Modal, Form } from 'react-bootstrap';
+import { Container, Card, Button, Modal, Form, Row, Col } from 'react-bootstrap';
 import { useState, useEffect, useRef } from 'react';
 import { rtcClient, appClient, mediaAdapter } from 'extra/bra';
 
@@ -28,6 +28,7 @@ export default function Lobby({user, setLogin, setNavItem}) {
     {
         console.log('create room');
         appClient.createRoom(roomIdRef.current.value);
+        setShowModal(false);
         //document.location(`/rooms/${roomIdRef.current.value}`);
     }
 
@@ -53,8 +54,14 @@ export default function Lobby({user, setLogin, setNavItem}) {
 
     return (<>
 
-    <Modal id="create-room-modal" centered show={showModal} onHide={()=>setShowModal(false)}>
-        <Modal.Header closeButton>
+    <Modal 
+        centered 
+        id="create-room-modal" 
+        show={showModal?true:false} 
+        onHide={()=>setShowModal(false)}
+        aria-labelledby="contained-modal-title-vcenter"
+    >
+        <Modal.Header>
             <Modal.Title>Create new teleporting room</Modal.Title>
         </Modal.Header>
 
@@ -62,23 +69,28 @@ export default function Lobby({user, setLogin, setNavItem}) {
             <Form.Group className="mb-2" controlId="formCreateRoomID">
                 <Form.Control  size="lg" ref={roomIdRef} placeholder='roomId' />
             </Form.Group>
-
         </Modal.Body>
 
         <Modal.Footer className="text-center">
-            <Button variant="outline-secondary" >Cancel</Button>
+            <Button variant="outline-secondary" onClick={()=>setShowModal(false)} >Cancel</Button>
             <Button variant="outline-primary" onClick={doCreateRoom} >Proceed!</Button>
         </Modal.Footer>
     </Modal>
 
-    <Container fluid id="lobby" className="text-center">
-        <h3 id="title">Lobby:</h3>
+    <Container fluid="xs" id="lobby" className="text-center mt-5 mb-5">
+        <Row className="justify-content-md-center">
+        <Col xs={12} lg={6} xl={4}>
 
-        { rooms && <RoomList rooms={rooms}/> }
-        
-        <div id="footer">
-            {user.type !== "0" && <Button onClick={()=>setShowModal(true)}> <i className="bi bi-plus"/> New Room </Button>}
-        </div>
+            <h3 id="title">Lobby:</h3>
+
+            { rooms && <RoomList rooms={rooms}/> }
+            
+            <div id="footer">
+                {user.type !== "0" && <Button onClick={()=>setShowModal(true)}> <i className="bi bi-plus"/> New Room </Button>}
+            </div>
+            
+        </Col>
+        </Row>
     </Container>
     </>);
 }

@@ -7,10 +7,24 @@
         font-weight: bold;
         font-family: $principal_font;
     }
+
+    #footer
+    {
+        width:100%;
+        
+        //position:absolute;
+
+        margin-left:auto;
+        margin-right:auto;
+        bottom:10rem;
+        .btn{
+            font-family: $principal_font;
+            border-radius:20px;
+        }
+    }
 }
 #create-room-modal
 {
-    
     .modal-header
     {
         color:white;
@@ -22,6 +36,7 @@
 
         background-color: $color1 !important;
         input{
+            color:white;
             border-radius:10px;
             border-color:$color2;
             background-color: $color2;
@@ -31,10 +46,10 @@
 
     .modal-footer{
         text-align: center;
-    }
-
-    button{
-        font-family: $principal_font;
-        border-radius:20px;
+        
+        button{
+            font-family: $principal_font;
+            border-radius:20px;
+        }
     }
 }

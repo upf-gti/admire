@@ -17,7 +17,7 @@ export default function RoomList({rooms}){
                         <Col xs={"auto"}>
                             <Image className="room-icon" src={roomIcon} height="64px"/>
                         </Col>
-                        <Col style={{paddingLeft: 0}}>
+                        <Col style={{paddingLeft: 0, textAlign:"left"}}>
                             <span>#{v.id}</span>
                             {v.guests.map( (v,k,a) => {
                                 return (
@@ -27,6 +27,7 @@ export default function RoomList({rooms}){
                                         overlay={<Tooltip id={`user-tooltip-${k}`}>{v}</Tooltip>}
                                     >
                                         <Image className="user-icon" roundedCircle src={userIcon} height="48px" />
+                                        {/*TODO:fetch for user image from somewhere*/}
                                     </OverlayTrigger>
                                 )
                             })}
