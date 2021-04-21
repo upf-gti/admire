@@ -1,3 +1,4 @@
+import Helmet from 'react-helmet';
 import { useRef, useEffect } from 'react';
 import { rtcClient, appClient, mediaAdapter } from 'extra/bra';
 import { Container, Card, Image, Button, Form } from 'react-bootstrap';
@@ -17,16 +18,21 @@ export default function Login({ setLogin }) {
     }
 
     function onLogin(event) {
-        switch(event.status)
+
+        const {status, userId, userType, description} = event;
+
+        switch(status)
         {
             case 'ok':
-                setLogin({ id: event.userId, type: event.userType });
+                setLogin({ id: userId, type: userType });
                 console.log('logged', event);
                 break;
             case 'error': 
                 //TODO: show error toast
-                console.error('error', event.description);
+                console.error(status, description);
                 break;
+            default:
+                console.warn(status, description);
         }
     }
     
@@ -35,9 +41,13 @@ export default function Login({ setLogin }) {
         return () => {//Acts like /componentWillUnmount'
             appClient.off("login_response", onLogin);
         }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     return (<>
+        <Helmet>
+            <title>AdMiRe: LogIn</title>
+        </Helmet>
         <AnimatedBackground color1="#1B222E" color2="#666" speed={3}/>
 
         <Container className="login d-flex vh-100">

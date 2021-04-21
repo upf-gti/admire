@@ -19,20 +19,21 @@ export default function App() {
     const rtcUrl = "wss://rtcserver.brainstorm3d.com";
 
     useEffect(() => { //Acts like 'componentWillMount'
-            appClient.on('client_connected', onConnect);
-            appClient.on('client_disconnected', onDisconnect);
-            appClient.on("autologin_response", onAutoLoginResponse);
+            appClient.on('client_connected',     onConnect);
+            appClient.on('client_disconnected',  onDisconnect);
+            appClient.on("autologin_response",   onAutoLoginResponse);
             appClient.on("logout_response",      onLogOut);
             appClient.connect(appUrl);
             rtcClient.connect(rtcUrl);
         return () => {//Acts like /componentWillUnmount'
-            appClient.off('client_connected', onConnect);
+            appClient.off('client_connected',    onConnect);
             appClient.off('client_disconnected', onDisconnect);
-            appClient.off("logout_response",      onLogOut);
+            appClient.off("logout_response",     onLogOut);
             appClient.disconnect();
             rtcClient.disconnect();
         }
-    }, [appUrl, rtcUrl]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [appUrl, rtcUrl]); //This are the direct dependencies, the useEffect applies an observer pattern, whenever the value changes, the useEffect is called again.
 
     function onConnect(event) {
         console.log(`App client connected to ${appUrl}`);
@@ -45,10 +46,12 @@ export default function App() {
     }
 
     function onAutoLoginResponse(event){
-        switch(event.status)
+        let {status, description, userId, userType} = event;
+        switch(status)
         {
-            case 'ok': setLogin({id:event.userId, type:event.userType}); break;
-            case 'error': break;
+            case 'ok': setLogin({id:userId, type:userType}); break;
+            case 'error': console.error(status, description);break;
+            default: console.warn(status, description); break;
         }
         setFetching(false);
     }

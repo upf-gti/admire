@@ -4,7 +4,7 @@ nav.js (c) 2021
 Desc: 
 //icons https://icons.getbootstrap.com/#usage
 Created:  2021-01-16T09:17:06.826Z
-Modified: 2021-04-20T10:18:17.063Z
+Modified: 2021-04-21T09:04:17.576Z
 */
 
 import React from 'react';
@@ -46,10 +46,10 @@ export class NavItem extends React.Component {
 
     return (
       <li id={this.props.id} key={key} onClick={this.props.onClick}>
-        <a>
+        <Link>
             <i className={this.props.icon} style={this.props.style}></i>
             {this.props.title}
-        </a>
+        </Link>
       </li>
     )
     
@@ -70,11 +70,12 @@ export default class Navbar extends React.Component {
   }
 
   constructor(props) {
-    super(props);
-
+    
     if (Navbar._instance)
       return Navbar._instance;
-
+      
+    super(props);
+    
     Navbar._props = props;
     Navbar._instance = this;
 
@@ -90,7 +91,7 @@ export default class Navbar extends React.Component {
   }
   
   static GET() {
-    return Navbar._instance || new Navbar(Navbar._props);
+    return Navbar._instance;
   }
 
   addItem(id, item)

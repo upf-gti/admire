@@ -12,11 +12,10 @@
     {
         width:100%;
         
-        //position:absolute;
+        position:absolute;
+        bottom: 80px;
+        left:0;
 
-        margin-left:auto;
-        margin-right:auto;
-        bottom:10rem;
         .btn{
             font-family: $principal_font;
             border-radius:20px;

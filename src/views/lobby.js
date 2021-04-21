@@ -1,8 +1,8 @@
+import Helmet from 'react-helmet';
 import { Container, Card, Button, Modal, Form, Row, Col } from 'react-bootstrap';
 import { useState, useEffect, useRef } from 'react';
 import { rtcClient, appClient, mediaAdapter } from 'extra/bra';
 
-import Navbar from 'components/nav';
 import RoomList from 'components/roomlist';
 
 import "./lobby.scss";
@@ -22,6 +22,7 @@ export default function Lobby({user, setLogin, setNavItem}) {
             appClient.off('get_rooms_response',   onGetRooms);
             appClient.off('create_room_response', onCreateRoom);
         }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user]);
     
     function doCreateRoom()
@@ -34,15 +35,17 @@ export default function Lobby({user, setLogin, setNavItem}) {
 
     function onCreateRoom(event)
     {
+        const {id : title, status, description} = event;
         
-        switch(event.status)
+        switch(status)
         {
+
             case 'ok': appClient.getRooms(); break;
-            case 'error': 
-                const {id : title, status: type, description} = event;
-                console.error(description);
+            case 'error': console.error(status, description);
                 //TODO: fire an error toast
             break;
+            default: console.warn(status, description); break;
+
         }
     }
 
@@ -53,7 +56,9 @@ export default function Lobby({user, setLogin, setNavItem}) {
     }
 
     return (<>
-
+    <Helmet>
+        <title>AdMiRe: {`${user.type !== "0" ? "Admin" : "User"} ${ user.id }`}</title>
+    </Helmet>
     <Modal 
         centered 
         id="create-room-modal" 
@@ -77,18 +82,18 @@ export default function Lobby({user, setLogin, setNavItem}) {
         </Modal.Footer>
     </Modal>
 
-    <Container fluid="xs" id="lobby" className="text-center mt-5 mb-5">
+    <Container fluid="xs" id="lobby" className="text-center pt-5 pb-5">
         <Row className="justify-content-md-center">
         <Col xs={12} lg={6} xl={4}>
 
-            <h3 id="title">Lobby:</h3>
+            <h1 id="title">Lobby:</h1>
 
             { rooms && <RoomList rooms={rooms}/> }
             
             <div id="footer">
                 {user.type !== "0" && <Button onClick={()=>setShowModal(true)}> <i className="bi bi-plus"/> New Room </Button>}
             </div>
-            
+
         </Col>
         </Row>
     </Container>
