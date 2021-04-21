@@ -9,7 +9,7 @@ let rtcClient = new RtcClient(),
     appClient = new AppClient(), 
     mediaAdapter = new MediaAdapter();
 
-    appClient.DEBUG = false;
+    //appClient.DEBUG = false;
 
 export {
    rtcClient, 

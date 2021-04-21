@@ -82,7 +82,7 @@ export default function Lobby({user, setLogin, setNavItem}) {
         </Modal.Footer>
     </Modal>
 
-    <Container fluid="xs" id="lobby" className="text-center pt-5 pb-5">
+    <Container fluid="xs" id="lobby" className="text-center">
         <Row className="justify-content-md-center">
         <Col xs={12} lg={6} xl={4}>
 

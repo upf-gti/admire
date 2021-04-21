@@ -4,7 +4,7 @@ nav.js (c) 2021
 Desc: 
 //icons https://icons.getbootstrap.com/#usage
 Created:  2021-01-16T09:17:06.826Z
-Modified: 2021-04-21T09:04:17.576Z
+Modified: 2021-04-21T09:50:53.880Z
 */
 
 import React from 'react';
@@ -71,13 +71,13 @@ export default class Navbar extends React.Component {
 
   constructor(props) {
     
-    if (Navbar._instance)
-      return Navbar._instance;
+    //if (Navbar._instance)
+    //  return Navbar._instance;
       
     super(props);
     
-    Navbar._props = props;
-    Navbar._instance = this;
+    //Navbar._props = props;
+    //Navbar._instance = this;
 
     this.nav = React.createRef();
   }
@@ -90,9 +90,9 @@ export default class Navbar extends React.Component {
     this.setState({isMounted:false})
   }
   
-  static GET() {
-    return Navbar._instance;
-  }
+  //static GET() {
+  //  return Navbar._instance;
+  //}
 
   addItem(id, item)
   {
@@ -148,7 +148,7 @@ export default class Navbar extends React.Component {
           </ul>
 
           <ul id="nav-footer" className="list-unstyled">
-            <Button id="logout" size="sm" variant="outline-light" onClick={this.props.doLogOut}> LogOut <i className="bi bi-door-open"/> </Button>
+            <Button as={Link} to="/" id="logout" size="sm" variant="outline-light" onClick={this.props.doLogOut}> LogOut <i className="bi bi-door-open"/> </Button>
             {/*<NavItem k="-2" icon="bi bi-door-open" id="logout" title="LogOut" onClick={this.props.doLogOut}/>*/}
           </ul>
 

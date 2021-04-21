@@ -1,8 +1,22 @@
+@import "variables.scss";
 @import url("https://cdn.jsdelivr.net/npm/bootstrap-icons@1.4.1/font/bootstrap-icons.css");
 
 body, html{
     overflow: hidden;
 }
+
+#title{
+    color:$color3;
+    font-weight: bold;
+    font-family: $principal_font;
+}
+
+#description{
+    color:white;
+    font-weight: bold;
+    font-family: $principal_font;
+}
+
 /*==========================================
     Custom Class rules for Bootstrap
 ==========================================*/

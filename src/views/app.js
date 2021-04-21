@@ -19,6 +19,8 @@ export default function App() {
     const rtcUrl = "wss://rtcserver.brainstorm3d.com";
 
     useEffect(() => { //Acts like 'componentWillMount'
+            console.clear();
+
             appClient.on('client_connected',     onConnect);
             appClient.on('client_disconnected',  onDisconnect);
             appClient.on("autologin_response",   onAutoLoginResponse);
