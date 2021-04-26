@@ -15,7 +15,7 @@ function RtcClient()
     this.events = { };
 
     this.peers = { };
-    this.streams = { };
+    this.localStreams = { };
 
     /**
      * Handlers used to listen messages from the server.
@@ -29,7 +29,7 @@ function RtcClient()
         "register_response": this.onRegisterResponse.bind(this),
         "unregister_response": this.onUnregisterResponse.bind(this),
         "call_response": this.onCallResponse.bind(this),
-        "incoming_call": true,
+        "incoming_call": this.onIncomingCall.bind(this),
         "accept_call_response": false,
         "cancel_call_response": false,
         "start_call": this.onStartCall.bind(this),
@@ -40,9 +40,19 @@ function RtcClient()
         "candidate_response": false,
         "remote_candidate": this.onRemoteCandidate.bind(this),
         "call_canceled": this.onCallCanceled.bind(this),
-        "hangup_response": false,
+        "hangup_response": true,
         "user_hangup": this.onUserHangup.bind(this)
     };
+}
+
+function Peer()
+{
+    this.callId = undefined;
+    this.callerId = undefined;
+    this.calleeId = undefined;
+    this.callerStream = undefined;
+    this.calleeStream = undefined;
+    this.connection = undefined;
 }
 
 /**
@@ -92,24 +102,25 @@ RtcClient.prototype.closeWebSocket = function()
  */
 RtcClient.prototype.closeCall = function( callId )
 {
-    // Connection.
+    // Free resources.
+
+    if( !(callId in this.peers) )
+    {
+        return;
+    }
+
     let peer = this.peers[callId];
-    if( peer )
+    delete(this.peers[callId]);
+    if( peer.connection )
     {
-        peer.close();
-        peer = undefined;
-
-        delete(this.peers[callId]);
+        peer.connection.close();
     }
 
-    // Stream.
-    let stream = this.streams[callId];
-    if( stream )
+    let id = (peer.callerId === this.userId) ? peer.callerStream : peer.calleeStream;
+    if( id in this.localStreams )
     {
-        delete this.streams[callId];
+        delete this.localStreams[id];
     }
-
-    this.emit("call_state", { callId: callId, state: "disconnected" });
 }
 
 /**
@@ -140,7 +151,7 @@ RtcClient.prototype.onMessage = function( msg )
             return;
         }
 
-        if( this.DEBUG ) console.log("%c%s%o", this.debugStyle, message.id, msg.data);
+        if( this.DEBUG ) console.log("%c%s" + "%o", this.debugStyle, message.id, msg.data);
 
         if( this.messages[message.id] instanceof Function )
         {
@@ -151,7 +162,7 @@ RtcClient.prototype.onMessage = function( msg )
     }
     else
     {
-        if( this.DEBUG ) console.log("%cunknown_message%o", this.debugStyle, msg.data);
+        if( this.DEBUG ) console.log("%cunknown_message" + "%o", this.debugStyle, msg.data);
     }
 }
 
@@ -162,7 +173,7 @@ RtcClient.prototype.onMessage = function( msg )
 RtcClient.prototype.sendMessage = function( message )
 {
     let msg = JSON.stringify(message);
-    if( this.DEBUG && message.id !== "ping" ) console.log("%c%s%o", this.debugStyle, message.id, msg);
+    if( this.DEBUG && message.id !== "ping" ) console.log("%c%s" + "%o", this.debugStyle, message.id, msg);
     this.ws.send(msg);
 }
 
@@ -188,7 +199,7 @@ RtcClient.prototype.onClose = function( event )
  */
 RtcClient.prototype.on = function( event, listener )
 {
-    if( !this.events.hasOwnProperty(event) )
+    if( typeof this.events[event] !== "object" )
     {
         this.events[event] = [];
     }
@@ -203,7 +214,7 @@ RtcClient.prototype.on = function( event, listener )
  */
 RtcClient.prototype.off = function( event, listener )
 {   
-    if( this.events.hasOwnProperty(event) )
+    if( typeof this.events[event] === "object" )
     {
         let index = this.events[event].indexOf(listener);
         if( index > -1 )
@@ -221,7 +232,7 @@ RtcClient.prototype.emit = function( event )
 {
     let args = [].slice.call(arguments, 1);
 
-    if( this.events.hasOwnProperty(event) )
+    if( typeof this.events[event] === "object" )
     {
         let listeners = this.events[event].slice();
         for( let i = 0; i < listeners.length; i++ )
@@ -269,13 +280,15 @@ RtcClient.prototype.ping = function()
  */
 RtcClient.prototype.register = function( userId )
 {
-    if( this.userId )
+    if( !userId || !RtcClient.validateString(userId) || this.userId )
     {
-        return;
+        return false;
     }
 
     let message = { id: "register", userId: userId };
     this.sendMessage(message);
+
+    return true;
 }
 
 /**
@@ -295,41 +308,73 @@ RtcClient.prototype.unregister = function()
 /**
  * Call a user with the specified stream.
  * @param {String} calleeId - The callee id.
- * @param {MediaStream} stream - The stream to share.
+ * @param {MediaStream} localStream - The local stream to share.
  */
-RtcClient.prototype.call = function( calleeId, stream )
+RtcClient.prototype.call = function( calleeId, localStream )
 {
-    let streamId = this.generateStreamId();
-    this.streams[streamId] = stream;
+    if( !calleeId || !RtcClient.validateString(calleeId) || this.userId === calleeId )
+    {
+        return false;
+    }
 
-    let message = { id: "call", callerId: this.userId, calleeId: calleeId, callerStream: streamId };
+    if( !localStream || !(localStream instanceof MediaStream) )
+    {
+        return false;
+    }
+
+    let id = this.generateStreamId();
+    this.localStreams[id] = localStream;
+
+    let message = { id: "call", callerId: this.userId, calleeId: calleeId, callerStream: id };
     this.sendMessage(message);
+
+    return true;
 }
 
 /**
  * Accept a call with the specified stream.
- * @param {Object} call - The call message.
- * @param {MediaStream} stream - The stream to share.
+ * @param {String} callId - The call id.
+ * @param {MediaStream} localStream - The local stream to share.
  */
-RtcClient.prototype.acceptCall = function( call, stream )
+RtcClient.prototype.acceptCall = function( callId, localStream )
 {
-    let streamId = this.generateStreamId();
-    this.streams[streamId] = stream;
+    if( !(callId in this.peers) )
+    {
+        return;
+    }
 
-    let message = call;
-    message["id"] = "accept_call";
-    message["calleeStream"] = streamId;
+    if( !localStream || !(localStream instanceof MediaStream) )
+    {
+        return false;
+    }
+
+    let id = this.generateStreamId();
+    this.localStreams[id] = localStream;
+
+    // Update the peer.
+    let peer = this.peers[callId];
+    peer.calleeStream = id;
+
+    let message = { id: "accept_call", callId: peer.callId, callerId: peer.callerId, calleeId: peer.calleeId, callerStream: peer.callerStream, calleeStream: peer.calleeStream };
     this.sendMessage(message);
 }
 
 /**
  * Cancel a call.
- * @param {Object} call - The call message.
+ * @param {String} callId - The call id.
  */
-RtcClient.prototype.cancelCall = function( call )
+RtcClient.prototype.cancelCall = function( callId )
 {
-    let message = call;
-    message["id"] = "cancel_call";
+    if( !(callId in this.peers) )
+    {
+        return;
+    }
+
+    // Delete the peer.
+    let peer = this.peers[callId];
+    delete this.peers[callId];
+
+    let message = { id: "cancel_call", callId: peer.callId, callerId: peer.callerId, calleeId: peer.calleeId, callerStream: peer.callerStream };
     this.sendMessage(message);
 }
 
@@ -339,7 +384,14 @@ RtcClient.prototype.cancelCall = function( call )
  */
 RtcClient.prototype.hangup = function( callId )
 {
+    if( !(callId in this.peers) )
+    {
+        return;
+    }
+
     this.closeCall(callId);
+
+    this.emit("call_state", { callId: callId, state: "closed" });
 
     let message = { id: "hangup", callId: callId };
     this.sendMessage(message);
@@ -368,6 +420,8 @@ RtcClient.prototype.onUnregisterResponse = function( event )
     {
         this.userId = undefined;
         this.iceServers = undefined;
+
+        // TODO: Close all the calls.
     }
 }
 
@@ -377,11 +431,39 @@ RtcClient.prototype.onUnregisterResponse = function( event )
  */
 RtcClient.prototype.onCallResponse = function( event )
 {
+    if( event.status === "ok" )
+    {
+        // Create the peer.
+        let peer = new Peer();
+        peer.callId = event.callId;
+        peer.callerId = event.callerId;
+        peer.calleeId = event.calleeId;
+        peer.callerStream = event.callerStream;
+        this.peers[peer.callId] = peer;
+    }
+
     if( event.status === "error" )
     {
-        // Free the stream.
-        delete(this.streams[event.callerStream]);
+        if( event.callerStream in this.localStreams )
+        {
+            delete this.localStreams[event.callerStream];
+        }
     }
+}
+
+/**
+ * Incoming call event handler.
+ * @param {Object} event - The event object.
+ */
+RtcClient.prototype.onIncomingCall = function( event )
+{
+    // Create the peer.
+    let peer = new Peer();
+    peer.callId = event.callId;
+    peer.callerId = event.callerId;
+    peer.calleeId = event.calleeId;
+    peer.callerStream = event.callerStream;
+    this.peers[event.callId] = peer;
 }
 
 /**
@@ -392,19 +474,23 @@ RtcClient.prototype.onStartCall = function( event )
 {
     let self = this;
 
+    // Create the peer connection.
     let configuration = { "iceServers": this.iceServers };
+    let peerConnection = new RTCPeerConnection(configuration);
 
-    let peer = new RTCPeerConnection(configuration);
-    this.peers[event.callId] = peer;
+    // Update the peer.
+    let peer = this.peers[event.callId];
+    peer.calleeStream = event.calleeStream;
+    peer.connection = peerConnection;
 
     // Track the peer connection state.
-    peer.oniceconnectionstatechange = function( other )
+    peer.connection.oniceconnectionstatechange = function( other )
     {
-        self.onConnectionStateChange(event.callId);
+        self.onConnectionStateChange(peer);
     }
 
     // Generate ICE candidates.
-    peer.onicecandidate = function( other )
+    peer.connection.onicecandidate = function( other )
     {
         if( !other || !other.candidate )
         {
@@ -415,13 +501,13 @@ RtcClient.prototype.onStartCall = function( event )
         self.sendMessage(message);
     };
 
-    peer.onnegotiationneeded = function( other )
+    peer.connection.onnegotiationneeded = function( other )
     {
         // Generate SDP offer.
-        peer.createOffer().then(function( sdp )
+        peer.connection.createOffer().then(function( sdp )
         {
             // Set caller local description.
-            peer.setLocalDescription(sdp);
+            peer.connection.setLocalDescription(sdp);
 
             let message = event;
             message["id"] = "offer";
@@ -431,7 +517,7 @@ RtcClient.prototype.onStartCall = function( event )
     };
 
     // Add the stream. This action triggers the ICE negotiation process.
-    peer.addStream(this.streams[event.callerStream]);
+    peer.connection.addStream(this.localStreams[event.callerStream]);
 }
 
 /**
@@ -442,22 +528,25 @@ RtcClient.prototype.onRemoteOffer = function( event )
 {
     let self = this;
 
+    // Create the peer connection.
     let configuration = { "iceServers": this.iceServers };
+    let peerConnection = new RTCPeerConnection(configuration);
 
-    let peer = new RTCPeerConnection(configuration);
-    this.peers[event.callId] = peer;
+    // Update the peer.
+    let peer = this.peers[event.callId];
+    peer.connection = peerConnection;
 
     // Track the peer connection state.
-    peer.oniceconnectionstatechange = function( other )
+    peer.connection.oniceconnectionstatechange = function( other )
     {
-        self.onConnectionStateChange(event.callId);
+        self.onConnectionStateChange(peer);
     }
 
     // Set callee remote description.
-    peer.setRemoteDescription(JSON.parse(event.offer));
+    peer.connection.setRemoteDescription(JSON.parse(event.offer));
 
     // Generate ICE candidates.
-    peer.onicecandidate = function( other )
+    peer.connection.onicecandidate = function( other )
     {
         if( !other || !other.candidate )
         {
@@ -469,15 +558,15 @@ RtcClient.prototype.onRemoteOffer = function( event )
     };
 
     // Add the stream.
-    peer.addStream(this.streams[event.calleeStream]);
+    peer.connection.addStream(this.localStreams[event.calleeStream]);
 
     // Generate SDP answer.
     window.setTimeout(function()
     {
-        peer.createAnswer().then(function( sdp )
+        peer.connection.createAnswer().then(function( sdp )
         {
             // Set callee local description.
-            peer.setLocalDescription(sdp);
+            peer.connection.setLocalDescription(sdp);
 
             let message = event;
             message["id"] = "answer";
@@ -493,8 +582,11 @@ RtcClient.prototype.onRemoteOffer = function( event )
  */
 RtcClient.prototype.onRemoteAnswer = function( event )
 {
-    // Set caller remote description.
-    this.peers[event.callId].setRemoteDescription(JSON.parse(event.answer));
+    if( event.callId in this.peers )
+    {
+        // Set caller remote description.
+        this.peers[event.callId].connection.setRemoteDescription(JSON.parse(event.answer));
+    }
 }
 
 /**
@@ -503,10 +595,10 @@ RtcClient.prototype.onRemoteAnswer = function( event )
  */
 RtcClient.prototype.onRemoteCandidate = function( event )
 {
-    // Add the remote ICE candidate to the peer connection.
-    if( this.peers[event.callId] )
+    if( event.callId in this.peers )
     {
-        this.peers[event.callId].addIceCandidate(JSON.parse(event.candidate));
+        // Add the remote ICE candidate to the peer connection.
+        this.peers[event.callId].connection.addIceCandidate(JSON.parse(event.candidate));
     }
 }
 
@@ -516,8 +608,9 @@ RtcClient.prototype.onRemoteCandidate = function( event )
  */
 RtcClient.prototype.onCallCanceled = function( event )
 {
-    // Free the stream.
-    delete(this.streams[event.callerStream]);
+    this.closeCall(event.callId);
+
+    this.emit("call_state", { callId: event.callId, state: "closed" });
 }
 
 /**
@@ -527,57 +620,55 @@ RtcClient.prototype.onCallCanceled = function( event )
 RtcClient.prototype.onUserHangup = function( event )
 {
     this.closeCall(event.callId);
+
+    this.emit("call_state", { callId: event.callId, state: "closed" });
 }
 
 /**
  * Handle the connection state change event.
  * @param {String} callId - The call id.
  */
-RtcClient.prototype.onConnectionStateChange = function( callId )
+RtcClient.prototype.onConnectionStateChange = function( peer )
 {
-    let peer = this.peers[callId];
-
-    if( peer.iceConnectionState === "failed" || peer.iceConnectionState === "disconnected" )
+    if( !peer || !peer.connection )
     {
-        this.hangup(callId);
+        return;
     }
 
-    if( peer.iceConnectionState === "connected" )
+    if( this.DEBUG ) console.log("%c" + "ICE Connection State" + "%o%o", this.debugStyle, peer.callId, peer.connection.iceConnectionState);
+
+    switch( peer.connection.iceConnectionState )
     {
-        this.getStats(callId);
+        case "failed":
+        case "disconnected":
+        case "closed":
+        {
+            this.hangup(peer.callId);
+            break;
+        }
+        case "new":
+        case "checking":
+        case "completed":
+        {
+            if( this.DEBUG ) console.log("%c" + "call_state" + "%o%o", this.debugStyle, peer.callId, "ringing");
+            this.emit("call_state", { callId: peer.callId, state: "ringing" });
+            break;
+        }
+        case "connected":
+        {
+            let stream = RtcClient.getRemoteStream(peer.connection);
+    
+            if( this.DEBUG ) console.log("%c" + "call_state" + "%o%o", this.debugStyle, peer.callId, "open");
+            this.emit("call_state", { callId: peer.callId, state: "open" });
+    
+            if( this.DEBUG ) console.log("%c" + "call_started" + "%o%o", this.debugStyle, peer.callId, stream);
+            this.emit("call_started", { callId: peer.callId, stream: stream });
 
-        let stream = this.getRemoteStream(peer);
+            this.getStats(peer.callId);
 
-        if( this.DEBUG ) console.log("%ccall_started%o%o", this.debugStyle, callId, stream);
-
-        this.emit("call_started", { callId: callId, stream: stream });
+            break;
+        }
     }
-
-    if( this.DEBUG ) console.log("%ccall_state%o%o", this.debugStyle, callId, peer.iceConnectionState);
-
-    this.emit("call_state", { callId: callId, state: peer.iceConnectionState });
-}
-
-/**
- * Get the remote stream of the specified peer connection.
- * @param {String} peerConnection - The peer connection.
- */
-RtcClient.prototype.getRemoteStream = function( peerConnection )
-{
-    if( !peerConnection )
-    {
-        return undefined;
-    }
-
-    let stream = new MediaStream();
-    let receivers = peerConnection.getReceivers();
-    for( let i = 0; i < receivers.length; i++ )
-    {
-        let receiver = receivers[i];
-        stream.addTrack(receiver.track);
-    }
-
-    return stream;
 }
 
 /**
@@ -586,13 +677,13 @@ RtcClient.prototype.getRemoteStream = function( peerConnection )
  */
 RtcClient.prototype.getStats = function( callId )
 {
-    let peer = this.peers[callId];
-    if( !peer )
+    if( !(callId in this.peers) )
     {
         return;
     }
 
-    peer.getStats(null).then(function( stats )
+    let peer = this.peers[callId];
+    peer.connection.getStats(null).then(function( stats )
     {
         let callStats = { };
 
@@ -609,8 +700,6 @@ RtcClient.prototype.getStats = function( callId )
         // Get the stats of the local and remote candidates.
         if( candidatePair )
         {
-            //console.log(JSON.stringify(candidatePair));
-
             stats.forEach(report =>
             {
                 if( report.id === candidatePair.localCandidateId )
@@ -619,8 +708,6 @@ RtcClient.prototype.getStats = function( callId )
                     callStats.localAddress = report.address ?? report.ip;
                     callStats.localPort = report.port;
                     callStats.localProtocol = report.protocol;
-
-                    //console.log(JSON.stringify(report));
                 }
                 if( report.id === candidatePair.remoteCandidateId )
                 {
@@ -628,33 +715,118 @@ RtcClient.prototype.getStats = function( callId )
                     callStats.remoteAddress = report.address ?? report.ip;
                     callStats.remotePort = report.port;
                     callStats.remoteProtocol = report.protocol;
-
-                    //console.log(JSON.stringify(report));
                 }
             });
         }
 
-        if( this.DEBUG ) console.log("%ccall_stats%o%o", this.debugStyle, callId, callStats);
-
+        if( this.DEBUG ) console.log("%c" + "call_stats" + "%o%o", this.debugStyle, callId, callStats);
         this.emit("call_stats", { callId: callId, stats: callStats });
 
     }.bind(this));
 }
 
 /**
- * Replace the stream used in the specified call.
+ * Replace the local audio track.
  * @param {String} callId - The call id.
- * @param {MediaStream} stream - The stream to replace.
+ * @param {MediaStreamTrack} track - The local audio track.
  */
-RtcClient.prototype.replaceStream = function( callId, stream )
+RtcClient.prototype.replaceLocalAudioTrack = function( callId, track )
 {
-    let peer = this.peers[callId];
-    if( !peer )
+    if( !track || !(track instanceof MediaStreamTrack) )
     {
         return;
     }
 
-    Promise.all(peer.getSenders().map(sender => sender.replaceTrack(stream.getTracks().find(t => t.kind === sender.track.kind), stream)));
+    if( !(callId in this.peers) )
+    {
+        return;
+    }
+
+    let peer = this.peers[callId];
+    if( !peer.connection )
+    {
+        return;
+    }
+
+    let senders = peer.connection.getSenders();
+    for( let i = 0; i < senders.length; i++ )
+    {
+        let sender = senders[i];
+        if( sender.track && sender.track.kind === "audio" )
+        {
+            sender.replaceTrack(track);
+            return;
+        }
+    }
+}
+
+/**
+ * Replace the local video track.
+ * @param {String} callId - The call id.
+ * @param {MediaStreamTrack} track - The local video track.
+ */
+RtcClient.prototype.replaceLocalVideoTrack = function( callId, track )
+{
+    if( !track || !(track instanceof MediaStreamTrack) )
+    {
+        return;
+    }
+
+    if( !(callId in this.peers) )
+    {
+        return;
+    }
+
+    let peer = this.peers[callId];
+    if( !peer.connection )
+    {
+        return;
+    }
+
+    let senders = peer.connection.getSenders();
+    for( let i = 0; i < senders.length; i++ )
+    {
+        let sender = senders[i];
+        if( sender.track && sender.track.kind === "video" )
+        {
+            sender.replaceTrack(track);
+            return;
+        }
+    }
+}
+
+/**
+ * Replace the local stream. The stream must have 1 audio track and 1 video track.
+ * @param {String} callId - The call id.
+ * @param {MediaStream} stream - The local stream.
+ */
+RtcClient.prototype.replaceLocalStream = function( callId, stream )
+{
+    if( !stream || !(stream instanceof MediaStream) )
+    {
+        return;
+    }
+
+    if( !(callId in this.peers) )
+    {
+        return;
+    }
+
+    let peer = this.peers[callId];
+    if( !peer.connection )
+    {
+        return;
+    }
+
+    let audioTracks = stream.getAudioTracks();
+    let videoTracks = stream.getVideoTracks();
+    if( audioTracks.length === 0 || videoTracks.length === 0 )
+    {
+        return;
+    }
+
+    this.replaceLocalAudioTrack(callId, audioTracks[0]);
+    this.replaceLocalVideoTrack(callId, videoTracks[0]);
 }
 
 /**
@@ -667,25 +839,153 @@ RtcClient.prototype.generateStreamId = function()
 
     do
     {
-        id = this.uuidv4();
+        id = RtcClient.uuidv4();
     }
-    while( id in this.streams );
+    while( id in this.localStreams );
 
     return id;
+}
+
+/**
+ * Get the first remote audio track.
+ * @param {RTCPeerConnection} peerConnection - The peer connection
+ * @return {MediaStreamTrack} The remote audio track.
+ */
+RtcClient.getRemoteAudioTrack = function ( peerConnection )
+{
+    if( !peerConnection || !(peerConnection instanceof RTCPeerConnection) )
+    {
+        return undefined;
+    }
+
+    let receivers = peerConnection.getReceivers();
+    if( !receivers || receivers.length === 0 )
+    {
+        return undefined;
+    }
+
+    for( let i = 0; i < receivers.length; i++ )
+    {
+        let receiver = receivers[i];
+        if( receiver.track.kind === "audio" )
+        {
+            return receiver.track;
+        }
+    }
+
+    return undefined;
+}
+
+/**
+ * Get the first remote video track.
+ * @param {RTCPeerConnection} peerConnection - The peer connection
+ * @return {MediaStreamTrack} The remote video track.
+ */
+RtcClient.getRemoteVideoTrack = function ( peerConnection )
+{
+    if( !peerConnection || !(peerConnection instanceof RTCPeerConnection) )
+    {
+        return undefined;
+    }
+
+    let receivers = peerConnection.getReceivers();
+    if( !receivers || receivers.length === 0 )
+    {
+        return undefined;
+    }
+
+    for( let i = 0; i < receivers.length; i++ )
+    {
+        let receiver = receivers[i];
+        if( receiver.track.kind === "video" )
+        {
+            return receiver.track;
+        }
+    }
+
+    return undefined;
+}
+
+/**
+ * Get the remote stream of the peer connection. The peer connection must have 1 audio track and 1 video track.
+ * @param {RTCPeerConnection} peerConnection - The peer connection.
+ * @return {MediaStream} The remote stream.
+ */
+RtcClient.getRemoteStream = function( peerConnection )
+{
+    if( !peerConnection || !(peerConnection instanceof RTCPeerConnection) )
+    {
+        return undefined;
+    }
+
+    let receivers = peerConnection.getReceivers();
+    if( !receivers || receivers.length === 0 )
+    {
+        return undefined;
+    }
+
+    let audioTrack = undefined;
+    for( let i = 0; i < receivers.length; i++ )
+    {
+        let receiver = receivers[i];
+        if( receiver.track.kind === "audio" )
+        {
+            audioTrack = receiver.track;
+            break;
+        }
+    }
+
+    let videoTrack = undefined;
+    for( let i = 0; i < receivers.length; i++ )
+    {
+        let receiver = receivers[i];
+        if( receiver.track.kind === "video" )
+        {
+            videoTrack = receiver.track;
+            break;
+        }
+    }
+
+    if( !audioTrack || !videoTrack )
+    {
+        return undefined;
+    }
+
+    let stream = new MediaStream();
+    stream.addTrack(audioTrack);
+    stream.addTrack(videoTrack);
+
+    return stream;
 }
 
 /**
  * Generate an unique identifier.
  * @return {String} The unique identifier.
  */
-RtcClient.prototype.uuidv4 = function()
+RtcClient.uuidv4 = function()
 {
     // RFC 4122: https://www.ietf.org/rfc/rfc4122.txt
     return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c)
     {
-        var r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8); // eslint-disable-line
+        var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
         return v.toString(16);
     });
+}
+
+/**
+ * Validates the specified string following a regular expression.
+ * @param {String} str - The string to validate.
+ * @return Whether or not the string is valid.
+ */
+RtcClient.validateString = function( str )
+{
+    if( !str )
+    {
+        return false;
+    }
+
+    let regex = new RegExp("^([a-zA-Z])(([a-zA-Z0-9]+)([.\-_]?))*([a-zA-Z0-9])$");
+    return regex.test(str);
 }
 
 export { RtcClient };

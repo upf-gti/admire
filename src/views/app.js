@@ -11,7 +11,7 @@ import Navbar from 'components/navbar';
 import "./app.scss";
 
 export default function App() {
-    const [login, setLogin] = useState(null);
+    const [login, setLogin]       = useState(null);
     const [fetching, setFetching] = useState(true);
     const [NavItems, setNavItems] = useState({});
 
@@ -85,8 +85,8 @@ export default function App() {
                 <Navbar user={login} doLogOut={doLogOut}/>
                 <div id="content">
                 <Switch>
-                             <Route exact path='/rooms/:roomId'> <Room user={login} setNavItem={setNavItem}/> </Route>
-                        { login &&  <Route> <Lobby setLogin={setLogin} user={login} setNavItem={setNavItem}/> </Route>}
+                                    <Route exact path='/rooms/:roomId'> <Room user={login} setNavItem={setNavItem}/> </Route>
+                        { login &&  <Route> <Lobby setLogin={setLogin} user={login} setNavItem={setNavItem}/>        </Route>}
                 </Switch>
                 </div>
             </div>
