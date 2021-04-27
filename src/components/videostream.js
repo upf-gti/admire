@@ -5,22 +5,29 @@ Desc: description
 Created:  2021-04-21T12:53:49.657Z
 Modified: 2021-04-22T15:09:28.128Z
 */
-import {useState, useEffect } from 'react';
+import {useState, useEffect, useRef } from 'react';
 import { rtcClient, appClient, mediaAdapter } from 'extra/bra';
 import {ButtonGroup, SplitButton, Button, Dropdown, DropdownButton, Container, Row, Col} from 'react-bootstrap';
 
 import './videostream.scss';
 
-export default function VideoStream({id, fref, local, devices, settings, resolutions})
+export default function VideoStream({id, fref, stream, local, audioDevices, videoDevices, settings, resolutions})
 {
     const [audioEnabled, setAudio]        = useState(null);
     const [videoEnabled, setVideo]        = useState(null);
+    const ref = useRef(null);
+
+
+    useEffect(()=>{
+        if(stream)
+            ref.current.srcObject = stream; 
+    },[]);
     
-    return (<Container className="videostream d-flex vh-100 justify-content-sm-center" style={{marginTop:"-4.5rem"}}>
+    return (<Container className="videostream d-flex justify-content-xs-center">
 
             <div className="m-auto align-self-center">
         <Row>
-            <video ref={fref}/>
+            <video ref={fref ?? ref} autoPlay muted playsInline/>
         </Row>
 
         {local && <Row className="mt-2 justify-content-sm-center" noGutters>
@@ -40,8 +47,8 @@ export default function VideoStream({id, fref, local, devices, settings, resolut
                     mediaAdapter.setVideo(event.currentTarget.getAttribute("value"));
                 }}
             >
-                {(!devices || !devices.video || !Object.keys(devices.video).length) && <Dropdown.Item disabled eventKey={0}>No options available</Dropdown.Item>}
-                {devices && devices.video &&  Object.entries(devices.video).map((v,k,a)=>{
+                {(!videoDevices || !Object.keys(videoDevices).length) && <Dropdown.Item disabled eventKey={0}>No options available</Dropdown.Item>}
+                {  videoDevices &&  Object.entries(videoDevices).map((v,k,a)=>{
                     const [id,value] = v;
                     return (<>
                         <Dropdown.Item key={k} eventKey={k} value={id}> {id} </Dropdown.Item>
@@ -66,8 +73,8 @@ export default function VideoStream({id, fref, local, devices, settings, resolut
                     mediaAdapter.setAudio(event.currentTarget.getAttribute("value"));
                 }}
             >
-                {(!devices || !devices.audio || !Object.keys(devices.audio).length) && <Dropdown.Item disabled eventKey={0}>No options available</Dropdown.Item>}
-                {devices && devices.audio &&  Object.entries(devices.audio).map((v,k,a)=>{
+                {(!audioDevices || !Object.keys(audioDevices).length) && <Dropdown.Item disabled eventKey={0}>No options available</Dropdown.Item>}
+                {  audioDevices &&  Object.entries(audioDevices).map((v,k,a)=>{
                     const [id,value] = v;
                     return (<>
                         <Dropdown.Item key={k} eventKey={k} value={id} > {id} </Dropdown.Item>

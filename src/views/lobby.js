@@ -33,14 +33,14 @@ export default function Lobby({user, setLogin, setNavItem}) {
         //document.location(`/rooms/${roomIdRef.current.value}`);
     }
 
-    function onCreateRoom(event)
+    function onCreateRoom({id, status, description, roomId})
     {
-        const {id : title, status, description} = event;
-        
         switch(status)
         {
-
-            case 'ok': appClient.getRooms(); break;
+            case 'ok': 
+                //appClient.getRooms();
+                document.location = `/rooms/${roomId}`;
+            break;
             case 'error': console.error(status, description);
                 //TODO: fire an error toast
             break;

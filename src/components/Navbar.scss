@@ -90,6 +90,18 @@
             padding-right: 2rem;
         }
     }
+
+    li{
+        transition: .1s all ease-in;
+        color:white;
+        text-shadow: 0 0 5px rgba(0,0,0,.5);
+        cursor: pointer;
+
+        &:hover{
+            color:black;
+            background-color: white;
+        }
+    }
 }
 
 #overlay {

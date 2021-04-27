@@ -15,7 +15,9 @@ export default function App() {
     const [fetching, setFetching] = useState(true);
     const [NavItems, setNavItems] = useState({});
 
-    const appUrl = `wss://${window.location.hostname}:8443`;
+    
+    //const appUrl = `wss://${window.location.hostname}:8443`;
+    const appUrl = `wss://teleporter.brainstorm3d.com:8443/`;
     const rtcUrl = "wss://rtcserver.brainstorm3d.com";
 
     useEffect(() => { //Acts like 'componentWillMount'
@@ -27,6 +29,8 @@ export default function App() {
             appClient.on("logout_response",      onLogOut);
             appClient.connect(appUrl);
             rtcClient.connect(rtcUrl);
+            mediaAdapter.start();
+
         return () => {//Acts like /componentWillUnmount'
             appClient.off('client_connected',    onConnect);
             appClient.off('client_disconnected', onDisconnect);
@@ -51,7 +55,11 @@ export default function App() {
         let {status, description, userId, userType} = event;
         switch(status)
         {
-            case 'ok': setLogin({id:userId, type:userType}); break;
+            case 'ok': {
+                setLogin({id:userId, type:userType}); 
+                rtcClient.register(userId);
+                break;
+            }
             case 'error': console.error(status, description);break;
             default: console.warn(status, description); break;
         }
@@ -64,6 +72,7 @@ export default function App() {
 
     function onLogOut(){
         setLogin(null);
+        rtcClient.unregister();
     }
 
     function setNavItem(id, item)

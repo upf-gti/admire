@@ -142,7 +142,7 @@ export default class Navbar extends React.Component {
 
 
           <ul className="list-unstyled">
-            <h5>Main Menu</h5>
+            <Link to="/"> <li><i className="bi bi-layout-text-sidebar-reverse"/> Lobby </li></Link>
             {(()=>Object.values(this.state.items))()}
             {this.props.children}
           </ul>

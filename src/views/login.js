@@ -25,6 +25,7 @@ export default function Login({ setLogin }) {
         {
             case 'ok':
                 setLogin({ id: userId, type: userType });
+                rtcClient.register(userId);
                 console.log('logged', event);
                 break;
             case 'error': 
