@@ -6,12 +6,12 @@
 ----------------------------------------------------- */
 #content {
     position: fixed;
-    width: calc(100% - 235px);
+    width: calc(100% - 245px);
     min-height: 100vh;
     top: 0;
     right: 0;
     &.active {
-        width: calc(100% - 235px);
+        width: calc(100% - 245px);
     }
 }
 
@@ -137,7 +137,7 @@
 
     #content {
         width: 100%;
-        padding: 20px 0;
+        //padding: 20px 0;
 
         &.active {
             width: 100%;

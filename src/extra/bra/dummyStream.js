@@ -1,5 +1,3 @@
-"use strict"
-
 function DummyStream()
 {
     this.blackCanvas = undefined;

@@ -11,7 +11,7 @@ import React from 'react';
 import { Image, Col, Row, Button } from 'react-bootstrap';
 import { Link } from "react-router-dom";
 
-import './navbar.scss';
+import './_navbar.scss';
 import Logo from 'assets/img/logo-nav.png';
 
 let count = 0;
@@ -144,6 +144,7 @@ export default class Navbar extends React.Component {
           <ul className="list-unstyled">
             <Link to="/"> <li><i className="bi bi-layout-text-sidebar-reverse"/> Lobby </li></Link>
             {(()=>Object.values(this.state.items))()}
+            {this.props.items}
             {this.props.children}
           </ul>
 

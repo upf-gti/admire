@@ -59,7 +59,7 @@ MediaAdapter.prototype.start = function()
 {
     if( !navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices )
     {
-        if( this.DEBUG ) console.log("%c" + "Media Devices Error" + "%o", this.debugStyle, "Media devices are not available");
+        if( this.DEBUG ) console.log("%cMedia Devices Error%o", this.debugStyle, "Media devices are not available");
         return false;
     }
 
@@ -226,9 +226,9 @@ MediaAdapter.prototype.gotDevices = function( deviceInfos )
         }
     }
 
-    if( this.DEBUG ) console.log("%c" + "Device Infos" + "%o", this.debugStyle, JSON.stringify(deviceInfos));
-    if( this.DEBUG ) console.log("%c" + "got_devices" + "%o%o%o", this.debugStyle, JSON.stringify(this.audioDevices), JSON.stringify(this.videoDevices), JSON.stringify(this.settings));
-    if( this.DEBUG ) console.log("%c" + "got_resolutions" + "%o%o", this.debugStyle, JSON.stringify(this.resolutions), JSON.stringify(this.settings));
+    if( this.DEBUG ) console.log("%cDevice Infos%o", this.debugStyle, JSON.stringify(deviceInfos));
+    if( this.DEBUG ) console.log("%cgot_devices%o%o%o", this.debugStyle, JSON.stringify(this.audioDevices), JSON.stringify(this.videoDevices), JSON.stringify(this.settings));
+    if( this.DEBUG ) console.log("%cgot_resolutions%o%o", this.debugStyle, JSON.stringify(this.resolutions), JSON.stringify(this.settings));
 
     this.emit("got_devices", { audioDevices: this.audioDevices, videoDevices: this.videoDevices, settings: this.settings });
     this.emit("got_resolutions", { resolutions: this.resolutions, settings: this.settings });
@@ -242,7 +242,7 @@ MediaAdapter.prototype.errorDevices = function( error )
 {
     let description = "Device request not allowed in the browser context.";
 
-    if( this.DEBUG ) console.log("%c" + "error_devices" + "%o%o", this.debugStyle, error, description);
+    if( this.DEBUG ) console.log("%cerror_devices%o%o", this.debugStyle, error, description);
 
     this.emit("error_devices", { error: error, description: description });
 }
@@ -260,10 +260,10 @@ MediaAdapter.prototype.setAudio = function( device )
     }
 
     // Check whether the device is not already selected.
-    if( device === this.settings.audio )
+    /*if( device === this.settings.audio )
     {
         return Promise.reject(new Error("Device " + device + " already selected"));
-    }
+    }*/
 
     if( device === "None" )
     {
@@ -277,7 +277,7 @@ MediaAdapter.prototype.setAudio = function( device )
         this.audioStream = this.getSilenceStream();
         this.mediaStream = MediaAdapter.mixStreams(this.audioStream, this.videoStream);
 
-        if( this.DEBUG ) console.log("%c" + "got_stream" + "%o%o", this.debugStyle, this.mediaStream, JSON.stringify(this.settings));
+        if( this.DEBUG ) console.log("%cgot_stream%o%o", this.debugStyle, this.mediaStream, JSON.stringify(this.settings));
 
         this.emit("got_stream", { stream: this.mediaStream, settings: this.settings });
 
@@ -336,7 +336,7 @@ MediaAdapter.prototype.setVideo = function( device, resolution = "Undefined" )
         this.videoStream = this.getBlackStream(width, height);
         this.mediaStream = MediaAdapter.mixStreams(this.audioStream, this.videoStream);
 
-        if( this.DEBUG ) console.log("%c" + "got_stream" + "%o%o", this.debugStyle, this.mediaStream, JSON.stringify(this.settings));
+        if( this.DEBUG ) console.log("%cgot_stream%o%o", this.debugStyle, this.mediaStream, JSON.stringify(this.settings));
 
         this.emit("got_stream", { stream: this.mediaStream, settings: this.settings });
 
@@ -427,7 +427,7 @@ MediaAdapter.prototype.getBlackStream = function( width = 320, height = 240 )
  */
 MediaAdapter.prototype.getAudioStream = function()
 {
-    if( this.DEBUG ) console.log("%c" + "Get Audio Stream" + "%o", this.debugStyle, JSON.stringify(this.audioConstraints));
+    if( this.DEBUG ) console.log("%cGet Audio Stream%o", this.debugStyle, JSON.stringify(this.audioConstraints));
 
     this.mediaStream = undefined;
     MediaAdapter.stopStream(this.audioStream);
@@ -444,7 +444,7 @@ MediaAdapter.prototype.getAudioStream = function()
  */
 MediaAdapter.prototype.getVideoStream = function()
 {
-    if( this.DEBUG ) console.log("%c" + "Get Video Stream" + "%o", this.debugStyle, JSON.stringify(this.videoConstraints));
+    if( this.DEBUG ) console.log("%cGet Video Stream%o", this.debugStyle, JSON.stringify(this.videoConstraints));
 
     this.mediaStream = undefined;
     MediaAdapter.stopStream(this.videoStream);
@@ -465,7 +465,7 @@ MediaAdapter.prototype.gotAudioStream = async function( stream )
     // Audio track.
     let audioTrack = stream.getAudioTracks()[0];
     let audioTrackSettings = audioTrack.getSettings();
-    if( this.DEBUG ) console.log("%c" + "Audio Track" + "%o%o", this.debugStyle, JSON.stringify(audioTrack.label), JSON.stringify(audioTrackSettings));
+    if( this.DEBUG ) console.log("%cAudio Track%o%o", this.debugStyle, JSON.stringify(audioTrack.label), JSON.stringify(audioTrackSettings));
 
     // Check whether the label is listed, enumerateDevices returns an empty label if the permission for accessing the mediadevice is not given.
     if( !(audioTrack.label in this.audioDevices) )
@@ -482,8 +482,8 @@ MediaAdapter.prototype.gotAudioStream = async function( stream )
     this.audioStream = stream;
     this.mediaStream = MediaAdapter.mixStreams(this.audioStream, this.videoStream);
 
-    if( this.DEBUG ) console.log("%c" + "Audio Constraints" + "%o", this.debugStyle, JSON.stringify(this.audioConstraints));
-    if( this.DEBUG ) console.log("%c" + "got_stream" + "%o%o", this.debugStyle, this.mediaStream, JSON.stringify(this.settings));
+    if( this.DEBUG ) console.log("%cAudio Constraints%o", this.debugStyle, JSON.stringify(this.audioConstraints));
+    if( this.DEBUG ) console.log("%cgot_stream%o%o", this.debugStyle, this.mediaStream, JSON.stringify(this.settings));
 
     this.emit("got_stream", { stream: this.mediaStream, settings: this.settings });
 }
@@ -497,7 +497,7 @@ MediaAdapter.prototype.gotVideoStream = async function( stream )
     // Video track.
     let videoTrack = stream.getVideoTracks()[0];
     let videoTrackSettings = videoTrack.getSettings();
-    if( this.DEBUG ) console.log("%c" + "Video Track" + "%o%o", this.debugStyle, JSON.stringify(videoTrack.label), JSON.stringify(videoTrackSettings));
+    if( this.DEBUG ) console.log("%cVideo Track%o%o", this.debugStyle, JSON.stringify(videoTrack.label), JSON.stringify(videoTrackSettings));
 
     // Check whether the label is listed, enumerateDevices returns an empty label if the permission for accessing the mediadevice is not given.
     if( !(videoTrack.label in this.videoDevices) )
@@ -534,8 +534,8 @@ MediaAdapter.prototype.gotVideoStream = async function( stream )
     this.videoStream = stream;
     this.mediaStream = MediaAdapter.mixStreams(this.audioStream, this.videoStream);
 
-    if( this.DEBUG ) console.log("%c" + "Video Constraints" + "%o", this.debugStyle, JSON.stringify(this.videoConstraints));
-    if( this.DEBUG ) console.log("%c" + "got_stream" + "%o%o", this.debugStyle, this.mediaStream, JSON.stringify(this.settings));
+    if( this.DEBUG ) console.log("%cVideo Constraints%o", this.debugStyle, JSON.stringify(this.videoConstraints));
+    if( this.DEBUG ) console.log("%cgot_stream%o%o", this.debugStyle, this.mediaStream, JSON.stringify(this.settings));
 
     this.emit("got_stream", { stream: this.mediaStream, settings: this.settings });
 }
@@ -583,8 +583,8 @@ MediaAdapter.prototype.errorAudioStream = function( error )
 {
     let description = this.errorStream(error);
 
-    if( this.DEBUG ) console.log("%c" + "Error Constraints" + "%o", this.debugStyle, JSON.stringify(this.audioConstraints));
-    if( this.DEBUG ) console.log("%c" + "error_stream" + "%o%o%o", this.debugStyle, error.name, description, JSON.stringify(this.settings));
+    if( this.DEBUG ) console.log("%cError Constraints%o", this.debugStyle, JSON.stringify(this.audioConstraints));
+    if( this.DEBUG ) console.log("%cerror_stream%o%o%o", this.debugStyle, error.name, description, JSON.stringify(this.settings));
 
     this.emit("error_stream", { error: error.name, description: description, settings: this.settings });
 
@@ -604,8 +604,8 @@ MediaAdapter.prototype.errorVideoStream = function( error )
 {
     let description = this.errorStream(error);
 
-    if( this.DEBUG ) console.log("%c" + "Error Constraints" + "%o", this.debugStyle, JSON.stringify(this.videoConstraints));
-    if( this.DEBUG ) console.log("%c" + "error_stream" + "%o%o%o", this.debugStyle, error.name, description, JSON.stringify(this.settings));
+    if( this.DEBUG ) console.log("%cError Constraints%o", this.debugStyle, JSON.stringify(this.videoConstraints));
+    if( this.DEBUG ) console.log("%cerror_stream%o%o%o", this.debugStyle, error.name, description, JSON.stringify(this.settings));
 
     this.emit("error_stream", { error: error.name, description: description, settings: this.settings });
 

@@ -5,30 +5,29 @@ Desc: description
 Created:  2021-04-21T12:53:49.657Z
 Modified: 2021-04-22T15:09:28.128Z
 */
-import {useState, useEffect, useRef } from 'react';
 import { rtcClient, appClient, mediaAdapter } from 'extra/bra';
-import {ButtonGroup, SplitButton, Button, Dropdown, DropdownButton, Container, Row, Col} from 'react-bootstrap';
+import { useState, useEffect, useRef, useContext } from 'react';
+import { ButtonGroup, SplitButton, Button, Dropdown, DropdownButton, Container, Row, Col } from 'react-bootstrap';
 
+import {StreamSettings} from 'components/streamSettings';
 import './videostream.scss';
 
-export default function VideoStream({id, fref, stream, local, audioDevices, videoDevices, settings, resolutions})
+export default function VideoStream({id, fref, stream, local})
 {
+    const { videoRef, devices:[devices,setDevices], settings:[settings,setSettings], localStream:[localStream,setLocalStream] } = useContext(StreamSettings);
+
+    const ref = useRef(null);
     const [audioEnabled, setAudio]        = useState(null);
     const [videoEnabled, setVideo]        = useState(null);
-    const ref = useRef(null);
-
 
     useEffect(()=>{
-        if(stream)
-            ref.current.srcObject = stream; 
-    },[]);
-    
-    return (<Container className="videostream d-flex justify-content-xs-center">
+        if(stream) ref.current.srcObject = stream; 
+    },[stream]);
 
+    return (
+        <Container className="videostream d-flex justify-content-xs-center">
             <div className="m-auto align-self-center">
-        <Row>
-            <video ref={fref ?? ref} autoPlay muted playsInline/>
-        </Row>
+            <Row><video ref={fref ?? ref} autoPlay muted playsInline/></Row>
 
         {local && <Row className="mt-2 justify-content-sm-center" noGutters>
             <Col xs="auto">
@@ -47,8 +46,8 @@ export default function VideoStream({id, fref, stream, local, audioDevices, vide
                     mediaAdapter.setVideo(event.currentTarget.getAttribute("value"));
                 }}
             >
-                {(!videoDevices || !Object.keys(videoDevices).length) && <Dropdown.Item disabled eventKey={0}>No options available</Dropdown.Item>}
-                {  videoDevices &&  Object.entries(videoDevices).map((v,k,a)=>{
+                {(!devices || !devices.video || !Object.keys(devices.video).length) && <Dropdown.Item key={0} disabled eventKey={0}>No options available</Dropdown.Item>}
+                { devices && devices.video &&  Object.entries(devices.video).map((v,k,a)=>{
                     const [id,value] = v;
                     return (<>
                         <Dropdown.Item key={k} eventKey={k} value={id}> {id} </Dropdown.Item>
@@ -73,8 +72,8 @@ export default function VideoStream({id, fref, stream, local, audioDevices, vide
                     mediaAdapter.setAudio(event.currentTarget.getAttribute("value"));
                 }}
             >
-                {(!audioDevices || !Object.keys(audioDevices).length) && <Dropdown.Item disabled eventKey={0}>No options available</Dropdown.Item>}
-                {  audioDevices &&  Object.entries(audioDevices).map((v,k,a)=>{
+                {(!devices || !devices.audio || !Object.keys(devices.audio).length) && <Dropdown.Item key={0} disabled eventKey={0}>No options available</Dropdown.Item>}
+                {  devices.audio &&  Object.entries(devices.audio).map((v,k,a)=>{
                     const [id,value] = v;
                     return (<>
                         <Dropdown.Item key={k} eventKey={k} value={id} > {id} </Dropdown.Item>

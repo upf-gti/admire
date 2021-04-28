@@ -14,13 +14,13 @@ $color6:#D1D3D5;
     FONTS
 ==========================================*/
 @font-face {
-    font-family: "Comfortaa";
-    src: 
-        url("./assets/fonts/Comfortaa-Bold.ttf")     format("ttf"),
-        url("./assets/fonts/Comfortaa-Medium.ttf")   format("ttf"),
-        url("./assets/fonts/Comfortaa-Regular.ttf")  format("ttf"),
-        url("./assets/fonts/Comfortaa-SemiBold.ttf") format("ttf"),
-        url("./assets/fonts/Comfortaa-Light.ttf")     format("ttf"),
+    font-family: Comfortaa;
+    src:
+        url(assets/fonts/Comfortaa-Light.ttf)   ,
+        url(assets/fonts/Comfortaa-Bold.ttf)    ,
+        url(assets/fonts/Comfortaa-Medium.ttf)  ,
+        url(assets/fonts/Comfortaa-Regular.ttf) ,
+        url(assets/fonts/Comfortaa-SemiBold.ttf),
 }
 
 $principal_font: 'Comfortaa', sans-serif;

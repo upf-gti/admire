@@ -116,7 +116,7 @@ AppClient.prototype.onMessage = function( msg )
             return;
         }
 
-        if( this.DEBUG ) console.log(" %c%s" + "%o", this.debugStyle, message.id, msg.data);
+        if( this.DEBUG ) console.log(" %c%s%o", this.debugStyle, message.id, msg.data);
 
         if( this.messages[message.id] instanceof Function )
         {
@@ -127,7 +127,7 @@ AppClient.prototype.onMessage = function( msg )
     }
     else
     {
-        if( this.DEBUG ) console.log("%cunknown_message" + "%o", this.debugStyle, msg.data);
+        if( this.DEBUG ) console.log("%cunknown_message%o", this.debugStyle, msg.data);
     }
 }
 
@@ -138,7 +138,9 @@ AppClient.prototype.onMessage = function( msg )
 AppClient.prototype.sendMessage = function( message )
 {
     let msg = JSON.stringify(message);
-    if( this.DEBUG ) console.log(" %c%s" + "%o", this.debugStyle, message.id, msg);
+    if( this.DEBUG ) console.log(" %c%s%o", this.debugStyle, message.id, msg);
+    if(!this.ws)
+        return console.error('ws is null');
     this.ws.send(msg);
 }
 
@@ -513,7 +515,7 @@ AppClient.validateString = function( str )
         return false;
     }
 
-    let regex = new RegExp("^([a-zA-Z])(([a-zA-Z0-9]+)([.\-_]?))*([a-zA-Z0-9])$");
+    let regex = new RegExp("^([a-zA-Z])(([a-zA-Z0-9]+)([.\\-_]?))*([a-zA-Z0-9])$");
     return regex.test(str);
 }
 

@@ -13,12 +13,10 @@ export default function Lobby({user, setLogin, setNavItem}) {
     const roomIdRef = useRef(null);
 
     useEffect(() => {
-            setNavItem('New Room +', <li>hola</li>);
             appClient.on('get_rooms_response',   onGetRooms);
             appClient.on('create_room_response', onCreateRoom);
             appClient.getRooms();
         return () => {
-            setNavItem('New Room +', null);
             appClient.off('get_rooms_response',   onGetRooms);
             appClient.off('create_room_response', onCreateRoom);
         }
@@ -90,7 +88,7 @@ export default function Lobby({user, setLogin, setNavItem}) {
 
             { rooms && <RoomList rooms={rooms}/> }
             
-            <div id="footer">
+            <div className="footer">
                 {user.type !== "0" && <Button onClick={()=>setShowModal(true)}> <i className="bi bi-plus"/> New Room </Button>}
             </div>
 

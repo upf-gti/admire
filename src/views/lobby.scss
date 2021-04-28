@@ -1,21 +1,6 @@
 @import "variables.scss";
 
-#lobby
-{
-    #footer
-    {
-        width:100%;
-        
-        position:absolute;
-        bottom: 80px;
-        left:0;
 
-        .btn{
-            font-family: $principal_font;
-            border-radius:20px;
-        }
-    }
-}
 #create-room-modal
 {
     .modal-header
