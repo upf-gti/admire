@@ -37,10 +37,10 @@ export default function Room({user, setNavItems})
     useEffect(() => {//Executes when this component is mounted
         let  onGuestJoin, onGuestLeft, onMasterLeft, onGetRooms;
         appClient.on('join_room_response',  onJoinRoom);
-        appClient.on('get_rooms_response',  onGetRooms = ({id, status, description, roomInfos}) => { setRoomInfo( roomInfos[roomId] ); });
-        appClient.on('master_left_room',    onMasterLeft= ()=>{ appClient.getRooms(); }); //Tal vez estos tres podrian devolver la info de la room 
-        appClient.on('guest_joined_room',   onGuestJoin = ()=>{ appClient.getRooms(); }); //asi no lo he de pedir cada vez.
-        appClient.on('guest_left_room',     onGuestLeft = ()=>{ appClient.getRooms(); }); //
+        appClient.on('get_rooms_response',  onGetRooms  = ({id, status, description, roomInfos}) => { setRoomInfo( roomInfos[roomId] ); });
+        appClient.on('master_left_room',    onMasterLeft= (message)=>{ appClient.getRooms(); }); //Tal vez estos tres podrian devolver la info de la room 
+        appClient.on('guest_joined_room',   onGuestJoin = (message)=>{ appClient.getRooms(); }); //asi no lo he de pedir cada vez.
+        appClient.on('guest_left_room',     onGuestLeft = (message)=>{ appClient.getRooms(); }); //
         
         rtcClient.on("incoming_call", onIncomingCall);
         rtcClient.on("call_started",  onCallStarted);
@@ -74,8 +74,12 @@ export default function Room({user, setNavItems})
         
         window.removeEventListener('beforeunload', onBeforeUnload);
        
-
+        rtcClient.hangup();
         appClient.leaveRoom();
+
+        console.log('dismount');
+
+        alert('leaving')
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [ roomId ]);  
@@ -85,7 +89,7 @@ export default function Room({user, setNavItems})
         if(!roomInfo) return console.error("no roominfo");
         //if(status === 'error') return console.error(status, description);
 
-        let stream = localStream ?? dummyStream.getStream();
+        let stream = localStream;// ?? dummyStream.getStream();
         let users = roomInfo.guests.concat(roomInfo.master).filter( (v,k,a) => { return v !== user.id });
 
         for(let user of users)
@@ -97,13 +101,12 @@ export default function Room({user, setNavItems})
 
     function onIncomingCall({ callId, callerId })
     {
-        let stream = localStream ?? dummyStream.getStream();
+        let stream = localStream;// ?? dummyStream.getStream();
         rtcClient.acceptCall( callId, stream );
     }
 
     function onCallStarted({ callId, stream })
     {
-        console.log('call started', callId);
         window.streams = streams;
         streams[callId] = stream;
         setStreams(streams);
@@ -117,14 +120,14 @@ export default function Room({user, setNavItems})
 
     function onCallHangup({callId, state})
     {
-        //delete streams[callId];
-        //setStreams(streams);
+        delete streams[callId];
+        setStreams(streams);
+        setState(state+1);
     }
 
 
     if(!roomInfo)   return <V404 title={`Room '${roomId}' does not exist`} description='some description'/>;
 
-    console.log('render');
     return (<>
         <Helmet>
             <title>AdMiRe: {`${user.type !== "0" ? "Admin" : "User"} ${ user.id }`}</title>
@@ -132,12 +135,12 @@ export default function Room({user, setNavItems})
 
         <Container fluid="xs" id="room" className="text-center">
             <h1 id="title" style={{color:"hsl(210, 11%, 85%)", marginTop:"1rem"}}>#{roomId}</h1>
-            <Row className="justify-content-md-center" xs={12} lg={6} xl={4}>
+            <Row className="justify-content-center">
 
 
                 {/*< VideoStream fkey={-1} local audioDevices={audioDevices} videoDevices={videoDevices} settings={settings} fref={localVideo} />
                 { users && users.map( (v,k,a) => <VideoStream fkey={k} stream={v.stream}/>) }*/}
-                <Col xs={12}>
+                <Col xs={12} className='mb-2'>
                     <Video key={-1} stream={localStream} local playsInline/>
                 </Col>
 
@@ -147,8 +150,8 @@ export default function Room({user, setNavItems})
                         return Object.values(streams).map((v,k,a) => {
                         //return [1,2,3,4,5,6].map((v,k,a) => {
                             //return (<h1 key={k} >Hola! {k}</h1>);
-                            //return <Col><Video key={k} stream={ v } playsInline/></Col>;
-                            return <Col xs={6}><Video key={k} stream={ dummyStream.getStream() } playsInline/></Col>;
+                            return <Col key={k} xs={6}> <Video  stream={ v } playsInline/> </Col>;
+                            //return <Col xs={6}><Video key={k} stream={ dummyStream.getStream() } playsInline/></Col>;
                         })
                     })()
                 }

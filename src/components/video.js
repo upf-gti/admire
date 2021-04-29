@@ -20,9 +20,10 @@ export default function Video({local, fref, stream}){
     },[stream]);
 
     return <>
-        <video ref={ref} autoPlay muted={!!local} />
-        {local && <div style={{ position:'absolute', marginTop:'-7rem'}}>
+        <video ref={ref} autoPlay muted={!!local} playsInline controls/>
+        {local && <div style={{ position:'relative', marginTop:'-6rem'}}>
             <SplitButton
+                key={0}
                 size="lg"
                 drop="up"
                 as={ButtonGroup}
@@ -47,6 +48,7 @@ export default function Video({local, fref, stream}){
             </SplitButton>
 
             <SplitButton
+                key={1}
                 size="lg"
                 as={ButtonGroup}
                 id={`dropdown-button-drop-up`}
