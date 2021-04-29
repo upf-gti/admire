@@ -1,36 +1,27 @@
-/*
-Author: Hermann Plass (hermann.plass@gmail.com)
-video-preview.js (c) 2021
-Desc: description
-Created:  2021-04-21T12:53:49.657Z
-Modified: 2021-04-22T15:09:28.128Z
-*/
 import { rtcClient, appClient, mediaAdapter } from 'extra/bra';
-import { useState, useEffect, useRef, useContext } from 'react';
-import { ButtonGroup, SplitButton, Button, Dropdown, DropdownButton, Container, Row, Col } from 'react-bootstrap';
+import { useEffect, useState, useRef, useContext } from 'react';
+
+import { Button, SplitButton, Dropdown, ButtonGroup } from 'react-bootstrap';
 
 import {StreamSettings} from 'components/streamSettings';
-import './videostream.scss';
 
-export default function VideoStream({id, fref, stream, local})
-{
+export default function Video({local, fref, stream}){
+
     const { videoRef, devices:[devices,setDevices], settings:[settings,setSettings], localStream:[localStream,setLocalStream] } = useContext(StreamSettings);
-
-    const ref = useRef(null);
+    
+    let ref = useRef(null);
     const [audioEnabled, setAudio]        = useState(null);
     const [videoEnabled, setVideo]        = useState(null);
 
+    if(local) ref = videoRef;
+
     useEffect(()=>{
-        if(stream) ref.current.srcObject = stream; 
+        ref.current.srcObject = stream;
     },[stream]);
 
-    return (
-        <Container className="videostream d-flex justify-content-xs-center">
-            <div className="m-auto align-self-center">
-            <Row><video ref={fref ?? ref} autoPlay muted playsInline/></Row>
-
-        {local && <Row className="mt-2 justify-content-sm-center" noGutters>
-            <Col xs="auto">
+    return <>
+        <video ref={ref} autoPlay muted={!!local} />
+        {local && <div style={{ position:'absolute', marginTop:'-7rem'}}>
             <SplitButton
                 size="lg"
                 drop="up"
@@ -46,7 +37,7 @@ export default function VideoStream({id, fref, stream, local})
                     mediaAdapter.setVideo(event.currentTarget.getAttribute("value"));
                 }}
             >
-                {(!devices || !devices.video ) && <Dropdown.Item key={0} disabled eventKey={0}>No options available</Dropdown.Item>}
+                {(!devices || !devices.video) && <Dropdown.Item key={0} disabled eventKey={0}>No options available</Dropdown.Item>}
                 { devices && devices.video &&  Object.entries(devices.video).map((v,k,a)=>{
                     const [id,value] = v;
                     return (<>
@@ -54,9 +45,7 @@ export default function VideoStream({id, fref, stream, local})
                     </>);
                 })}
             </SplitButton>
-            </Col>
 
-            <Col xs="auto">
             <SplitButton
                 size="lg"
                 as={ButtonGroup}
@@ -73,17 +62,13 @@ export default function VideoStream({id, fref, stream, local})
                 }}
             >
                 {(!devices || !devices.audio) && <Dropdown.Item key={0} disabled eventKey={0}>No options available</Dropdown.Item>}
-                {  devices.audio &&  Object.entries(devices.audio).map((v,k,a)=>{
+                {  devices && devices.audio &&  Object.entries(devices.audio).map((v,k,a)=>{
                     const [id,value] = v;
                     return (<>
                         <Dropdown.Item key={k} eventKey={k} value={id} > {id} </Dropdown.Item>
                     </>);
                 })}
             </SplitButton>
-            </Col>
-        </Row>}
-
-        
-        </div>
-    </Container>);
+        </div>}
+    </>;
 }

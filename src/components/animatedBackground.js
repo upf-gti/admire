@@ -256,6 +256,7 @@ export default class AnimatedBackground extends React.Component
                     position:"absolute",
                     top: 0,
                     left: 0,
+                    width:'100vw'
             }}/>
         );
     }

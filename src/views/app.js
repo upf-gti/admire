@@ -34,13 +34,12 @@ export default function App() {
     const [login, setLogin]       = useState(null);
     const [NavItems, setNavItems] = useState({});
 
-    
-    //const appUrl = `wss://${window.location.hostname}:8443`;
+    //const appUrl = `wss://${window.location.hostname}:8443`;//process.env.PROXY;
     const appUrl = `wss://teleporter.brainstorm3d.com:8443/`;
     const rtcUrl = "wss://rtcserver.brainstorm3d.com";
 
     useEffect(() => { //Acts like 'componentWillMount'
-            setNavItem('wizzard',<Link to='/wizard'>
+            setNavItem('wizzard',<Link to='/wizzard'>
             <li> <Image src={img3} style={{filter:'invert(1)'}} width={24}/> Wizzard</li>
             </Link>
             );
@@ -122,12 +121,10 @@ export default function App() {
                 <Navbar user={login} doLogOut={doLogOut} items={Object.values(NavItems)}/>
                 <div id="content">
                 <Switch>
-                        { !ready && <Redirect to='/wizzard'/> }
-                        
+                        { !ready && <Wizard ready={{ready, setReady}} setNavItem={setNavItem}/> }
                         <Route exact path='/wizzard'> <Wizard ready={{ready, setReady}} setNavItem={setNavItem}/> </Route>
                         <Route exact path='/rooms/:roomId'> <Room user={login} setNavItem={setNavItem}/> </Route>
                         <Route> <Lobby setLogin={setLogin} user={login} setNavItem={setNavItem} key={Math.floor((Math.random() * 10000))} /> </Route>
-                        
                 </Switch>
                 </div>
             </div>
