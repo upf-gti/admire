@@ -10,6 +10,7 @@ import Lobby from 'views/lobby';
 import Wizard from 'views/wizzard';
 import Navbar from 'components/_navbar';
 import {StreamSettings} from 'components/streamSettings';
+import {Toasts} from 'components/toasts';
 
 import "./app.scss";
 import img3 from 'assets/img/wizard2.png';
@@ -37,12 +38,10 @@ export default function App() {
     //const appUrl = `wss://${window.location.hostname}:8443`;//process.env.PROXY;
     const appUrl = `wss://teleporter.brainstorm3d.com:8443/`;
     const rtcUrl = "wss://rtcserver.brainstorm3d.com";
+    
 
     useEffect(() => { //Acts like 'componentWillMount'
-            setNavItem('wizzard',<Link to='/wizzard'>
-            <li> <Image src={img3} style={{filter:'invert(1)'}} width={24}/> Wizzard</li>
-            </Link>
-            );
+            setNavItem( 'wizzard',<Link to='/wizzard'> <li> <Image src={img3} style={{filter:'invert(1)'}} width={24}/> Wizzard</li> </Link> );
 
             console.clear();
 
@@ -50,13 +49,15 @@ export default function App() {
             appClient.on('client_connected',     onConnect);
             appClient.on('client_disconnected',  onDisconnect);
             appClient.on("autologin_response",   onAutoLoginResponse);
-
-            appClient.connect(appUrl);
-            rtcClient.connect(rtcUrl);
-
-
+            
+            function heartbeat(){
+                if(!appClient.ws) appClient.connect(appUrl);
+                if(!rtcClient.ws) rtcClient.connect(rtcUrl);
+            }
+            const intervalID = setInterval(heartbeat,1000);
 
         return () => {//Acts like /componentWillUnmount'
+            clearInterval(intervalID);
             setNavItem('wizzard', null);
 
             appClient.off('client_connected',    onConnect);
@@ -65,6 +66,7 @@ export default function App() {
 
             appClient.disconnect();
             rtcClient.disconnect();
+            
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [appUrl, rtcUrl]); //This are the direct dependencies, the useEffect applies an observer pattern, whenever the value changes, the useEffect is called again.
@@ -113,10 +115,11 @@ export default function App() {
         setNavItems( NavItems );
     }
 
-    if(!login) return <Login login={login} setLogin={setLogin}/>;
+    if(!login) return <><Toasts/><Login login={login} setLogin={setLogin}/></>;
 
     return (<>
         <Router>
+            <Toasts/>
             <div className="app wrapper">
                 <Navbar user={login} doLogOut={doLogOut} items={Object.values(NavItems)}/>
                 <div id="content">

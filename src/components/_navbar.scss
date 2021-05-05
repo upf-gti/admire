@@ -6,12 +6,12 @@
 ----------------------------------------------------- */
 #content {
     position: fixed;
-    width: calc(100% - 245px);
+    width: calc(100% - 236px);
     min-height: 100vh;
     top: 0;
     right: 0;
     &.active {
-        width: calc(100% - 245px);
+        width: calc(100% - 236px);
     }
 }
 

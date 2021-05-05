@@ -4,7 +4,7 @@ nav.js (c) 2021
 Desc: 
 //icons https://icons.getbootstrap.com/#usage
 Created:  2021-01-16T09:17:06.826Z
-Modified: 2021-04-21T09:50:53.880Z
+Modified: 2021-05-04T13:54:03.098Z
 */
 
 import React from 'react';
@@ -29,7 +29,7 @@ export class NavItem extends React.Component {
             {this.props.title}
           </a>
           <ul className="collapse list-unstyled" id={this.props.title + "Submenu"}>
-            {this.props.children}
+            {this.props.children.map((v,k,a)=><div key={k}>{v}</div>)}
           </ul>
         </li>);
     }
@@ -128,6 +128,7 @@ export default class Navbar extends React.Component {
       document.querySelectorAll('a[aria-expanded=true]').forEach((v, k, a) => { v.attr('aria-expanded', 'false'); });
     };
 
+    let i = 0;
     return (
       <>
         <nav id="sidebar">
@@ -143,9 +144,13 @@ export default class Navbar extends React.Component {
 
           <ul className="list-unstyled">
             <Link to="/"> <li><i className="bi bi-layout-text-sidebar-reverse"/> Lobby </li></Link>
-            {(()=>Object.values(this.state.items))()}
-            {this.props.items}
-            {this.props.children}
+            {/*(()=>Object.values(this.state.items))()*/}
+            {/*this.props.items}
+            {this.props.children*/}
+            {this.state.items && Object.values(this.state.items).map((v,k,a)=><div key={++i}>{v}</div>)}
+            {this.props.items && this.props.items.map((v,k,a)=><div key={++i}>{v}</div>)}
+            {this.props.children && this.props.children.map((v,k,a)=><div key={++i}>{v}</div>)}
+
           </ul>
 
           <ul id="nav-footer" className="list-unstyled">

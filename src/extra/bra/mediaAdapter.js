@@ -70,10 +70,13 @@ MediaAdapter.prototype.start = function()
 
     let initialize = async function()
     {
-        await window.navigator.mediaDevices.getUserMedia({ audio: true });
-        await window.navigator.mediaDevices.getUserMedia({ video: true });
-        await this.findDevices();
-        await this.setDefaultDevices();
+        
+        window.navigator.mediaDevices.getUserMedia({ audio: true })
+        .then(window.navigator.mediaDevices.getUserMedia({ video: true }))
+        .then(this.findDevices())
+        .then(this.setDefaultDevices())
+        .catch( e => console.error('initialize error', e));
+
     }.bind(this);
 
     initialize();
