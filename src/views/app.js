@@ -10,16 +10,25 @@ import Lobby from 'views/lobby';
 import Wizard from 'views/wizzard';
 import Navbar from 'components/_navbar';
 import {StreamSettings} from 'components/streamSettings';
-import {Toasts} from 'components/toasts';
+import {Toasts, ToastContext} from 'components/toasts';
 
 import "./app.scss";
 import img3 from 'assets/img/wizard2.png';
 
+const rtcUrl = "wss://rtcserver.brainstorm3d.com";
+const appUrl = `wss://teleporter.brainstorm3d.com:8443/`;
+//const appUrl = `wss://${window.location.hostname}:8443`;//process.env.PROXY;
 
 export default function App() {
 
+    const Log = useContext(ToastContext);
+    const [list] = Log.toasts;
     const { videoRef, devices:[devices,setDevices], settings:[settings,setSettings], localStream:[localStream,setLocalStream] } = useContext(StreamSettings);
+    
 
+    const [login, setLogin]       = useState(null);
+    const [fetching, setFetching] = useState(true);
+    const [NavItems, setNavItems] = useState({});
     const [ready, setReady] = useReducer((state, newState)=>{ 
         localStorage.setItem('admire-user-ready', newState);
         sessionStorage.setItem('admire-user-ready', newState);
@@ -32,18 +41,13 @@ export default function App() {
         return state;
     });  
 
-    const [login, setLogin]       = useState(null);
-    const [NavItems, setNavItems] = useState({});
-
-    //const appUrl = `wss://${window.location.hostname}:8443`;//process.env.PROXY;
-    const appUrl = `wss://teleporter.brainstorm3d.com:8443/`;
-    const rtcUrl = "wss://rtcserver.brainstorm3d.com";
-    
-
+  
     useEffect(() => { //Acts like 'componentWillMount'
-            setNavItem( 'wizzard',<Link to='/wizzard'> <li> <Image src={img3} style={{filter:'invert(1)'}} width={24}/> Wizzard</li> </Link> );
+            console.clear();    
+            setFetching(true);
+            
 
-            console.clear();
+            setNavItem( 'wizzard',<Link to='/wizzard'> <li> <Image src={img3} style={{filter:'invert(1)'}} width={24}/> Wizzard</li> </Link> );
 
             appClient.on("logout_response",      onLogOut);
             appClient.on('client_connected',     onConnect);
@@ -57,42 +61,45 @@ export default function App() {
             const intervalID = setInterval(heartbeat,1000);
 
         return () => {//Acts like /componentWillUnmount'
-            clearInterval(intervalID);
             setNavItem('wizzard', null);
-
+            
+            clearInterval(intervalID);
+            
             appClient.off('client_connected',    onConnect);
             appClient.off('client_disconnected', onDisconnect);
             appClient.off("logout_response",     onLogOut);
 
             appClient.disconnect();
             rtcClient.disconnect();
-            
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [appUrl, rtcUrl]); //This are the direct dependencies, the useEffect applies an observer pattern, whenever the value changes, the useEffect is called again.
 
 
     function onConnect(event) {
-        console.log(`App client connected to ${appUrl}`);
+        Log.info(`App client connected`);
         appClient.autologin();
         mediaAdapter.start();
     }
 
     function onDisconnect() {
-        console.log(`App client disconnected from ${appUrl}`);
+        Log.warn(`App client disconnected`);
     }
 
     function onAutoLoginResponse(event){
         let {status, description, userId, userType} = event;
+        setFetching(false);
+
         switch(status)
         {
             case 'ok': {
+                Log.success(`Autlogin for ${userId}`);
                 setLogin({id:userId, type:userType}); 
                 rtcClient.register(userId);
                 break;
             }
-            case 'error': console.error(status, description);break;
-            default: console.warn(status, description); break;
+            case 'error': Log.error(description);break;
+            default: Log.warn(description); break;
         }
     }
 
@@ -101,6 +108,7 @@ export default function App() {
     }
 
     function onLogOut(){
+        Log.info(`Logout`);
         setLogin(null);
         rtcClient.unregister();
     }
@@ -112,9 +120,10 @@ export default function App() {
         else
             NavItems[id] = item;
 
-        setNavItems( NavItems );
+        setNavItems( Object.assign({},NavItems) );
     }
 
+    if(fetching) return <></>
     if(!login) return <><Toasts/><Login login={login} setLogin={setLogin}/></>;
 
     return (<>

@@ -9,10 +9,12 @@ import V404 from 'views/v404';
 import Video from 'components/video';
 import VideoStream from 'components/videostream';
 import {StreamSettings} from 'components/streamSettings';
+import {Toasts, ToastContext} from 'components/toasts';
 
 
 export default function Room({user, setNavItems})
 {
+    const Log = useContext(ToastContext);
     //All stream properties
     const { videoRef, devices:[devices,setDevices], settings:[settings,setSettings], localStream:[localStream,setLocalStream] } = useContext(StreamSettings);
 
@@ -23,6 +25,7 @@ export default function Room({user, setNavItems})
     //Retrieved from URL
     let { roomId } = useParams();
     let [ state, setState ]   = useState(0);
+    let [ calls, setCalls ]   = useState(0);
 
     let [ streams, setStreams ]   = useState({});
     let [ roomInfo, setRoomInfo ] = useState(null);
@@ -37,13 +40,14 @@ export default function Room({user, setNavItems})
     useEffect(() => {//Executes when this component is mounted
         let  onGuestJoin, onGuestLeft, onMasterLeft, onGetRooms;
         appClient.on('join_room_response',  onJoinRoom);
-        appClient.on('get_rooms_response',  onGetRooms  = ({id, status, description, roomInfos}) => { setRoomInfo( roomInfos[roomId] ); });
-        appClient.on('master_left_room',    onMasterLeft= (message)=>{ appClient.getRooms(); }); //Tal vez estos tres podrian devolver la info de la room 
-        appClient.on('guest_joined_room',   onGuestJoin = (message)=>{ appClient.getRooms(); }); //asi no lo he de pedir cada vez.
-        appClient.on('guest_left_room',     onGuestLeft = (message)=>{ appClient.getRooms(); }); //
+        appClient.on('get_rooms_response',  onGetRooms  = ({id, status, description, roomInfos}) => { setRoomInfo( Object.assign({},roomInfos[roomId]) ); });
+        appClient.on('master_left_room',    onMasterLeft= (message)=>{ Log.warn('Master left'); appClient.getRooms(); }); //Tal vez estos tres podrian devolver la info de la room 
+        appClient.on('guest_joined_room',   onGuestJoin = (message)=>{ console.log(message); Log.info('Guest joined'); appClient.getRooms(); }); //asi no lo he de pedir cada vez.
+        appClient.on('guest_left_room',     onGuestLeft = (message)=>{ console.log(message); Log.warn('Guest left'); appClient.getRooms(); }); //
         
         rtcClient.on("incoming_call", onIncomingCall);
         rtcClient.on("call_started",  onCallStarted);
+        rtcClient.on("call_response", onCallResponse);
         rtcClient.on('user_hangup',   onCallHangup);
         
         //This is to be sure when user is leaving the room because a refresh/closing/leaving the tab
@@ -55,13 +59,18 @@ export default function Room({user, setNavItems})
         appClient.getRooms();
         appClient.on('get_rooms_response',  validationCallback = ({id, status, description, roomInfos}) => { 
             roomInfo = roomInfos[roomId];
-            if(!roomInfo) return;
-            setRoomInfo( roomInfo ); 
+            if(!roomInfo){
+                Log.error("No RoomInfo");
+                window.location = '/';
+                return; 
+            } 
+            setRoomInfo( Object.assign({}, roomInfo)); 
             appClient.joinRoom(roomId);
             appClient.off('get_rooms_response',  validationCallback);
         });
 
     return () => {//Executes on dismount
+        Log.warn('room dismount');
         appClient.off('get_rooms_response', onGetRooms);
         appClient.off('join_room_response', onJoinRoom);
         appClient.off('master_left_room',   onMasterLeft);
@@ -70,11 +79,12 @@ export default function Room({user, setNavItems})
         
         rtcClient.off('incoming_call',      onIncomingCall);
         rtcClient.off('call_started',       onCallStarted);
+        rtcClient.off("call_response",      onCallResponse);
         rtcClient.off('user_hangup',        onCallHangup);
         
         window.removeEventListener('beforeunload', onBeforeUnload);
-       
-        rtcClient.hangup();
+        
+        Object.keys(rtcClient.peers).forEach( callId => rtcClient.hangup(callId));
         appClient.leaveRoom();
 
         console.log('dismount');
@@ -86,32 +96,47 @@ export default function Room({user, setNavItems})
 
     function  onJoinRoom ({ status, description, userId, userType, channels })
     { 
-        if(!roomInfo) return console.error("no roominfo");
+        
+        if(!roomInfo){
+            Log.error("No RoomInfo");
+            return; 
+        } 
+        Log.success(`Joined to room ${roomId}`);
         //if(status === 'error') return console.error(status, description);
 
         let stream = localStream;// ?? dummyStream.getStream();
-        let users = roomInfo.guests.concat(roomInfo.master).filter( (v,k,a) => { return v !== user.id });
+        let users =  [...roomInfo.guests, roomInfo.master].filter( (v,k,a) => { return v !== user.id });
 
         for(let user of users)
         {
+            Log.warn(`Attempting call to ${user}`);
+
             if(!rtcClient.call( user, stream ))
-                console.error(`call missed to ${user}`);
+                Log.error(`call missed to ${user}`);
         }
     }
 
     function onIncomingCall({ callId, callerId })
     {
+        Log.warn(`onIncomingCall`);
         let stream = localStream;// ?? dummyStream.getStream();
         rtcClient.acceptCall( callId, stream );
+        setState(state+1);
+    }
+
+    function onCallResponse(message)
+    {
+        Log.warn(`onCallResponse`);
+        console.log(message)
     }
 
     function onCallStarted({ callId, stream })
     {
+        Log.success(`Call ${callId} started`);
+
         window.streams = streams;
         streams[callId] = stream;
-        setStreams(streams);
-        setState(state+1);
-
+        setStreams(Object.assign({},streams));
 
         //const localStream = localVideo.current.srcObject;
         //const track = localStream.getAudioTracks()[0];
@@ -120,22 +145,25 @@ export default function Room({user, setNavItems})
 
     function onCallHangup({callId, state})
     {
+        Log.warn(`Call ${callId} hangup`);
         delete streams[callId];
-        setStreams(streams);
-        setState(state+1);
+        setStreams(Object.assign({},streams));
     }
 
 
     if(!roomInfo)   return <V404 title={`Room '${roomId}' does not exist`} description='some description'/>;
+
+    console.log('refresh');
 
     return (<>
         <Helmet>
             <title>AdMiRe: {`${user.type !== "0" ? "Admin" : "User"} ${ user.id }`}</title>
         </Helmet>
 
-        <Container id="room" className="text-center">
+        <Container id="room" className="text-center" fluid="md">
             <h1 id="title" style={{color:"hsl(210, 11%, 85%)", marginTop:"1rem"}}>#{roomId}</h1>
-            <Row className="justify-content-center">
+            <Row className="justify-content-center"> 
+            
 
 
                 {/*< VideoStream fkey={-1} local audioDevices={audioDevices} videoDevices={videoDevices} settings={settings} fref={localVideo} />
@@ -145,16 +173,11 @@ export default function Room({user, setNavItems})
                 </Col>
 
 
-                { 
-                    (()=>{
-                        return Object.values(streams).map((v,k,a) => {
-                        //return [1,2,3,4,5,6].map((v,k,a) => {
-                            //return (<h1 key={k} >Hola! {k}</h1>);
-                            return <Col key={k} xs={6}> <Video  stream={ v } playsInline/> </Col>;
-                            //return <Col xs={6}><Video key={k} stream={ dummyStream.getStream() } playsInline/></Col>;
-                        })
-                    })()
-                }
+                {Object.values(streams).map((v,k,a) => 
+                    <Col key={k}>
+                        <Video  stream={ v } playsInline/> 
+                    </Col> 
+                )}
     
             </Row>
         </Container>

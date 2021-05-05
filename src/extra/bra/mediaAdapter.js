@@ -70,13 +70,13 @@ MediaAdapter.prototype.start = function()
 
     let initialize = async function()
     {
-        
-        window.navigator.mediaDevices.getUserMedia({ audio: true })
-        .then(window.navigator.mediaDevices.getUserMedia({ video: true }))
-        .then(this.findDevices())
-        .then(this.setDefaultDevices())
-        .catch( e => console.error('initialize error', e));
+        let constraints = { audio: true, video: true  };
 
+        navigator.mediaDevices.enumerateDevices()
+        .then(this.gotDevices.bind(this))
+        .then(this.setDefaultDevices.bind(this))
+        .catch(err => console.error(err))
+        
     }.bind(this);
 
     initialize();
@@ -139,7 +139,8 @@ MediaAdapter.prototype.emit = function( event )
  */
 MediaAdapter.prototype.findDevices = async function()
 {
-    return this.getDevices().then(this.gotDevices.bind(this)).catch(this.errorDevices.bind(this));
+    return this.getDevices()
+           .then(this.gotDevices.bind(this)).catch(this.errorDevices.bind(this));
 }
 
 /**
@@ -150,18 +151,18 @@ MediaAdapter.prototype.setDefaultDevices = async function()
     // Try to get the media configuration from the local storage
     // or use the default values.
 
-    let audio = window.localStorage.getItem("audio") || "None";
+    let audio = localStorage.getItem("audio") || "None";
     if( !(audio in this.audioDevices) )
     {
         audio = "None";
-        window.localStorage.removeItem("audio");
+        localStorage.removeItem("audio");
     }
 
-    let video = window.localStorage.getItem("video") || "None";
+    let video = localStorage.getItem("video") || "None";
     if( !(video in this.videoDevices) )
     {
         video = "None";
-        window.localStorage.removeItem("video");
+        localStorage.removeItem("video");
     }
 
     try
@@ -195,7 +196,7 @@ MediaAdapter.prototype.setDefaultDevices = async function()
  */
 MediaAdapter.prototype.getDevices = function()
 {
-    return window.navigator.mediaDevices.enumerateDevices();
+    return navigator.mediaDevices.enumerateDevices();
 }
 
 /**
@@ -331,7 +332,7 @@ MediaAdapter.prototype.setVideo = function( device, resolution = "Undefined" )
         this.settings.resolution = resolution;
 
         // Save settings.
-        window.localStorage.setItem("video", this.settings.video);
+        localStorage.setItem("video", this.settings.video);
 
         // Get dummy stream.
         let width = this.resolutions[resolution].width;

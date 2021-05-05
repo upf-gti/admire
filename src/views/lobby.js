@@ -8,11 +8,14 @@ import RoomList from 'components/roomlist';
 import "./lobby.scss";
 
 export default function Lobby({user, setLogin, setNavItem}) {
-    const [showModal, setShowModal] = useState(false);
-    const [rooms, setRooms] = useState(null);
+    
     const roomIdRef = useRef(null);
+    const [rooms, setRooms] = useState(null);
+    const [fetching, setFetching] = useState(true);
+    const [showModal, setShowModal] = useState(false);
 
     useEffect(() => {
+            setFetching(true);
             appClient.on('get_rooms_response',   onGetRooms);
             appClient.on('create_room_response', onCreateRoom);
             appClient.getRooms();
@@ -49,9 +52,12 @@ export default function Lobby({user, setLogin, setNavItem}) {
 
     function onGetRooms(event)
     {
+        setFetching(false);
         if(event.status === 'error') return;
         setRooms(Object.values(event.roomInfos ?? null));
     }
+
+    if(fetching) return <></>
 
     return (<>
     <Helmet>
@@ -84,7 +90,12 @@ export default function Lobby({user, setLogin, setNavItem}) {
         <Row className="justify-content-md-center">
         <Col xs={12} lg={6} xl={4}>
 
-            <h1 id="title">Lobby:</h1>
+            <h1 id="title" className='pt-4'>
+                Lobby: 
+                <Button size='sm' variant="outline-light" style={{color:'#4666AC', borderColor: '#4666AC',     padding: '0 0.35rem', borderRadius: '50%'}} onClick={ ()=> appClient.getRooms() }> 
+                    <i class="bi bi-arrow-counterclockwise" style={{ position: 'relative', top: '1px', fontSize: 'x-large'}}/> 
+                </Button>
+            </h1>
 
             { rooms && <RoomList rooms={rooms}/> }
             

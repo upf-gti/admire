@@ -20,7 +20,7 @@ export default function Video({local, fref, stream}){
     },[stream]);
 
     return <>
-        <video ref={ref} autoPlay muted={!!local} playsInline controls/>
+        <video ref={ref} autoPlay muted={!!local} playsInline controls style={{maxHeight:'33vh', width:'auto'}}/>
         {local && <div style={{ position:'relative', marginTop:'-6rem'}}>
             <SplitButton
                 key={0}
@@ -41,9 +41,8 @@ export default function Video({local, fref, stream}){
                 {(!devices || !devices.video) && <Dropdown.Item key={0} disabled eventKey={0}>No options available</Dropdown.Item>}
                 { devices && devices.video &&  Object.entries(devices.video).map((v,k,a)=>{
                     const [id,value] = v;
-                    return (<>
-                        <Dropdown.Item key={k} eventKey={k} value={id}> {id} </Dropdown.Item>
-                    </>);
+                    return <Dropdown.Item key={k} eventKey={k} value={id}> {id} </Dropdown.Item>
+                    
                 })}
             </SplitButton>
 

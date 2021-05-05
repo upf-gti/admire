@@ -142,6 +142,7 @@ RtcClient.prototype.onOpen = function( event )
 RtcClient.prototype.onMessage = function( msg )
 {
     let message = JSON.parse(msg.data);
+    console.log(`%c IN < %c ${message.id} [${message.status}]`, message.status === "ok"?`background-color:green; color:white`:`background-color:red; color:white`, "color:white"  )
 
     // Check the message.
     if( message.id in this.messages )
@@ -172,6 +173,7 @@ RtcClient.prototype.onMessage = function( msg )
  */
 RtcClient.prototype.sendMessage = function( message )
 {
+    console.log(`%c OUT > %c ${message.id}`, "background-color:yellow; color:black", "color:white"  )
     let msg = JSON.stringify(message);
     if( this.DEBUG && message.id !== "ping" ) console.log("%c%s%o", this.debugStyle, message.id, msg);
     this.ws.send(msg);
@@ -563,7 +565,8 @@ RtcClient.prototype.onRemoteOffer = function( event )
     // Generate SDP answer.
     window.setTimeout(function()
     {
-        peer.connection.createAnswer().then(function( sdp )
+        peer.connection.createAnswer()
+        .then(function( sdp )
         {
             // Set callee local description.
             peer.connection.setLocalDescription(sdp);
@@ -572,7 +575,8 @@ RtcClient.prototype.onRemoteOffer = function( event )
             message["id"] = "answer";
             message["answer"] = JSON.stringify(sdp);
             self.sendMessage(message);
-        });
+        })
+        .catch( e => console.error(e) );
     }, 500);
 }
 

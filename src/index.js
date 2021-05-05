@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useState} from 'react';
 import ReactDOM from 'react-dom';
 
 import 'bootstrap/dist/css/bootstrap.min.css';
@@ -10,13 +10,21 @@ import StreamSettings from 'components/streamSettings';
 
 import App from "views/app";
 
-ReactDOM.render(
+function ContextContainer({children}){
+  const [state,setState] = useState(0);
 
-  <ToastContext>
-  <StreamSettings>
+  return <>
+      <ToastContext   updateApp={()=>setState(state+1)}>
+      <StreamSettings updateApp={()=>setState(state+1)}>
+      {children}
+      </StreamSettings>
+      </ToastContext>
+    </>
+}
+
+ReactDOM.render(
+  <ContextContainer>
     <App/>
-  </StreamSettings>
-  </ToastContext>
-  
+  </ContextContainer>
   ,document.getElementById('root')
 );
