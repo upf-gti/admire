@@ -17,9 +17,9 @@ export default function Wizard({ready:{ready, setReady}, setNavItem}){
     const { videoRef, devices:[devices,setDevices], settings:[settings,setSettings], localStream:[localStream,setLocalStream] } = useContext(StreamSettings);
 
     let items = {
-        'Video':      [<i class="bi bi-cast"></i>, <VideoStream/>],
-        'Brightness': [<i class="bi bi-brightness-high"></i>, <img src={img1}/>],
-        'Contrast':   [<i class="bi bi-octagon-half"></i>, <img src={img2}/>],
+        'Video':      [<i className="bi bi-cast"></i>, <VideoStream/>],
+        'Brightness': [<i className="bi bi-brightness-high"></i>, <img src={img1}/>],
+        'Contrast':   [<i className="bi bi-octagon-half"></i>, <img src={img2}/>],
     }
 
     useEffect(()=>{
@@ -44,9 +44,9 @@ export default function Wizard({ready:{ready, setReady}, setNavItem}){
 
                 <Nav variant="pills" className='flex-column' >
                     {[
-                        <><i class="bi bi-cast"/> Video</>,
-                        <><i class="bi bi-brightness-high"/> Brightness </>,
-                        <><i class="bi bi-octagon-half"/> Contrast </>
+                        <><i className="bi bi-cast"/> Video</>,
+                        <><i className="bi bi-brightness-high"/> Brightness </>,
+                        <><i className="bi bi-octagon-half"/> Contrast </>
                     ].map((v,k,a)=>{
                         return <Nav.Item className='mb-2 pichi' key={k} style={{animationDelay: `${k*.15 + .5}s`}}> <Nav.Link eventKey={k}>{v}</Nav.Link> </Nav.Item>;
                     })}
@@ -55,13 +55,13 @@ export default function Wizard({ready:{ready, setReady}, setNavItem}){
                 <Col as={Tab.Content} xs={12} className="d-flex" style={{  height: 'calc(100vh - 2rem)'}}>
                     
                     <Tab.Pane eventKey={0} className="m-auto  align-self-center">
-                        {devices && <VideoStream local fref={videoRef} videoDevices={devices.video} audioDevices={devices.audio}/> }
+                        {devices && <VideoStream key={0} local fref={videoRef} videoDevices={devices.video} audioDevices={devices.audio}/> }
                     </Tab.Pane>
 
                     <Tab.Pane as={Card} eventKey={1} className="shadow-sm p-2 m-auto  align-self-center">
                         <Image src={img1}/>
                         <Col xs={12} className='mt-5'>
-                            <label for="range">Do you like cheese?</label>
+                            <label htmlFor="range">Do you like cheese?</label>
                             <input name='range' type='range'/>
                             <p> Please use the sliders to adjust the brightness of the image until the bright and dark spots disappear                        </p>
                         </Col>

@@ -12,6 +12,7 @@ import {StreamSettings} from 'components/streamSettings';
 import {Toasts, ToastContext} from 'components/toasts';
 
 
+
 export default function Room({user, setNavItems})
 {
     const Log = useContext(ToastContext);
@@ -27,6 +28,12 @@ export default function Room({user, setNavItems})
     let [ state, setState ]   = useState(0);
     let [ calls, setCalls ]   = useState(0);
 
+    function forcerefresh() { 
+        setState(state+1)
+        setTimeout(forcerefresh, 2000); 
+    }
+
+
     let [ streams, setStreams ]   = useState({});
     let [ roomInfo, setRoomInfo ] = useState(null);
     let [ selected, setSelected ] = useState('local');
@@ -41,7 +48,7 @@ export default function Room({user, setNavItems})
         let  onGuestJoin, onGuestLeft, onMasterLeft, onGetRooms;
         appClient.on('join_room_response',  onJoinRoom);
         appClient.on('get_rooms_response',  onGetRooms  = ({id, status, description, roomInfos}) => { setRoomInfo( Object.assign({},roomInfos[roomId]) ); });
-        appClient.on('master_left_room',    onMasterLeft= (message)=>{ Log.warn('Master left'); appClient.getRooms(); }); //Tal vez estos tres podrian devolver la info de la room 
+        appClient.on('master_left_room',    onMasterLeft= (message)=>{ Log.warn('Master left'); /* modal master left, on ok return lobby*/window.location = '/'; }); //Tal vez estos tres podrian devolver la info de la room 
         appClient.on('guest_joined_room',   onGuestJoin = (message)=>{ console.log(message); Log.info('Guest joined'); appClient.getRooms(); }); //asi no lo he de pedir cada vez.
         appClient.on('guest_left_room',     onGuestLeft = (message)=>{ console.log(message); Log.warn('Guest left'); appClient.getRooms(); }); //
         
@@ -69,6 +76,8 @@ export default function Room({user, setNavItems})
             appClient.off('get_rooms_response',  validationCallback);
         });
 
+        forcerefresh();
+
     return () => {//Executes on dismount
         Log.warn('room dismount');
         appClient.off('get_rooms_response', onGetRooms);
@@ -88,8 +97,6 @@ export default function Room({user, setNavItems})
         appClient.leaveRoom();
 
         console.log('dismount');
-
-        alert('leaving')
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [ roomId ]);  
@@ -104,7 +111,7 @@ export default function Room({user, setNavItems})
         Log.success(`Joined to room ${roomId}`);
         //if(status === 'error') return console.error(status, description);
 
-        let stream = localStream;// ?? dummyStream.getStream();
+        let stream = dummyStream.getStream();//localStream;// ?? dummyStream.getStream();
         let users =  [...roomInfo.guests, roomInfo.master].filter( (v,k,a) => { return v !== user.id });
 
         for(let user of users)
@@ -119,7 +126,7 @@ export default function Room({user, setNavItems})
     function onIncomingCall({ callId, callerId })
     {
         Log.warn(`onIncomingCall`);
-        let stream = localStream;// ?? dummyStream.getStream();
+        let stream = dummyStream.getStream();// localStream;// ?? dummyStream.getStream();
         rtcClient.acceptCall( callId, stream );
         setState(state+1);
     }
@@ -135,8 +142,17 @@ export default function Room({user, setNavItems})
         Log.success(`Call ${callId} started`);
 
         window.streams = streams;
+        
         streams[callId] = stream;
         setStreams(Object.assign({},streams));
+
+        //rtcClient.replaceLocalStream(callId, localStream);
+
+        let track = localStream.getVideoTracks()[0];
+        track.enabled = true;
+        rtcClient.replaceLocalVideoTrack(callId, track);
+        
+
 
         //const localStream = localVideo.current.srcObject;
         //const track = localStream.getAudioTracks()[0];
@@ -169,14 +185,18 @@ export default function Room({user, setNavItems})
                 {/*< VideoStream fkey={-1} local audioDevices={audioDevices} videoDevices={videoDevices} settings={settings} fref={localVideo} />
                 { users && users.map( (v,k,a) => <VideoStream fkey={k} stream={v.stream}/>) }*/}
                 <Col xs={12} className='mb-2'>
-                    <Video key={-1} stream={localStream} local playsInline/>
+                    <Video id={'local'} key={-1} stream={localStream} local playsInline/>
                 </Col>
 
 
-                {Object.values(streams).map((v,k,a) => 
-                    <Col key={k}>
-                        <Video  stream={ v } playsInline/> 
+                {streams && Object.entries(streams).map((v,k,a) => {
+                    if(!rtcClient.peers[v[0]]) return
+                    let {calleeId, callerId} =  rtcClient.peers[v[0]];
+                    let id = calleeId === user.id? callerId : calleeId;
+                    return <Col key={k}>
+                        <Video  id={id} stream={ v[1] } playsInline/> 
                     </Col> 
+                    }
                 )}
     
             </Row>

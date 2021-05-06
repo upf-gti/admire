@@ -5,7 +5,7 @@ import { Button, SplitButton, Dropdown, ButtonGroup } from 'react-bootstrap';
 
 import {StreamSettings} from 'components/streamSettings';
 
-export default function Video({local, fref, stream}){
+export default function Video({id, local, fref, stream}){
 
     const { videoRef, devices:[devices,setDevices], settings:[settings,setSettings], localStream:[localStream,setLocalStream] } = useContext(StreamSettings);
     
@@ -13,14 +13,17 @@ export default function Video({local, fref, stream}){
     const [audioEnabled, setAudio]        = useState(null);
     const [videoEnabled, setVideo]        = useState(null);
 
-    if(local) ref = videoRef;
+    //if(local) 
+    //ref = videoRef;
 
-    useEffect(()=>{
-        ref.current.srcObject = stream;
+    useEffect(()=>{ 
+        if(stream && ref && ref.current )
+            ref.current.srcObject = stream;
     },[stream]);
 
     return <>
-        <video ref={ref} autoPlay muted={!!local} playsInline controls style={{maxHeight:'33vh', width:'auto'}}/>
+        <h1 style={{zIndex:2000}}>{id}</h1>
+        <video ref={ref} autoPlay muted={true} playsInline controls style={{maxHeight:'33vh', width:'auto'}}/>
         {local && <div style={{ position:'relative', marginTop:'-6rem'}}>
             <SplitButton
                 key={0}

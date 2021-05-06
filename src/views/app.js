@@ -18,7 +18,7 @@ import img3 from 'assets/img/wizard2.png';
 const rtcUrl = "wss://rtcserver.brainstorm3d.com";
 const appUrl = `wss://teleporter.brainstorm3d.com:8443/`;
 //const appUrl = `wss://${window.location.hostname}:8443`;//process.env.PROXY;
-
+let timeoutId; 
 export default function App() {
 
     const Log = useContext(ToastContext);
@@ -57,14 +57,16 @@ export default function App() {
             function heartbeat(){
                 if(!appClient.ws) appClient.connect(appUrl);
                 if(!rtcClient.ws) rtcClient.connect(rtcUrl);
+                timeoutId = setTimeout(heartbeat,1000);
             }
-            const intervalID = setInterval(heartbeat,1000);
+
+            appClient.connect(appUrl);
+            rtcClient.connect(rtcUrl);
 
         return () => {//Acts like /componentWillUnmount'
             setNavItem('wizzard', null);
-            
-            clearInterval(intervalID);
-            
+            //clearTimeout(timeoutId);
+
             appClient.off('client_connected',    onConnect);
             appClient.off('client_disconnected', onDisconnect);
             appClient.off("logout_response",     onLogOut);
@@ -123,8 +125,8 @@ export default function App() {
         setNavItems( Object.assign({},NavItems) );
     }
 
-    if(fetching) return <></>
-    if(!login) return <><Toasts/><Login login={login} setLogin={setLogin}/></>;
+    if(fetching) return <><Toasts/></>
+    if(!login) return <><Login login={login} setLogin={setLogin}/></>;
 
     return (<>
         <Router>

@@ -42,6 +42,14 @@ export default function({children})
     { 
         setSettings(settings);
         setLocalStream(stream);
+        //Object.values(rtcClient.peers).forEach( callId => rtcClient.replaceLocalStream(callId, stream) );
+
+        for( let callId in rtcClient.peers )
+        {
+            let track = stream.getVideoTracks()[0];
+            track.enabled = true;
+            rtcClient.replaceLocalVideoTrack(callId, track);
+        }
 
         //setAudio(settings.audio); 
         //setVideo(settings.video); 

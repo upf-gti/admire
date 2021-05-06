@@ -93,7 +93,7 @@ export default function Lobby({user, setLogin, setNavItem}) {
             <h1 id="title" className='pt-4'>
                 Lobby: 
                 <Button size='sm' variant="outline-light" style={{color:'#4666AC', borderColor: '#4666AC',     padding: '0 0.35rem', borderRadius: '50%'}} onClick={ ()=> appClient.getRooms() }> 
-                    <i class="bi bi-arrow-counterclockwise" style={{ position: 'relative', top: '1px', fontSize: 'x-large'}}/> 
+                    <i className="bi bi-arrow-counterclockwise" style={{ position: 'relative', top: '1px', fontSize: 'x-large'}}/> 
                 </Button>
             </h1>
 

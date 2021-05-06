@@ -72,10 +72,16 @@ MediaAdapter.prototype.start = function()
     {
         let constraints = { audio: true, video: true  };
 
-        navigator.mediaDevices.enumerateDevices()
-        .then(this.gotDevices.bind(this))
-        .then(this.setDefaultDevices.bind(this))
-        .catch(err => console.error(err))
+        //navigator.mediaDevices.getUserMedia({ audio:true, video: true })
+        //.then( navigator.mediaDevices.enumerateDevices)
+        //.then(this.gotDevices.bind(this))
+        //.then(this.setDefaultDevices.bind(this))
+        //.catch(err => console.error(err))
+
+        await window.navigator.mediaDevices.getUserMedia({ audio: true });
+        await window.navigator.mediaDevices.getUserMedia({ video: true });
+        await this.findDevices();
+        await this.setDefaultDevices();
         
     }.bind(this);
 

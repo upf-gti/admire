@@ -173,9 +173,17 @@ RtcClient.prototype.onMessage = function( msg )
  */
 RtcClient.prototype.sendMessage = function( message )
 {
+    
+    if(!this.ws) 
+    {
+        console.error('WS IS NULL');
+        return;
+    }
+
     console.log(`%c OUT > %c ${message.id}`, "background-color:yellow; color:black", "color:white"  )
     let msg = JSON.stringify(message);
     if( this.DEBUG && message.id !== "ping" ) console.log("%c%s%o", this.debugStyle, message.id, msg);
+    
     this.ws.send(msg);
 }
 
@@ -560,7 +568,13 @@ RtcClient.prototype.onRemoteOffer = function( event )
     };
 
     // Add the stream.
-    peer.connection.addStream(this.localStreams[event.calleeStream]);
+    //debugger;
+    //peer.connection.addStream(this.localStreams[event.calleeStream]);
+
+    var that = this;
+    this.localStreams[event.calleeStream].getTracks().forEach(function(track) {
+        peer.connection.addTrack(track, that.localStreams[event.calleeStream]);
+    });
 
     // Generate SDP answer.
     window.setTimeout(function()
@@ -737,7 +751,7 @@ RtcClient.prototype.getStats = function( callId )
  */
 RtcClient.prototype.replaceLocalAudioTrack = function( callId, track )
 {
-    if( !track || !(track instanceof MediaStreamTrack) )
+    if( !track || !(track instanceof MediaStreamTrack  ) )
     {
         return;
     }
@@ -772,8 +786,9 @@ RtcClient.prototype.replaceLocalAudioTrack = function( callId, track )
  */
 RtcClient.prototype.replaceLocalVideoTrack = function( callId, track )
 {
-    if( !track || !(track instanceof MediaStreamTrack) )
+    if( !track || !(track instanceof MediaStreamTrack || track instanceof CanvasCaptureMediaStreamTrack ) )
     {
+        console.error(`track argument is not type of MediaStram, instead got: ${MediaStreamTrack.constructor.name}`);
         return;
     }
 
