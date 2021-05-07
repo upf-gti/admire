@@ -21,20 +21,24 @@ export default function Video({id, local, fref, stream}){
             ref.current.srcObject = stream;
     },[stream]);
 
+    //style={{maxHeight:'33vh', width:'auto'}}
     return <>
-        <h1 style={{zIndex:2000}}>{id}</h1>
-        <video ref={ref} autoPlay muted={true} playsInline controls style={{maxHeight:'33vh', width:'auto'}}/>
-        {local && <div style={{ position:'relative', marginTop:'-6rem'}}>
+        {/*<h1 style={{zIndex:2000}}>{id}</h1>*/}
+        <video ref={ref} autoPlay muted={true} playsInline controls />
+
+        {local && <div className='footer shadow' style={{zIndex:1000}}>
             <SplitButton
                 key={0}
                 size="lg"
                 drop="up"
                 as={ButtonGroup}
                 id={`dropdown-button-drop-up`}
-                variant="outline-primary"
+                variant="primary"
                 title={<i className={`bi ${videoEnabled?"bi-camera-video-fill":"bi-camera-video-off-fill"}`}/>}
                 toggleLabel=""
-                onClick={()=>setVideo(!videoEnabled)}
+                //onClick={()=> setVideo(!videoEnabled)}
+                onClick={ ()=> stream.getVideoTracks().forEach( track => {track.enabled = !track.enabled; setVideo(track.enabled);}) }
+
                 onSelect={(eventKey,event)=>{ 
                     Array.from(event.currentTarget.parentElement.children).forEach((v,k,a)=>v.classList.remove("active"));
                     event.currentTarget.classList.add("active");
@@ -55,10 +59,11 @@ export default function Video({id, local, fref, stream}){
                 as={ButtonGroup}
                 id={`dropdown-button-drop-up`}
                 drop="up"
-                variant="outline-primary"
+                variant="primary"
                 title={<i className={`bi ${audioEnabled?"bi-mic-fill":"bi-mic-mute-fill"}`}/>}
                 toggleLabel=""
-                onClick={()=>setAudio(!audioEnabled)}
+                //onClick={()=>setAudio(!audioEnabled)}
+                onClick={ ()=> stream.getAudioTracks().forEach( track => {track.enabled = !track.enabled; setAudio(track.enabled);}) }
                 onSelect={(eventKey,event)=>{ 
                     Array.from(event.currentTarget.parentElement.children).forEach((v,k,a)=>v.classList.remove("active"));
                     event.currentTarget.classList.add("active");

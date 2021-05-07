@@ -169,14 +169,12 @@ export default function Room({user, setNavItems})
 
     if(!roomInfo)   return <V404 title={`Room '${roomId}' does not exist`} description='some description'/>;
 
-    console.log('refresh');
-
     return (<>
         <Helmet>
             <title>AdMiRe: {`${user.type !== "0" ? "Admin" : "User"} ${ user.id }`}</title>
         </Helmet>
 
-        <Container id="room" className="text-center" fluid="md">
+        <Container id="room" className="text-center" fluid="md"    onKeyDown={ ()=>alert('hola') } tabIndex="0" >
             <h1 id="title" style={{color:"hsl(210, 11%, 85%)", marginTop:"1rem"}}>#{roomId}</h1>
             <Row className="justify-content-center"> 
             
@@ -184,12 +182,12 @@ export default function Room({user, setNavItems})
 
                 {/*< VideoStream fkey={-1} local audioDevices={audioDevices} videoDevices={videoDevices} settings={settings} fref={localVideo} />
                 { users && users.map( (v,k,a) => <VideoStream fkey={k} stream={v.stream}/>) }*/}
-                <Col xs={12} className='mb-2'>
+                <Col xs={12} className='mb-2  p-0'>
                     <Video id={'local'} key={-1} stream={localStream} local playsInline/>
                 </Col>
 
 
-                {streams && Object.entries(streams).map((v,k,a) => {
+                {false && streams && Object.entries(streams).map((v,k,a) => {
                     if(!rtcClient.peers[v[0]]) return
                     let {calleeId, callerId} =  rtcClient.peers[v[0]];
                     let id = calleeId === user.id? callerId : calleeId;
@@ -198,6 +196,13 @@ export default function Room({user, setNavItems})
                     </Col> 
                     }
                 )}
+
+
+                {
+                    Array(10).fill().map( v => <Col xs={6} className='mt-1 p-0'>
+                        <Video/> 
+                    </Col>)
+                }
     
             </Row>
         </Container>
