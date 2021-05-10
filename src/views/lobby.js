@@ -69,6 +69,10 @@ export default function Lobby({user, setLogin, setNavItem}) {
         show={showModal?true:false} 
         onHide={()=>setShowModal(false)}
         aria-labelledby="contained-modal-title-vcenter"
+        onKeyDown={ (e)=>{
+            if(e.keyCode == 13)
+                doCreateRoom();
+        } } tabIndex="0"
     >
         <Modal.Header>
             <Modal.Title>Create new teleporting room</Modal.Title>

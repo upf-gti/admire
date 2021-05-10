@@ -174,7 +174,7 @@ export default function Room({user, setNavItems})
             <title>AdMiRe: {`${user.type !== "0" ? "Admin" : "User"} ${ user.id }`}</title>
         </Helmet>
 
-        <Container id="room" className="text-center" fluid="md"    onKeyDown={ ()=>alert('hola') } tabIndex="0" >
+        <Container id="room" className="text-center" fluid="md" >
             <h1 id="title" style={{color:"hsl(210, 11%, 85%)", marginTop:"1rem"}}>#{roomId}</h1>
             <Row className="justify-content-center"> 
             
