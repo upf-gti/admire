@@ -70,7 +70,7 @@ export default function Lobby({user, setLogin, setNavItem}) {
         onHide={()=>setShowModal(false)}
         aria-labelledby="contained-modal-title-vcenter"
         onKeyDown={ (e)=>{
-            if(e.keyCode == 13)
+            if(e.keyCode === 13)
                 doCreateRoom();
         } } tabIndex="0"
     >
