@@ -10,7 +10,16 @@ npm start
 
 Any configuration needed should be changed on the .env file next to this README file.
 
+## How to create production build!
 
+Create-react-app is made to allow fast development with hot reloading and tight sintax checks. That throws many warnings and errors during the development stages and also doesn't cache the pages. It is mandatory to "compile" the aplication into a client-side only application that can be runned in a static server.
+For that purpose, open comand-line to the project root folder and run the following: 
+```
+npm run build
+```
+This will generate an optimized version of the project inside a new "build" folder also in the root.
+
+if you dont have a specific server you may find an integrated one within npm, check [this](https://create-react-app.dev/docs/deployment/)
 
 ## Aditional Info
 We are using the common used ***create-react-app*** framework. All api callbacks are set up to be proxied under the ***/api*** path. This frameworks allows automatic reloading by default. 
