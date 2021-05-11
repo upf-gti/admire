@@ -5,13 +5,13 @@ import { Button, SplitButton, Dropdown, ButtonGroup } from 'react-bootstrap';
 
 import {StreamSettings} from 'components/streamSettings';
 
-export default function Video({id, local, fref, stream}){
+export default function Video({id, user, master, local, fref, stream, setLiveCallback}){
 
     const { videoRef, devices:[devices,setDevices], settings:[settings,setSettings], localStream:[localStream,setLocalStream] } = useContext(StreamSettings);
     
     let ref = useRef(null);
-    const [audioEnabled, setAudio]        = useState(null);
-    const [videoEnabled, setVideo]        = useState(null);
+    const [audioEnabled, setAudio]        = useState(settings && settings.audio && settings.audio !== 'None');
+    const [videoEnabled, setVideo]        = useState(settings && settings.video && settings.video !== 'None');
 
     //if(local) 
     //ref = videoRef;
@@ -22,11 +22,25 @@ export default function Video({id, local, fref, stream}){
     },[stream]);
 
     //style={{maxHeight:'33vh', width:'auto'}}
-    return <>
+    return <div key={id} style={{    textAlign: 'right'}}>
         {/*<h1 style={{zIndex:2000}}>{id}</h1>*/}
-        <video ref={ref} autoPlay muted={true} playsInline controls />
+        
+        <div className="stream-status">
+            <i className={`bi bi-mic-mute-fill ${audioEnabled?"":"active"}`}/>
+            <i className={`bi bi-camera-video-off-fill ${videoEnabled?"":"active"}`}/>
+        </div>
 
-        {local && <div className='footer shadow' style={{zIndex:1000}}>
+        <video ref={ref} autoPlay playsInline muted={local}/>
+        
+        <div className="stream-controls">
+            {/*!local &&  audioEnabled && <i class="bi bi-volume-up-fill  " onClick={ ()=> stream.getAudioTracks().forEach( track => {track.enabled = !track.enabled; setAudio(track.enabled);}) } /> }
+            {!local && !audioEnabled && <i class="bi bi-volume-mute-fill"  /> */}
+            {!local && !audioEnabled && <i className={`bi ${audioEnabled?"bi-volume-up-fill":"bi-volume-mute-fill"}`} onClick={ ()=> stream.getAudioTracks().forEach( track => {track.enabled = !track.enabled; setAudio(track.enabled);}) }/> }
+            {!local && user.id === master && <button className="live-btn" onClick={(e)=>{ setLiveCallback(); e.currentTarget.classList.toggle('active'); }}> Live </button>}
+        </div>
+        
+
+        {local && <div className='footer shadow' style={{zIndex:1000, textAlign: 'center'}}>
             <SplitButton
                 key={0}
                 size="lg"
@@ -79,5 +93,5 @@ export default function Video({id, local, fref, stream}){
                 })}
             </SplitButton>
         </div>}
-    </>;
+    </div>;
 }

@@ -1,6 +1,6 @@
 import Helmet from 'react-helmet';
 import { useState, useEffect, useRef, useContext } from 'react';
-import { Container, Row, Col, Button } from 'react-bootstrap';
+import { Container, Row, Col, Button, Modal, Form } from 'react-bootstrap';
 import { useParams } from 'react-router-dom';
 import { rtcClient, appClient, mediaAdapter, dummyStream } from 'extra/bra';
 
@@ -33,10 +33,12 @@ export default function Room({user, setNavItems})
         setTimeout(forcerefresh, 2000); 
     }
 
-
+    let livestreamRef = useRef(null);
     let [ streams, setStreams ]   = useState({});
     let [ roomInfo, setRoomInfo ] = useState(null);
     let [ selected, setSelected ] = useState('local');
+    let [ showModal, setShowModal ] = useState(null);
+    let [ selectedStream, setSelectedStream ] = useState(null);
 
     //let   [ users,        setUsers ]        = useState( [] );
     //const [ settings,     setSettings ]     = useState(null);
@@ -166,6 +168,19 @@ export default function Room({user, setNavItems})
         setStreams(Object.assign({},streams));
     }
 
+    function doUpgradeToLive()
+    {
+        if(!livestreamRef || !livestreamRef.current || !showModal){
+            console.error('livestreamref is null');
+            return;
+        } 
+
+        const {callerId, calleeId, } = rtcClient.peers[showModal];
+        const [callId, target, liveuser, stream] = [showModal, livestreamRef.current.value, calleeId === user.id? callerId : calleeId, streams[showModal] ];
+
+        if(!rtcClient.call( target, stream ))
+            Log.error(`call missed to backend ${user}`);
+    }
 
     if(!roomInfo)   return <V404 title={`Room '${roomId}' does not exist`} description='some description'/>;
 
@@ -174,35 +189,56 @@ export default function Room({user, setNavItems})
             <title>AdMiRe: {`${user.type !== "0" ? "Admin" : "User"} ${ user.id }`}</title>
         </Helmet>
 
+        <Modal 
+            centered 
+            id="create-room-modal" 
+            show={showModal?true:false} 
+            onHide={()=>setShowModal(false)}
+            aria-labelledby="contained-modal-title-vcenter"
+            onKeyDown={ (e)=>{
+                if(e.keyCode === 13)
+                    doUpgradeToLive();
+            } } tabIndex="0"
+        >
+            <Modal.Header>
+                <Modal.Title> Send Peer to Live </Modal.Title>
+            </Modal.Header>
+
+            <Modal.Body>
+                <Form.Group className="mb-2">
+                    <Form.Control  size="lg" ref={livestreamRef} placeholder='enter live Id' />
+                </Form.Group>
+            </Modal.Body>
+
+            <Modal.Footer className="text-center">
+                <Button variant="outline-secondary" onClick={()=>setShowModal(false)} >Cancel</Button>
+                <Button variant="outline-primary" onClick={doUpgradeToLive} >Proceed!</Button>
+            </Modal.Footer>
+        </Modal>
+
         <Container id="room" className="text-center" fluid="md" >
             <h1 id="title" style={{color:"hsl(210, 11%, 85%)", marginTop:"1rem"}}>#{roomId}</h1>
             <Row className="justify-content-center"> 
             
-
-
-                {/*< VideoStream fkey={-1} local audioDevices={audioDevices} videoDevices={videoDevices} settings={settings} fref={localVideo} />
-                { users && users.map( (v,k,a) => <VideoStream fkey={k} stream={v.stream}/>) }*/}
                 <Col xs={12} className='mb-2  p-0'>
-                    <Video id={'local'} key={-1} stream={localStream} local playsInline/>
+                    <Video user={user} master={ roomInfo.master } id={'local'} key={-1} stream={localStream} local playsInline/>
                 </Col>
 
-
-                {false && streams && Object.entries(streams).map((v,k,a) => {
-                    if(!rtcClient.peers[v[0]]) return
-                    let {calleeId, callerId} =  rtcClient.peers[v[0]];
-                    let id = calleeId === user.id? callerId : calleeId;
-                    return <Col key={k}>
-                        <Video  id={id} stream={ v[1] } playsInline/> 
-                    </Col> 
-                    }
-                )}
-
-
+                {streams && Object.entries(streams).map((v,k,a) => 
                 {
-                    Array(10).fill().map( v => <Col xs={6} className='mt-1 p-0'>
-                        <Video/> 
-                    </Col>)
-                }
+                    if(!rtcClient.peers[v[0]]) 
+                        return;
+
+                    let {calleeId, callerId} =  rtcClient.peers[v[0]];
+                    let id = (calleeId === user.id)? callerId : calleeId;
+                    
+                    return <>
+                    <Col key={k} xs={6} className='mt-1 p-0'>
+                        <Video user={user} master={ roomInfo.master } id={id} stream={ v[1] } playsInline setLiveCallback={()=>{ setShowModal(v[0]); }}/> 
+                    </Col>
+                    </> 
+                    
+                })}
     
             </Row>
         </Container>
