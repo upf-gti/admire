@@ -11,7 +11,7 @@ import React from 'react';
 import { Image, Col, Row, Button } from 'react-bootstrap';
 import { Link } from "react-router-dom";
 
-import './_navbar.scss';
+import './navbar.scss';
 import Logo from 'assets/img/logo-nav.png';
 
 let count = 0;

@@ -8,7 +8,7 @@ import Room from 'views/room';
 import Login from 'views/login';
 import Lobby from 'views/lobby';
 import Wizard from 'views/wizzard';
-import Navbar from 'components/_navbar';
+import Navbar from 'components/navbar';
 import {StreamSettings} from 'components/streamSettings';
 import {Toasts, ToastContext} from 'components/toasts';
 
