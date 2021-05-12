@@ -67,13 +67,14 @@ export default function Room({user, setNavItems})
         let validationCallback;
         appClient.getRooms();
         appClient.on('get_rooms_response',  validationCallback = ({id, status, description, roomInfos}) => { 
-            roomInfo = roomInfos[roomId];
+            //roomInfo = roomInfos[roomId];
+            setRoomInfo( Object.assign({}, roomInfo)); 
             if(!roomInfo){
                 Log.error("No RoomInfo");
                 window.location = '/';
                 return; 
             } 
-            setRoomInfo( Object.assign({}, roomInfo)); 
+            
             appClient.joinRoom(roomId);
             appClient.off('get_rooms_response',  validationCallback);
         });
@@ -227,7 +228,7 @@ export default function Room({user, setNavItems})
                 {streams && Object.entries(streams).map((v,k,a) => 
                 {
                     if(!rtcClient.peers[v[0]]) 
-                        return;
+                        return null;
 
                     let {calleeId, callerId} =  rtcClient.peers[v[0]];
                     let id = (calleeId === user.id)? callerId : calleeId;

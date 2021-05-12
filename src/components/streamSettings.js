@@ -7,6 +7,7 @@ import { rtcClient, appClient, mediaAdapter, dummyStream } from 'extra/bra';
 export const StreamSettings = createContext(null);
 
 //To initialize data
+ // eslint-disable-next-line import/no-anonymous-default-export
 export default function({children})
 {
     const videoRef                        = useRef(null);
@@ -79,6 +80,8 @@ export default function({children})
 
         window.removeEventListener('unload ', onUnload);
         window.addEventListener('unload ',    onUnload);
+        
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     },[]);
 
     return (<StreamSettings.Provider value={store}>{children}</StreamSettings.Provider>);

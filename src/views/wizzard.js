@@ -7,6 +7,7 @@ import img1 from 'assets/img/bg1.jpg';
 import img2 from 'assets/img/bg2.jpg';
 import img3 from 'assets/img/wizard2.png';
 import VideoStream from 'components/videostream';
+import Video from 'components/video';
 import {StreamSettings} from 'components/streamSettings';
 
 import './wizzard.scss';
@@ -18,8 +19,8 @@ export default function Wizard({ready:{ready, setReady}, setNavItem}){
 
     let items = {
         'Video':      [<i className="bi bi-cast"></i>, <VideoStream/>],
-        'Brightness': [<i className="bi bi-brightness-high"></i>, <img src={img1}/>],
-        'Contrast':   [<i className="bi bi-octagon-half"></i>, <img src={img2}/>],
+        'Brightness': [<i className="bi bi-brightness-high"></i>, <img alt='' src={img1}/>],
+        'Contrast':   [<i className="bi bi-octagon-half"></i>, <img alt='' src={img2}/>],
     }
 
     useEffect(()=>{

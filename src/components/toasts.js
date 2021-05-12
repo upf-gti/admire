@@ -13,6 +13,7 @@ export const ToastContext = createContext(null);
 
 let id = 0;
 
+ // eslint-disable-next-line import/no-anonymous-default-export
 export default function ({children, updateApp}){
     const [list, setList] = useState([]);
 
