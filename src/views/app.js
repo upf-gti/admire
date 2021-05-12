@@ -27,7 +27,7 @@ export default function App() {
     
 
     const [login, setLogin]       = useState(null);
-    const [fetching, setFetching] = useState(true);
+    const [fetching, setFetching] = useState(false);
     const [NavItems, setNavItems] = useState({});
     const [ready, setReady] = useReducer((state, newState)=>{ 
         localStorage.setItem('admire-user-ready', newState);
@@ -44,9 +44,7 @@ export default function App() {
   
     useEffect(() => { //Acts like 'componentWillMount'
             console.clear();    
-            setFetching(true);
-            
-
+            //setFetching(true);
             setNavItem( 'wizzard',<Link to='/wizzard'> <li> <Image src={img3} style={{filter:'invert(1)'}} width={24}/> Wizzard</li> </Link> );
 
             appClient.on("logout_response",      onLogOut);
@@ -90,7 +88,7 @@ export default function App() {
 
     function onAutoLoginResponse(event){
         let {status, description, userId, userType} = event;
-        setFetching(false);
+        //setFetching(false);
 
         switch(status)
         {
@@ -125,7 +123,7 @@ export default function App() {
         setNavItems( Object.assign({},NavItems) );
     }
 
-    if(fetching) return <><Toasts/></>
+    //if(fetching) return <><Toasts/></>
     if(!login) return <><Login login={login} setLogin={setLogin}/></>;
 
     return (<>

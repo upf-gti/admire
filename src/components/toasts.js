@@ -14,7 +14,7 @@ export const ToastContext = createContext(null);
 let id = 0;
 
  // eslint-disable-next-line import/no-anonymous-default-export
-export default function ({children, updateApp}){
+export default function ({children}){
     const [list, setList] = useState([]);
 
     function info(description)
@@ -54,7 +54,7 @@ export default function ({children, updateApp}){
 
 export function Toasts(){
 
-    const { toasts: [list, setList] } = useContext(ToastContext);
+    let { toasts: [list, setList] } = useContext(ToastContext);
     
     function hideToast(id){
         let toast = list.find(v=>v.id === id);

@@ -14,6 +14,14 @@ body, html{
     color:$color3;
     font-weight: bold;
     font-family: $principal_font;
+
+    .btn
+    {
+        color:#4666AC;
+        padding: 0 0.35rem;
+        border:none;
+        margin-right: .25rem;
+    }
 }
 
 #description{

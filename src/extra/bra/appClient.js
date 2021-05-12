@@ -94,7 +94,12 @@ AppClient.prototype.closeWebSocket = function()
 AppClient.prototype.onOpen = function( event )
 {
     // Try to get the token.
-    let token = window.localStorage.getItem("token");
+    let token = sessionStorage.getItem("token") ?? localStorage.getItem("token");
+    if(token)
+    {
+        sessionStorage.setItem("token", token);
+    }
+
     this.token = token;
 
     this.emit("client_connected");
@@ -355,6 +360,7 @@ AppClient.prototype.onLoginResponse = function( event )
         this.userType = event.userType;
 
         window.localStorage.setItem("token", this.token);
+        window.sessionStorage.setItem("token", this.token);
     }
 }
 
@@ -373,6 +379,8 @@ AppClient.prototype.onLogoutResponse = function( event )
         this.channels = { };
 
         window.localStorage.removeItem("token");
+        window.sessionStorage.removeItem("token");
+
     }
 }
 

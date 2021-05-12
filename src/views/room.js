@@ -1,7 +1,7 @@
 import Helmet from 'react-helmet';
 import { useState, useEffect, useRef, useContext } from 'react';
-import { Container, Row, Col, Button, Modal, Form } from 'react-bootstrap';
-import { useParams } from 'react-router-dom';
+import { Container, Row, Col, Button, Modal, Form, OverlayTrigger } from 'react-bootstrap';
+import { useParams, useHistory, Link } from 'react-router-dom';
 import { rtcClient, appClient, mediaAdapter, dummyStream } from 'extra/bra';
 
 import "./room.scss";
@@ -15,6 +15,7 @@ import {Toasts, ToastContext} from 'components/toasts';
 
 export default function Room({user, setNavItems})
 {
+    let history = useHistory();
     const Log = useContext(ToastContext);
     //All stream properties
     const { videoRef, devices:[devices,setDevices], settings:[settings,setSettings], localStream:[localStream,setLocalStream] } = useContext(StreamSettings);
@@ -47,6 +48,7 @@ export default function Room({user, setNavItems})
     //const [ videoDevices, setVideoDevices ] = useState(null);
 
     useEffect(() => {//Executes when this component is mounted
+        console.log('mount');
         let  onGuestJoin, onGuestLeft, onMasterLeft, onGetRooms;
         appClient.on('join_room_response',  onJoinRoom);
         appClient.on('get_rooms_response',  onGetRooms  = ({id, status, description, roomInfos}) => { setRoomInfo( Object.assign({},roomInfos[roomId]) ); });
@@ -60,23 +62,27 @@ export default function Room({user, setNavItems})
         rtcClient.on('user_hangup',   onCallHangup);
         
         //This is to be sure when user is leaving the room because a refresh/closing/leaving the tab
-        let onBeforeUnload; 
-        window.addEventListener('beforeunload', onBeforeUnload = (e) => { e.preventDefault(); e.returnValue = ''; });
+        let onBeforeUnload, onUnload; 
+        //window.addEventListener('beforeunload', onBeforeUnload = (e) => { e.preventDefault(); e.returnValue = ''; });
+        window.addEventListener('unload', onUnload = (e) => { appClient.leaveRoom(); });
 
         //Validate the room exists before joining // do we really need this?
         let validationCallback;
         appClient.getRooms();
         appClient.on('get_rooms_response',  validationCallback = ({id, status, description, roomInfos}) => { 
-            //roomInfo = roomInfos[roomId];
+            appClient.off('get_rooms_response',  validationCallback);
+            roomInfo = roomInfos[roomId];
             setRoomInfo( Object.assign({}, roomInfo)); 
             if(!roomInfo){
                 Log.error("No RoomInfo");
-                window.location = '/';
+                history.push("/");
+                //window.location = '/';//Todo: como leches hago esto
                 return; 
             } 
             
-            appClient.joinRoom(roomId);
-            appClient.off('get_rooms_response',  validationCallback);
+            if([...roomInfo.guests, roomInfo.master].filter( v => v !== user.id).length)
+                appClient.joinRoom(roomId);
+            
         });
 
         forcerefresh();
@@ -94,7 +100,8 @@ export default function Room({user, setNavItems})
         rtcClient.off("call_response",      onCallResponse);
         rtcClient.off('user_hangup',        onCallHangup);
         
-        window.removeEventListener('beforeunload', onBeforeUnload);
+        //window.removeEventListener('beforeunload', onBeforeUnload);
+        window.removeEventListener('unload', onUnload);
         
         Object.keys(rtcClient.peers).forEach( callId => rtcClient.hangup(callId));
         appClient.leaveRoom();
@@ -106,11 +113,17 @@ export default function Room({user, setNavItems})
 
     function  onJoinRoom ({ status, description, userId, userType, channels })
     { 
-        
+        if(status === 'error')
+        {
+            Log.error(`Error onJoinRoom ${description}`);
+            return;
+        }
+
         if(!roomInfo){
             Log.error("No RoomInfo");
             return; 
         } 
+        
         Log.success(`Joined to room ${roomId}`);
         //if(status === 'error') return console.error(status, description);
 
@@ -130,6 +143,7 @@ export default function Room({user, setNavItems})
     {
         Log.warn(`onIncomingCall`);
         let stream = dummyStream.getStream();// localStream;// ?? dummyStream.getStream();
+        Log.info(stream.id);
         rtcClient.acceptCall( callId, stream );
         setState(state+1);
     }
@@ -140,7 +154,7 @@ export default function Room({user, setNavItems})
         console.log(message)
     }
 
-    function onCallStarted({ callId, stream })
+    function onCallStarted({ callId, stream})
     {
         Log.success(`Call ${callId} started`);
 
@@ -151,15 +165,29 @@ export default function Room({user, setNavItems})
 
         //rtcClient.replaceLocalStream(callId, localStream);
 
-        let track = localStream.getVideoTracks()[0];
-        track.enabled = true;
-        rtcClient.replaceLocalVideoTrack(callId, track);
+        
+        
+        
+        let {calleeId, callerId} =  rtcClient.peers[callId];
+        if(![calleeId, callerId].find( v => v.indexOf('.live') !== -1 ))
+        {
+            {   //Replace video stream track
+                let track = localStream.getVideoTracks()[0];
+                track.enabled = true;
+                rtcClient.replaceLocalVideoTrack( callId, track );
+            }
+
+            {   //Replace audio stream track
+                let track = localStream.getAudioTracks()[0];
+                track.enabled = true;
+                rtcClient.replaceLocalAudioTrack( callId, track );
+            }
+        }
         
 
 
         //const localStream = localVideo.current.srcObject;
         //const track = localStream.getAudioTracks()[0];
-        //rtcClient.replaceLocalAudioTrack( callId, track );
     }
 
     function onCallHangup({callId, state})
@@ -217,8 +245,16 @@ export default function Room({user, setNavItems})
             </Modal.Footer>
         </Modal>
 
-        <Container id="room" className="text-center" fluid="md" >
-            <h1 id="title" style={{color:"hsl(210, 11%, 85%)", marginTop:"1rem"}}>#{roomId}</h1>
+        <Container id="room" className="text-center" fluid="lg" >
+            {/*<h1 id="title" style={{color:"hsl(210, 11%, 85%)", marginTop:"1rem"}}></h1>*/}
+            <h1 id="title" className='pt-4'>
+                <Button as={Link} to='/' size='sm' variant="outline-light" > 
+                    <i className="bi bi-box-arrow-left" style={{ position: 'relative', top: '-2px', fontSize: 'x-large'}}/> 
+                </Button>
+                #{roomId}
+            </h1>
+            
+            
             <Row className="justify-content-center"> 
             
                 <Col xs={12} className='mb-2  p-0'>

@@ -1,7 +1,8 @@
 import Helmet from 'react-helmet';
-import { Container, Card, Button, Modal, Form, Row, Col } from 'react-bootstrap';
 import { useState, useEffect, useRef } from 'react';
+import { useParams, useHistory } from 'react-router-dom';
 import { rtcClient, appClient, mediaAdapter } from 'extra/bra';
+import { Container, Card, Button, Modal, Form, Row, Col } from 'react-bootstrap';
 
 import RoomList from 'components/roomlist';
 
@@ -9,10 +10,12 @@ import "./lobby.scss";
 
 export default function Lobby({user, setLogin, setNavItem}) {
     
+    let history = useHistory();
+
     const roomIdRef = useRef(null);
     const [rooms, setRooms] = useState(null);
     const [fetching, setFetching] = useState(true);
-    const [showModal, setShowModal] = useState(false);
+    const [showModal, setShowModal] = useState(null);
 
     useEffect(() => {
             setFetching(true);
@@ -40,7 +43,8 @@ export default function Lobby({user, setLogin, setNavItem}) {
         {
             case 'ok': 
                 //appClient.getRooms();
-                document.location = `/rooms/${roomId}`;
+                //document.location = `/rooms/${roomId}`;
+                history.push(`/rooms/${roomId}`)
             break;
             case 'error': console.error(status, description);
                 //TODO: fire an error toast
@@ -67,7 +71,7 @@ export default function Lobby({user, setLogin, setNavItem}) {
         centered 
         id="create-room-modal" 
         show={showModal?true:false} 
-        onHide={()=>setShowModal(false)}
+        //onHide={()=>setShowModal(false)}
         aria-labelledby="contained-modal-title-vcenter"
         onKeyDown={ (e)=>{
             if(e.keyCode === 13)
@@ -95,10 +99,10 @@ export default function Lobby({user, setLogin, setNavItem}) {
         <Col xs={12} lg={6} xl={4}>
 
             <h1 id="title" className='pt-4'>
-                Lobby: 
-                <Button size='sm' variant="outline-light" style={{color:'#4666AC', borderColor: '#4666AC',     padding: '0 0.35rem', borderRadius: '50%'}} onClick={ ()=> appClient.getRooms() }> 
+                <Button size='sm' variant="outline-light"  onClick={ ()=> appClient.getRooms() }> 
                     <i className="bi bi-arrow-counterclockwise" style={{ position: 'relative', top: '1px', fontSize: 'x-large'}}/> 
                 </Button>
+                Lobby: 
             </h1>
 
             { rooms && <RoomList rooms={rooms}/> }

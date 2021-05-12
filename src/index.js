@@ -14,8 +14,8 @@ function ContextContainer({children}){
   const [state,setState] = useState(0);
 
   return <>
-      <ToastContext   updateApp={()=>setState(state+1)}>
-      <StreamSettings updateApp={()=>setState(state+1)}>
+      <ToastContext  >
+      <StreamSettings>
       {children}
       </StreamSettings>
       </ToastContext>
