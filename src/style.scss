@@ -56,11 +56,11 @@ body, html{
 
 .footer
 {
-    width:100%;
-
-    position:fixed;
+    width: calc(100% - 236px);
+    position: fixed;
     bottom: 1rem;
-    left:0;
+    /* left: 0; */
+    right: 0;
 
     .btn{
         font-family: $principal_font;
@@ -99,4 +99,11 @@ input[type='range']
 @keyframes pichi {
     0%   { opacity:0; }
     100% { opacity:1; }
+}
+
+@media (max-width: 823px) {
+    .footer
+    {
+        width:100%;
+    }
 }
