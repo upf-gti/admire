@@ -1,8 +1,9 @@
 import Helmet from 'react-helmet';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useContext } from 'react';
 import { useParams, useHistory } from 'react-router-dom';
 import { rtcClient, appClient, mediaAdapter } from 'extra/bra';
 import { Container, Card, Button, Modal, Form, Row, Col } from 'react-bootstrap';
+import {Toasts, ToastContext} from 'components/toasts';
 
 import RoomList from 'components/roomlist';
 
@@ -11,6 +12,7 @@ import "./lobby.scss";
 export default function Lobby({user, setLogin, setNavItem}) {
     
     let history = useHistory();
+    const Log = useContext(ToastContext);
 
     const roomIdRef = useRef(null);
     const [rooms, setRooms] = useState(null);
@@ -31,9 +33,8 @@ export default function Lobby({user, setLogin, setNavItem}) {
     
     function doCreateRoom()
     {
-        console.log('create room');
+        //console.log('create room');
         appClient.createRoom(roomIdRef.current.value);
-        setShowModal(false);
         //document.location(`/rooms/${roomIdRef.current.value}`);
     }
 
@@ -42,26 +43,28 @@ export default function Lobby({user, setLogin, setNavItem}) {
         switch(status)
         {
             case 'ok': 
+                Log.success(`Room '${roomId}' created`);
+                setShowModal(false);
+                history.push(`/rooms/${roomId}`)
                 //appClient.getRooms();
                 //document.location = `/rooms/${roomId}`;
-                history.push(`/rooms/${roomId}`)
             break;
-            case 'error': console.error(status, description);
-                //TODO: fire an error toast
-            break;
-            default: console.warn(status, description); break;
+            case 'error': Log.error(`onCreateRoom '${roomId}': ${description}`); break;
+            default:      Log.warn( `onCreateRoom '${roomId}': ${description}`); break;
 
         }
     }
 
-    function onGetRooms(event)
+    function onGetRooms({status, description, roomInfos})
     {
         setFetching(false);
-        if(event.status === 'error') return;
-        setRooms(Object.values(event.roomInfos ?? null));
+        if(status === 'error')
+        {
+            Log.error(`onGetRooms: ${description}`);
+            return;
+        } 
+        setRooms(Object.values(roomInfos ?? null));
     }
-
-    if(fetching) return <></>
 
     return (<>
     <Helmet>
@@ -105,7 +108,9 @@ export default function Lobby({user, setLogin, setNavItem}) {
                 Lobby: 
             </h1>
 
+            { !rooms && <span>No rooms found</span> }
             { rooms && <RoomList rooms={rooms}/> }
+
             
             <div className="footer">
                 {user.type !== "0" && <Button onClick={()=>setShowModal(true)}> <i className="bi bi-plus"/> New Room </Button>}

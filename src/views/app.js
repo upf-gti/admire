@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useReducer, useContext } from 'react';
-import { BrowserRouter as Router, Switch, Route, Redirect, Link } from 'react-router-dom';
+import { BrowserRouter as Router, Switch, Route, Redirect, Link, useHistory } from 'react-router-dom';
 import { Image } from 'react-bootstrap';
 
 import { rtcClient, appClient, mediaAdapter } from 'extra/bra';
@@ -15,12 +15,15 @@ import {Toasts, ToastContext} from 'components/toasts';
 import "./app.scss";
 import img3 from 'assets/img/wizard2.png';
 
-const rtcUrl = "wss://rtcserver.brainstorm3d.com";
-const appUrl = `wss://teleporter.brainstorm3d.com:8443/`;
-//const appUrl = `wss://${window.location.hostname}:8443`;//process.env.PROXY;
 let timeoutId; 
 export default function App() {
 
+    const rtcUrl = "wss://rtcserver.brainstorm3d.com";
+    const appUrl = "wss://admireapi.brainstorm3d.com";
+    //const appUrl = `wss://${window.location.hostname}:8443`;//process.env.PROXY;
+    
+
+    const history = useHistory();
     const Log = useContext(ToastContext);
     const [list] = Log.toasts;
     const { videoRef, devices:[devices,setDevices], settings:[settings,setSettings], localStream:[localStream,setLocalStream] } = useContext(StreamSettings);
@@ -75,6 +78,13 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [appUrl, rtcUrl]); //This are the direct dependencies, the useEffect applies an observer pattern, whenever the value changes, the useEffect is called again.
 
+    //Beware!
+    useEffect(() => { 
+        if(!appClient.ws || !rtcClient.ws){
+            setLogin(null);
+            history.push('/');
+        }
+    },[history]);
 
     function onConnect(event) {
         Log.info(`App client connected`);

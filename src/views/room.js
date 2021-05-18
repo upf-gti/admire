@@ -52,9 +52,9 @@ export default function Room({user, setNavItems})
         let  onGuestJoin, onGuestLeft, onMasterLeft, onGetRooms;
         appClient.on('join_room_response',  onJoinRoom);
         appClient.on('get_rooms_response',  onGetRooms  = ({id, status, description, roomInfos}) => { setRoomInfo( Object.assign({},roomInfos[roomId]) ); });
-        appClient.on('master_left_room',    onMasterLeft= (message)=>{ Log.warn('Master left'); /* modal master left, on ok return lobby*/window.location = '/'; }); //Tal vez estos tres podrian devolver la info de la room 
-        appClient.on('guest_joined_room',   onGuestJoin = (message)=>{ console.log(message); Log.info('Guest joined'); appClient.getRooms(); }); //asi no lo he de pedir cada vez.
-        appClient.on('guest_left_room',     onGuestLeft = (message)=>{ console.log(message); Log.warn('Guest left'); appClient.getRooms(); }); //
+        appClient.on('master_left_room',    onMasterLeft= (message)=>{ Log.warn('Master left'); /* modal master left, on ok return lobby*/history.push('/') }); //Tal vez estos tres podrian devolver la info de la room 
+        appClient.on('guest_joined_room',   onGuestJoin = (message)=>{ Log.info('Guest joined'); appClient.getRooms(); }); //asi no lo he de pedir cada vez.
+        appClient.on('guest_left_room',     onGuestLeft = (message)=>{ Log.warn('Guest left');   appClient.getRooms(); }); //
         
         rtcClient.on("incoming_call", onIncomingCall);
         rtcClient.on("call_started",  onCallStarted);
