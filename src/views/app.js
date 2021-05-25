@@ -54,14 +54,12 @@ export default function App() {
             appClient.on('client_disconnected',  onDisconnect);
             appClient.on("autologin_response",   onAutoLoginResponse);
             
-            appClient.on('get_rooms_response',  ()=>{ });
+            rtcClient.on('client_connected',     onRtcClientConnect);
+            
             appClient.connect(appUrl);
             
-            rtcClient.on('client_connected',     onRtcClientConnect);
-
         return () => {//Acts like /componentWillUnmount'
             setNavItem('wizzard', null);
-            //clearTimeout(timeoutId);
 
             appClient.off('client_connected',    onAppClientConnect);
             appClient.off('client_disconnected', onDisconnect);
@@ -84,17 +82,6 @@ export default function App() {
         Log.info(`Rtc client connected`);
         appClient.autologin();
         mediaAdapter.start();
-
-                    
-        function heartbeat(){
-            if(!appClient.ws) appClient.connect(appUrl);
-            if(!rtcClient.ws) rtcClient.connect(rtcUrl);
-            
-            if(appClient.ws){
-                //appClient.getRooms();
-            }
-        }
-        setInterval(heartbeat, 5000);
     }
 
     function onDisconnect() {
