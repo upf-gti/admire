@@ -1,77 +1,94 @@
+"use strict"
+
 function DummyStream()
 {
-    this.blackCanvas = undefined;
-    this.silenceStream = undefined;
-    this.blackStream = undefined;
-    this.silenceTrack = undefined
-    this.blackTrack = undefined;
-    this.createSilenceTrack();
-    this.createBlackTrack();
-    this.stream = new MediaStream([this.silenceTrack, this.blackTrack]);
-}
+//#region PRIVATE
 
-/**
- * Create a silence audio track.
- */
-DummyStream.prototype.createSilenceTrack = function()
-{
-    let audioContext = new AudioContext();
-    let oscillatorNode = audioContext.createOscillator();
-    let destination = oscillatorNode.connect(audioContext.createMediaStreamDestination());
-    oscillatorNode.start();
+    var blackCanvas = undefined;
+    var silenceStream = undefined;
+    var blackStream = undefined;
+    var silenceTrack = undefined
+    var blackTrack = undefined;
 
-    this.silenceStream = destination.stream;
-    this.silenceTrack = this.silenceStream.getAudioTracks()[0];
-    this.silenceTrack.enabled = false;
-}
- 
-/**
- * Create a black video track.
- * @param {Number} width - The video width.
- * @param {Number} height - The video height.
- */
-DummyStream.prototype.createBlackTrack = function( width = 320, height = 240 )
-{
-    if( !this.blackCanvas )
+    /**
+     * Create a silence audio track.
+     */
+    var createSilenceTrack = function()
     {
-        this.blackCanvas = window.document.createElement("canvas");
+        let audioContext = new AudioContext();
+        let oscillatorNode = audioContext.createOscillator();
+        let destination = oscillatorNode.connect(audioContext.createMediaStreamDestination());
+        oscillatorNode.start();
+
+        silenceStream = destination.stream;
+        silenceTrack = silenceStream.getAudioTracks()[0];
+        silenceTrack.enabled = false;
     }
 
-    this.blackCanvas.width = width;
-    this.blackCanvas.height = height;
-    let context = this.blackCanvas.getContext("2d");
-    context.fillRect(0, 0, width, height);
+    /**
+     * Create a black video track.
+     * @param {Number} width - The video width.
+     * @param {Number} height - The video height.
+     */
+    var createBlackTrack = function( width = 320, height = 240 )
+    {
+        if( !blackCanvas )
+        {
+            blackCanvas = window.document.createElement("canvas");
+        }
 
-    this.blackStream = this.blackCanvas.captureStream();
-    this.blackTrack = this.blackStream.getVideoTracks()[0];
-    this.blackTrack.enabled = false;
-}
+        blackCanvas.width = width;
+        blackCanvas.height = height;
+        let context = blackCanvas.getContext("2d");
+        context.fillRect(0, 0, width, height);
 
-/**
- * Return the audio track.
- * @returns {MediaStreamTrack} The audio track.
- */
-DummyStream.prototype.getAudioTrack = function()
-{
-    return this.silenceTrack;
-}
+        blackStream = blackCanvas.captureStream();
+        blackTrack = blackStream.getVideoTracks()[0];
+        blackTrack.enabled = false;
+    }
 
-/**
- * Return the video track.
- * @returns {MediaStreamTrack} The video track.
- */
-DummyStream.prototype.getVideoTrack = function()
-{
-    return this.blackTrack;
-}
+    createSilenceTrack();
+    createBlackTrack();
+    var stream = new MediaStream([silenceTrack, blackTrack]);
 
-/**
- * Return the stream.
- * @returns {MediaStream} The stream.
- */
-DummyStream.prototype.getStream = function()
-{
-    return this.stream;
+    /**
+     * Return the audio track.
+     * @returns {MediaStreamTrack} The audio track.
+     */
+    var getAudioTrack = function()
+    {
+        return silenceTrack;
+    }
+
+    /**
+     * Return the video track.
+     * @returns {MediaStreamTrack} The video track.
+     */
+    var getVideoTrack = function()
+    {
+        return blackTrack;
+    }
+
+    /**
+     * Return the stream.
+     * @returns {MediaStream} The stream.
+     */
+    var getStream = function()
+    {
+        return stream;
+    }
+
+//#endregion
+
+//#region PUBLIC
+
+    return {
+        getAudioTrack: getAudioTrack,
+        getVideoTrack: getVideoTrack,
+        getStream: getStream
+    };
+
+//#endregion
 }
 
 export { DummyStream };

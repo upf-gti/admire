@@ -1,19 +1,32 @@
-function MediaAdapter()
+"use strict";
+
+function MediaAdapter( settings )
 {
-    // Debug messages to console?
-    this.DEBUG = true;
-    this.debugStyle = "background: rgba(34, 34, 34); color: rgb(217, 58, 13)";
+//#region PRIVATE
 
-    this.events = { };
-    this.blackCanvas = undefined;
-    this.audioStream = undefined;
-    this.videoStream = undefined;
-    this.mediaStream = undefined;
+    var defaults =
+    {
+        // Debug messages to console?
+        debug: false,
 
-    this.audioDevices = { }; // audioDevices[label] = deviceId
-    this.videoDevices = { }; // videoDevices[label] = deviceId
+        // Style used to debug messages.
+        debugStyle: "background: hsla(0, 0%, 13%, 1); color: hsla(13, 89%, 45%, 1)",
+    };
 
-    this.resolutions =
+    settings = (typeof settings !== "object") ? { } : settings;
+    settings = Object.assign(defaults, settings);
+
+    var console = (settings.debug) ? window.console : undefined;
+    var events = { };
+    var blackCanvas = undefined;
+    var audioStream = undefined;
+    var videoStream = undefined;
+    var mediaStream = undefined;
+
+    var audioDevices = { }; // audioDevices[label] = deviceId
+    var videoDevices = { }; // videoDevices[label] = deviceId
+
+    var resolutions =
     {
         "Undefined":    { width: undefined,	height: undefined },
         "320x240":      { width: 320,	height: 240 },	// QVGA 4:3
@@ -25,7 +38,7 @@ function MediaAdapter()
         "7680x4320":    { width: 7680,	height: 4320 }	// 8k 16:9
     };
 
-    this.audioConstraints =
+    var audioConstraints =
     {
         audio:
         {
@@ -33,7 +46,7 @@ function MediaAdapter()
         }
     };
 
-    this.videoConstraints =
+    var videoConstraints =
     {
         video:
         {
@@ -44,648 +57,656 @@ function MediaAdapter()
         }
     };
 
-    this.settings =
+    var streamSettings =
     {
         audio: undefined, // label
         video: undefined, // label
         resolution: undefined, // resolutions key
     };
-}
 
-/**
- * Start the media adapter.
- */
-MediaAdapter.prototype.start = function()
-{
-    if( !navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices )
+    var previousAudioConstraints = undefined;
+    var previousVideoConstraints = undefined;
+
+    /**
+     * Add a function that will be called whenever the specified event is emitted.
+     * @param {String} event - The event name.
+     * @param {Function} listener - The function to add.
+     */
+    var on = function( event, listener )
     {
-        if( this.DEBUG ) console.log("%cMedia Devices Error%o", this.debugStyle, "Media devices are not available");
-        return false;
-    }
-
-    // Create a dummy stream.
-    this.audioStream = this.getSilenceStream();
-    this.videoStream = this.getBlackStream();
-    this.mediaStream = MediaAdapter.mixStreams(this.audioStream, this.videoStream);
-
-    let initialize = async function()
-    {
-        let constraints = { audio: true, video: true  };
-
-        //navigator.mediaDevices.getUserMedia({ audio:true, video: true })
-        //.then( navigator.mediaDevices.enumerateDevices)
-        //.then(this.gotDevices.bind(this))
-        //.then(this.setDefaultDevices.bind(this))
-        //.catch(err => console.error(err))
-
-        await window.navigator.mediaDevices.getUserMedia({ audio: true });
-        await window.navigator.mediaDevices.getUserMedia({ video: true });
-        await this.findDevices();
-        await this.setDefaultDevices();
-        
-    }.bind(this);
-
-    initialize();
-
-    return true;
-}
-
-/**
- * Add a function that will be called whenever the specified event is emitted.
- * @param {String} event - The event name.
- * @param {Function} listener - The function to add.
- */
-MediaAdapter.prototype.on = function( event, listener )
-{
-    if( typeof this.events[event] !== "object" )
-    {
-        this.events[event] = [];
-    }
-
-    this.events[event].push(listener);
-}
-
-/**
- * Remove the function previously added to be called whenever the specified event is emitted.
- * @param {String} event - The event name.
- * @param {Function} listener - The previously added function.
- */
-MediaAdapter.prototype.off = function( event, listener )
-{   
-    if( typeof this.events[event] === "object" )
-    {
-        let index = this.events[event].indexOf(listener);
-        if( index > -1 )
+        if( typeof events[event] !== "object" )
         {
-            this.events[event].splice(index, 1);
+            events[event] = [];
+        }
+
+        events[event].push(listener);
+    }
+
+    /**
+     * Remove the function previously added to be called whenever the specified event is emitted.
+     * @param {String} event - The event name.
+     * @param {Function} listener - The previously added function.
+     */
+    var off = function( event, listener )
+    {   
+        if( typeof events[event] === "object" )
+        {
+            let index = events[event].indexOf(listener);
+            if( index > -1 )
+            {
+                events[event].splice(index, 1);
+            }
         }
     }
-}
 
-/**
- * Emit the specified event.
- * @param {String} event - The event name.
- */
-MediaAdapter.prototype.emit = function( event )
-{
-    let args = [].slice.call(arguments, 1);
-
-    if( typeof this.events[event] === "object" )
+    /**
+     * Emit the specified event.
+     * @param {String} event - The event name.
+     */
+    var emit = function( event )
     {
-        let listeners = this.events[event].slice();
-        for( let i = 0; i < listeners.length; i++ )
+        let args = [].slice.call(arguments, 1);
+
+        if( typeof events[event] === "object" )
         {
-            listeners[i].apply(this, args);
+            let listeners = events[event].slice();
+            for( let i = 0; i < listeners.length; i++ )
+            {
+                listeners[i].apply(this, args);
+            }
         }
     }
-}
 
-/**
- * Find the available media input and output devices.
- */
-MediaAdapter.prototype.findDevices = async function()
-{
-    return this.getDevices()
-           .then(this.gotDevices.bind(this)).catch(this.errorDevices.bind(this));
-}
-
-/**
- * Set the default devices.
- */
-MediaAdapter.prototype.setDefaultDevices = async function()
-{
-    // Try to get the media configuration from the local storage
-    // or use the default values.
-
-    let audio = localStorage.getItem("audio") || "None";
-    if( !(audio in this.audioDevices) )
+    /**
+     * Start the media adapter.
+     */
+    var start = function()
     {
-        audio = "None";
-        localStorage.removeItem("audio");
+        if( !navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices )
+        {
+            console?.log("%c" + "Media Devices Error" + "%o", settings.debugStyle, "Media devices are not available");
+            return false;
+        }
+
+        // Create a dummy stream.
+        audioStream = getSilenceStream();
+        videoStream = getBlackStream();
+        mediaStream = mixStreams(audioStream, videoStream);
+
+        let initialize = async function()
+        {
+            await window.navigator.mediaDevices.getUserMedia({ audio: true });
+            await window.navigator.mediaDevices.getUserMedia({ video: true });
+            await findDevices();
+            await setDefaultDevices();
+        };
+
+        initialize();
+
+        return true;
     }
 
-    let video = localStorage.getItem("video") || "None";
-    if( !(video in this.videoDevices) )
+    /**
+     * Find the available media input and output devices.
+     */
+    var findDevices = async function()
     {
-        video = "None";
-        localStorage.removeItem("video");
+        return getDevices().then(gotDevices).catch(errorDevices);
     }
 
-    try
+    /**
+     * Set the default devices.
+     */
+    var setDefaultDevices = async function()
     {
-        await this.setAudio(audio);
+        // Try to get the media configuration from the local storage
+        // or use the default values.
+
+        let audio = window.localStorage.getItem("audio") || "None";
+        if( !(audio in audioDevices) )
+        {
+            audio = "None";
+            window.localStorage.removeItem("audio");
+        }
+
+        let video = window.localStorage.getItem("video") || "None";
+        if( !(video in videoDevices) )
+        {
+            video = "None";
+            window.localStorage.removeItem("video");
+        }
+
         try
         {
-            await this.setVideo(video);
+            await setAudio(audio);
+            try
+            {
+                await setVideo(video);
+            }
+            catch( error )
+            {
+                setVideo("None");
+            }
         }
         catch( error )
         {
-            this.setVideo("None");
-        }
-    }
-    catch( error )
-    {
-        await this.setAudio("None");
-        try
-        {
-            await this.setVideo(video);
-        }
-        catch( error )
-        {
-            this.setVideo("None");
-        }
-    }
-}
-
-/**
- * Request a list of the available media input and output devices.
- */
-MediaAdapter.prototype.getDevices = function()
-{
-    return navigator.mediaDevices.enumerateDevices();
-}
-
-/**
- * Success handler of the get devices function.
- * @param {MediaDeviceInfo[]} deviceInfos - The collection of device infos.
- */
-MediaAdapter.prototype.gotDevices = function( deviceInfos )
-{
-    this.audioDevices = { };
-    this.videoDevices = { };
-
-    // Add inputs for silence and black streams.
-    this.audioDevices["None"] = "";
-    this.videoDevices["None"] = "";
-
-    let a = 0, v = 0;
-    for( let deviceInfo of deviceInfos )
-    {
-        if( deviceInfo.kind === "audioinput" )
-        {
-            let label = (deviceInfo.label === "" ) ? ("Audio input " + a) : deviceInfo.label;
-            this.audioDevices[label] = deviceInfo.deviceId;
-            a++;
-        }
-
-        if( deviceInfo.kind === "videoinput" )
-        {
-            let label = (deviceInfo.label === "" ) ? ("Video input " + v) : deviceInfo.label;
-            this.videoDevices[label] = deviceInfo.deviceId;
-            v++;
+            await setAudio("None");
+            try
+            {
+                await setVideo(video);
+            }
+            catch( error )
+            {
+                setVideo("None");
+            }
         }
     }
 
-    if( this.DEBUG ) console.log("%cDevice Infos%o", this.debugStyle, JSON.stringify(deviceInfos));
-    if( this.DEBUG ) console.log("%cgot_devices%o%o%o", this.debugStyle, JSON.stringify(this.audioDevices), JSON.stringify(this.videoDevices), JSON.stringify(this.settings));
-    if( this.DEBUG ) console.log("%cgot_resolutions%o%o", this.debugStyle, JSON.stringify(this.resolutions), JSON.stringify(this.settings));
-
-    this.emit("got_devices", { audioDevices: this.audioDevices, videoDevices: this.videoDevices, settings: this.settings });
-    this.emit("got_resolutions", { resolutions: this.resolutions, settings: this.settings });
-}
-
-/**
- * Error handler of the get devices function.
- * @param {Error} error - The catched error.
- */
-MediaAdapter.prototype.errorDevices = function( error )
-{
-    let description = "Device request not allowed in the browser context.";
-
-    if( this.DEBUG ) console.log("%cerror_devices%o%o", this.debugStyle, error, description);
-
-    this.emit("error_devices", { error: error, description: description });
-}
-
-/**
- * Set the audio device.
- * @param {String} device - The audio device.
- */
-MediaAdapter.prototype.setAudio = function( device )
-{
-    // Check whether the device exists.
-    if( !(device in this.audioDevices) )
+    /**
+     * Request a list of the available media input and output devices.
+     */
+    var getDevices = function()
     {
-        return Promise.reject(new Error("Device " + device + " doesn't exist"));
+        return window.navigator.mediaDevices.enumerateDevices();
     }
 
-    // Check whether the device is not already selected.
-    /*if( device === this.settings.audio )
+    /**
+     * Success handler of the get devices function.
+     * @param {MediaDeviceInfo[]} deviceInfos - The collection of device infos.
+     */
+    var gotDevices = function( deviceInfos )
     {
-        return Promise.reject(new Error("Device " + device + " already selected"));
-    }*/
+        audioDevices = { };
+        videoDevices = { };
 
-    if( device === "None" )
+        // Add inputs for silence and black streams.
+        audioDevices["None"] = "";
+        videoDevices["None"] = "";
+
+        let a = 0, v = 0;
+        for( let deviceInfo of deviceInfos )
+        {
+            if( deviceInfo.kind === "audioinput" )
+            {
+                let label = (deviceInfo.label === "" ) ? ("Audio input " + a) : deviceInfo.label;
+                audioDevices[label] = deviceInfo.deviceId;
+                a++;
+            }
+
+            if( deviceInfo.kind === "videoinput" )
+            {
+                let label = (deviceInfo.label === "" ) ? ("Video input " + v) : deviceInfo.label;
+                videoDevices[label] = deviceInfo.deviceId;
+                v++;
+            }
+        }
+
+        console?.log("%c" + "Device Infos" + "%o", settings.debugStyle, JSON.stringify(deviceInfos));
+        console?.log("%c" + "got_devices" + "%o%o%o", settings.debugStyle, JSON.stringify(audioDevices), JSON.stringify(videoDevices), JSON.stringify(streamSettings));
+        console?.log("%c" + "got_resolutions" + "%o%o", settings.debugStyle, JSON.stringify(resolutions), JSON.stringify(streamSettings));
+
+        emit("got_devices", { audioDevices: audioDevices, videoDevices: videoDevices, settings: streamSettings });
+        emit("got_resolutions", { resolutions: resolutions, settings: streamSettings });
+    }
+
+    /**
+     * Error handler of the get devices function.
+     * @param {Error} error - The catched error.
+     */
+    var errorDevices = function( error )
     {
+        let description = "Device request not allowed in the browser context.";
+
+        console?.log("%c" + "error_devices" + "%o%o", settings.debugStyle, error, description);
+
+        emit("error_devices", { error: error, description: description });
+    }
+
+    /**
+     * Set the audio device.
+     * @param {String} device - The audio device.
+     */
+    var setAudio = function( device )
+    {
+        // Check whether the device exists.
+        if( !(device in audioDevices) )
+        {
+            return Promise.reject(new Error("Device " + device + " doesn't exist"));
+        }
+
+        // Check whether the device is not already selected.
+        if( device === streamSettings.audio )
+        {
+            return Promise.reject(new Error("Device " + device + " already selected"));
+        }
+
+        if( device === "None" )
+        {
+            // Update settings.
+            streamSettings.audio = device;
+
+            // Save settings.
+            window.localStorage.setItem("audio", streamSettings.audio);
+
+            // Get dummy stream.
+            audioStream = getSilenceStream();
+            mediaStream = mixStreams(audioStream, videoStream);
+
+            console?.log("%c" + "got_stream" + "%o%o", settings.debugStyle, mediaStream, JSON.stringify(streamSettings));
+
+            emit("got_stream", { stream: mediaStream, settings: streamSettings });
+
+            return Promise.resolve(mediaStream);
+        }
+        else
+        {
+            // Save previous audio constraints.
+            previousAudioConstraints = clone(audioConstraints);
+
+            // Update audio device constraints.
+            let deviceId = audioDevices[device];
+            audioConstraints.audio.deviceId.exact = deviceId;
+
+            return getAudioStream();
+        }
+    }
+
+    /**
+     * Set the video device and resolution.
+     * @param {String} device - The video device.
+     * @param {String} resolution - The video resolution.
+     */
+    var setVideo = function( device, resolution = "Undefined" )
+    {
+        // Check whether the device exists.
+        if( !(device in videoDevices) )
+        {
+            return Promise.reject(new Error("Device " + device + " doesn't exist"));;
+        }
+
+        // Check whether the resolution exists.
+        if( !(resolution in resolutions) )
+        {
+            return Promise.reject(new Error("Resolution " + resolution + " doesn't exist"));
+        }
+
+        // Check whether the device and resolution is not already selected.
+        if( device === streamSettings.video && resolution === streamSettings.resolution )
+        {
+            return Promise.reject(new Error("Device " + device + " and resolution " + resolution + " already selected"));
+        }
+
+        if( device === "None" )
+        {
+            // Update settings.
+            streamSettings.video = device;
+            streamSettings.resolution = resolution;
+
+            // Save settings.
+            window.localStorage.setItem("video", streamSettings.video);
+
+            // Get dummy stream.
+            let width = resolutions[resolution].width;
+            let height = resolutions[resolution].height;
+            videoStream = getBlackStream(width, height);
+            mediaStream = mixStreams(audioStream, videoStream);
+
+            console?.log("%c" + "got_stream" + "%o%o", settings.debugStyle, mediaStream, JSON.stringify(streamSettings));
+
+            emit("got_stream", { stream: mediaStream, settings: streamSettings });
+
+            return Promise.resolve(mediaStream);
+        }
+        else
+        {
+            // Save previous video constraints.
+            previousVideoConstraints = clone(videoConstraints);
+
+            // Update video device constraints.
+            let deviceId = videoDevices[device];
+            videoConstraints.video.deviceId.exact = deviceId;
+
+            // Update video resolution constraints.
+            let width = resolutions[resolution].width;
+            let height = resolutions[resolution].height;
+            videoConstraints.video.width.exact = width;
+            videoConstraints.video.height.exact = height;
+
+            return getVideoStream();
+        }
+    }
+
+    /**
+     * Return a silence audio track.
+     * @return {MediaStreamTrack} The silence audio track.
+     */
+    var getSilenceTrack = function()
+    {
+        let audioContext = new AudioContext();
+        let oscillatorNode = audioContext.createOscillator();
+        let destination = oscillatorNode.connect(audioContext.createMediaStreamDestination());
+        oscillatorNode.start();
+
+        let stream = destination.stream;
+        let audioTrack = stream.getAudioTracks()[0];
+        audioTrack.enabled = false;
+
+        return audioTrack;
+    }
+
+    /**
+     * Return a black video track.
+     * @param {Number} width - The video track width.
+     * @param {Number} height - The video track height.
+     * @return {MediaStreamTrack} The black video track.
+     */
+    var getBlackTrack = function( width = 320, height = 240 )
+    {
+        if( !blackCanvas )
+        {
+            blackCanvas = window.document.createElement("canvas");
+        }
+
+        blackCanvas.width = width;
+        blackCanvas.height = height;
+        let context = blackCanvas.getContext("2d");
+        context.fillRect(0, 0, width, height);
+
+        let stream = blackCanvas.captureStream();
+        let videoTrack = stream.getVideoTracks()[0];
+        videoTrack.enabled = false;
+
+        return videoTrack;
+    }
+
+    /**
+     * Return a silenced audio stream.
+     */
+    var getSilenceStream = function()
+    {
+        return new MediaStream([getSilenceTrack()]);
+    }
+
+    /**
+     * Return a black video stream.
+     * @param {Number} width - The video stream width.
+     * @param {Number} height - The video stream height.
+     */
+    var getBlackStream = function( width = 320, height = 240 )
+    {
+        return new MediaStream([getBlackTrack(width, height)]);
+    }
+
+    /**
+     * Request an audio stream.
+     */
+    var getAudioStream = function()
+    {
+        console?.log("%c" + "Get Audio Stream" + "%o", settings.debugStyle, JSON.stringify(audioConstraints));
+
+        mediaStream = undefined;
+        stopStream(audioStream);
+
+        return window.navigator.mediaDevices.getUserMedia(audioConstraints).then(gotAudioStream).catch(function( error )
+        {
+            errorAudioStream(error);
+            throw error;
+        });
+    }
+
+    /**
+     * Request a video stream.
+     */
+    var getVideoStream = function()
+    {
+        console?.log("%c" + "Get Video Stream" + "%o", settings.debugStyle, JSON.stringify(videoConstraints));
+
+        mediaStream = undefined;
+        stopStream(videoStream);
+
+        return window.navigator.mediaDevices.getUserMedia(videoConstraints).then(gotVideoStream).catch(function( error )
+        {
+            errorVideoStream(error);
+            throw error;
+        });
+    }
+
+    /**
+     * Success handler of the get audio stream function.
+     * @param {MediaStream} stream - The audio stream.
+     */
+    var gotAudioStream = async function( stream )
+    {
+        // Audio track.
+        let audioTrack = stream.getAudioTracks()[0];
+        let audioTrackSettings = audioTrack.getSettings();
+        console?.log("%c" + "Audio Track" + "%o%o", settings.debugStyle, JSON.stringify(audioTrack.label), JSON.stringify(audioTrackSettings));
+
+        // Check whether the label is listed, enumerateDevices returns an empty label if the permission for accessing the mediadevice is not given.
+        if( !(audioTrack.label in audioDevices) )
+        {
+            await findDevices();
+        }
+
         // Update settings.
-        this.settings.audio = device;
+        streamSettings.audio = audioTrack.label;
 
         // Save settings.
-        window.localStorage.setItem("audio", this.settings.audio);
+        window.localStorage.setItem("audio", streamSettings.audio);
 
-        // Get dummy stream.
-        this.audioStream = this.getSilenceStream();
-        this.mediaStream = MediaAdapter.mixStreams(this.audioStream, this.videoStream);
+        audioStream = stream;
+        mediaStream = mixStreams(audioStream, videoStream);
 
-        if( this.DEBUG ) console.log("%cgot_stream%o%o", this.debugStyle, this.mediaStream, JSON.stringify(this.settings));
+        console?.log("%c" + "Audio Constraints" + "%o", settings.debugStyle, JSON.stringify(audioConstraints));
+        console?.log("%c" + "got_stream" + "%o%o", settings.debugStyle, mediaStream, JSON.stringify(streamSettings));
 
-        this.emit("got_stream", { stream: this.mediaStream, settings: this.settings });
-
-        return Promise.resolve(this.mediaStream);
-    }
-    else
-    {
-        // Save previous audio constraints.
-        this.previousAudioConstraints = MediaAdapter.clone(this.audioConstraints);
-
-        // Update audio device constraints.
-        let deviceId = this.audioDevices[device];
-        this.audioConstraints.audio.deviceId.exact = deviceId;
-
-        return this.getAudioStream();
-    }
-}
-
-/**
- * Set the video device and resolution.
- * @param {String} device - The video device.
- * @param {String} resolution - The video resolution.
- */
-MediaAdapter.prototype.setVideo = function( device, resolution = "Undefined" )
-{
-    // Check whether the device exists.
-    if( !(device in this.videoDevices) )
-    {
-        return Promise.reject(new Error("Device " + device + " doesn't exist"));;
+        emit("got_stream", { stream: mediaStream, settings: streamSettings });
     }
 
-    // Check whether the resolution exists.
-    if( !(resolution in this.resolutions) )
+    /**
+     * Success handler of the get video stream function.
+     * @param {MediaStream} stream - The video stream.
+     */
+    var gotVideoStream = async function( stream )
     {
-        return Promise.reject(new Error("Resolution " + resolution + " doesn't exist"));
-    }
+        // Video track.
+        let videoTrack = stream.getVideoTracks()[0];
+        let videoTrackSettings = videoTrack.getSettings();
+        console?.log("%c" + "Video Track" + "%o%o", settings.debugStyle, JSON.stringify(videoTrack.label), JSON.stringify(videoTrackSettings));
 
-    // Check whether the device and resolution is not already selected.
-    if( device === this.settings.video && resolution === this.settings.resolution )
-    {
-        return Promise.reject(new Error("Device " + device + " and resolution " + resolution + " already selected"));
-    }
+        // Check whether the label is listed, enumerateDevices returns an empty label if the permission for accessing the mediadevice is not given.
+        if( !(videoTrack.label in videoDevices) )
+        {
+            await findDevices();
+        }
 
-    if( device === "None" )
-    {
+        // Check whether the resolution is already listed.
+        let width = videoTrackSettings.width;
+        let height = videoTrackSettings.height;
+        let resolution = width + "x" + height;
+        if( !resolutions[resolution] )
+        {
+            // Add the resolution.
+            resolutions[resolution] = { width: width, height: height };
+
+            // Sort resolutions.
+            resolutions = Object.entries(resolutions).sort((a, b) => (a[1].width || Number.NEGATIVE_INFINITY) > (b[1].width || Number.NEGATIVE_INFINITY)).reduce((r, [k, v]) => ({ ...r, [k]: v }), {});
+
+            emit("got_resolutions", { resolutions: resolutions, settings: streamSettings });
+        }
+
+        // Update video constraints.
+        videoConstraints.video.width.exact = width;
+        videoConstraints.video.height.exact = height;
+
         // Update settings.
-        this.settings.video = device;
-        this.settings.resolution = resolution;
+        streamSettings.video = videoTrack.label;
+        streamSettings.resolution = resolution;
 
         // Save settings.
-        localStorage.setItem("video", this.settings.video);
+        window.localStorage.setItem("video", streamSettings.video);
 
-        // Get dummy stream.
-        let width = this.resolutions[resolution].width;
-        let height = this.resolutions[resolution].height;
-        this.videoStream = this.getBlackStream(width, height);
-        this.mediaStream = MediaAdapter.mixStreams(this.audioStream, this.videoStream);
+        videoStream = stream;
+        mediaStream = mixStreams(audioStream, videoStream);
 
-        if( this.DEBUG ) console.log("%cgot_stream%o%o", this.debugStyle, this.mediaStream, JSON.stringify(this.settings));
+        console?.log("%c" + "Video Constraints" + "%o", settings.debugStyle, JSON.stringify(videoConstraints));
+        console?.log("%c" + "got_stream" + "%o%o", settings.debugStyle, mediaStream, JSON.stringify(streamSettings));
 
-        this.emit("got_stream", { stream: this.mediaStream, settings: this.settings });
-
-        return Promise.resolve(this.mediaStream);
-    }
-    else
-    {
-        // Save previous video constraints.
-        this.previousVideoConstraints = MediaAdapter.clone(this.videoConstraints);
-
-        // Update video device constraints.
-        let deviceId = this.videoDevices[device];
-        this.videoConstraints.video.deviceId.exact = deviceId;
-
-        // Update video resolution constraints.
-        let width = this.resolutions[resolution].width;
-        let height = this.resolutions[resolution].height;
-        this.videoConstraints.video.width.exact = width;
-        this.videoConstraints.video.height.exact = height;
-
-        return this.getVideoStream();
-    }
-}
-
-/**
- * Return a silence audio track.
- * @return {MediaStreamTrack} The silence audio track.
- */
-MediaAdapter.prototype.getSilenceTrack = function()
-{
-    let audioContext = new AudioContext();
-    let oscillatorNode = audioContext.createOscillator();
-    let destination = oscillatorNode.connect(audioContext.createMediaStreamDestination());
-    oscillatorNode.start();
-
-    let stream = destination.stream;
-    let audioTrack = stream.getAudioTracks()[0];
-    audioTrack.enabled = false;
-
-    return audioTrack;
-}
-
-/**
- * Return a black video track.
- * @param {Number} width - The video track width.
- * @param {Number} height - The video track height.
- * @return {MediaStreamTrack} The black video track.
- */
-MediaAdapter.prototype.getBlackTrack = function( width = 320, height = 240 )
-{
-    if( !this.blackCanvas )
-    {
-        this.blackCanvas = window.document.createElement("canvas");
+        emit("got_stream", { stream: mediaStream, settings: streamSettings });
     }
 
-    this.blackCanvas.width = width;
-    this.blackCanvas.height = height;
-    let context = this.blackCanvas.getContext("2d");
-    context.fillRect(0, 0, width, height);
-
-    let stream = this.blackCanvas.captureStream();
-    let videoTrack = stream.getVideoTracks()[0];
-    videoTrack.enabled = false;
-
-    return videoTrack;
-}
-
-/**
- * Return a silenced audio stream.
- */
-MediaAdapter.prototype.getSilenceStream = function()
-{
-    return new MediaStream([this.getSilenceTrack()]);
-}
-
-/**
- * Return a black video stream.
- * @param {Number} width - The video stream width.
- * @param {Number} height - The video stream height.
- */
-MediaAdapter.prototype.getBlackStream = function( width = 320, height = 240 )
-{
-    return new MediaStream([this.getBlackTrack(width, height)]);
-}
-
-/**
- * Request an audio stream.
- */
-MediaAdapter.prototype.getAudioStream = function()
-{
-    if( this.DEBUG ) console.log("%cGet Audio Stream%o", this.debugStyle, JSON.stringify(this.audioConstraints));
-
-    this.mediaStream = undefined;
-    MediaAdapter.stopStream(this.audioStream);
-
-    return window.navigator.mediaDevices.getUserMedia(this.audioConstraints).then(this.gotAudioStream.bind(this)).catch(function( error )
+    /**
+     * Return a semantic error string from the specified error.
+     * @param {Error} error - The catched error.
+     */
+    var errorStream = function( error )
     {
-        this.errorAudioStream(error);
-        throw error;
-    }.bind(this));
-}
+        let description = "";
+        if( error.name === "NotFoundError" || error.name === "DevicesNotFoundError" )
+        {
+            description = "Required track is missing.";
+        }
+        else if( error.name === "NotReadableError" || error.name === "TrackStartError" )
+        {
+            description = "Microphone or Webcam are already in use.";
+        }
+        else if( error.name === "OverconstrainedError" || error.name === "ConstraintNotSatisfiedError" )
+        {
+            description = "Constraints cannot be satisfied.";
+        }
+        else if( error.name === "NotAllowedError" || error.name === "PermissionDeniedError" )
+        {
+            description = "Permission denied in browser.";
+        }
+        else if( error.name === "TypeError" || error.name === "TypeError" )
+        {
+            description = "Empty constraints object.";
+        }
+        else
+        {
+            description = "Unknown error.";
+        }
 
-/**
- * Request a video stream.
- */
-MediaAdapter.prototype.getVideoStream = function()
-{
-    if( this.DEBUG ) console.log("%cGet Video Stream%o", this.debugStyle, JSON.stringify(this.videoConstraints));
-
-    this.mediaStream = undefined;
-    MediaAdapter.stopStream(this.videoStream);
-
-    return window.navigator.mediaDevices.getUserMedia(this.videoConstraints).then(this.gotVideoStream.bind(this)).catch(function( error )
-    {
-        this.errorVideoStream(error);
-        throw error;
-    }.bind(this));
-}
-
-/**
- * Success handler of the get audio stream function.
- * @param {MediaStream} stream - The audio stream.
- */
-MediaAdapter.prototype.gotAudioStream = async function( stream )
-{
-    // Audio track.
-    let audioTrack = stream.getAudioTracks()[0];
-    let audioTrackSettings = audioTrack.getSettings();
-    if( this.DEBUG ) console.log("%cAudio Track%o%o", this.debugStyle, JSON.stringify(audioTrack.label), JSON.stringify(audioTrackSettings));
-
-    // Check whether the label is listed, enumerateDevices returns an empty label if the permission for accessing the mediadevice is not given.
-    if( !(audioTrack.label in this.audioDevices) )
-    {
-        await this.findDevices();
+        return description + " " + error.message;
     }
 
-    // Update settings.
-    this.settings.audio = audioTrack.label;
-
-    // Save settings.
-    window.localStorage.setItem("audio", this.settings.audio);
-
-    this.audioStream = stream;
-    this.mediaStream = MediaAdapter.mixStreams(this.audioStream, this.videoStream);
-
-    if( this.DEBUG ) console.log("%cAudio Constraints%o", this.debugStyle, JSON.stringify(this.audioConstraints));
-    if( this.DEBUG ) console.log("%cgot_stream%o%o", this.debugStyle, this.mediaStream, JSON.stringify(this.settings));
-
-    this.emit("got_stream", { stream: this.mediaStream, settings: this.settings });
-}
-
-/**
- * Success handler of the get video stream function.
- * @param {MediaStream} stream - The video stream.
- */
-MediaAdapter.prototype.gotVideoStream = async function( stream )
-{
-    // Video track.
-    let videoTrack = stream.getVideoTracks()[0];
-    let videoTrackSettings = videoTrack.getSettings();
-    if( this.DEBUG ) console.log("%cVideo Track%o%o", this.debugStyle, JSON.stringify(videoTrack.label), JSON.stringify(videoTrackSettings));
-
-    // Check whether the label is listed, enumerateDevices returns an empty label if the permission for accessing the mediadevice is not given.
-    if( !(videoTrack.label in this.videoDevices) )
+    /**
+     * Error handler of the get audio stream function.
+     * @param {Error} error - The catched error.
+     */
+    var errorAudioStream = function( error )
     {
-        await this.findDevices();
+        let description = errorStream(error);
+
+        console?.log("%c" + "Error Constraints" + "%o", settings.debugStyle, JSON.stringify(audioConstraints));
+        console?.log("%c" + "error_stream" + "%o%o%o", settings.debugStyle, error.name, description, JSON.stringify(streamSettings));
+
+        emit("error_stream", { error: error.name, description: description, settings: streamSettings });
+
+        if( previousAudioConstraints )
+        {
+            audioConstraints = clone(previousAudioConstraints);
+            previousAudioConstraints = undefined;
+            getAudioStream();
+        }
     }
 
-    // Check whether the resolution is already listed.
-    let width = videoTrackSettings.width;
-    let height = videoTrackSettings.height;
-    let resolution = width + "x" + height;
-    if( !this.resolutions[resolution] )
+    /**
+     * Error handler of the get video stream function.
+     * @param {Error} error - The catched error.
+     */
+    var errorVideoStream = function( error )
     {
-        // Add the resolution.
-        this.resolutions[resolution] = { width: width, height: height };
+        let description = errorStream(error);
 
-        // Sort resolutions.
-        this.resolutions = Object.entries(this.resolutions).sort((a, b) => (a[1].width || Number.NEGATIVE_INFINITY) > (b[1].width || Number.NEGATIVE_INFINITY)).reduce((r, [k, v]) => ({ ...r, [k]: v }), {});
+        console?.log("%c" + "Error Constraints" + "%o", settings.debugStyle, JSON.stringify(videoConstraints));
+        console?.log("%c" + "error_stream" + "%o%o%o", settings.debugStyle, error.name, description, JSON.stringify(streamSettings));
 
-        this.emit("got_resolutions", { resolutions: this.resolutions, settings: this.settings });
+        emit("error_stream", { error: error.name, description: description, settings: streamSettings });
+
+        if( previousVideoConstraints )
+        {
+            videoConstraints = clone(previousVideoConstraints);
+            previousVideoConstraints = undefined;
+            getVideoStream();
+        }
     }
 
-    // Update video constraints.
-    this.videoConstraints.video.width.exact = width;
-    this.videoConstraints.video.height.exact = height;
-
-    // Update settings.
-    this.settings.video = videoTrack.label;
-    this.settings.resolution = resolution;
-
-    // Save settings.
-    window.localStorage.setItem("video", this.settings.video);
-
-    this.videoStream = stream;
-    this.mediaStream = MediaAdapter.mixStreams(this.audioStream, this.videoStream);
-
-    if( this.DEBUG ) console.log("%cVideo Constraints%o", this.debugStyle, JSON.stringify(this.videoConstraints));
-    if( this.DEBUG ) console.log("%cgot_stream%o%o", this.debugStyle, this.mediaStream, JSON.stringify(this.settings));
-
-    this.emit("got_stream", { stream: this.mediaStream, settings: this.settings });
-}
-
-/**
- * Return a semantic error string from the specified error.
- * @param {Error} error - The catched error.
- */
-MediaAdapter.prototype.errorStream = function( error )
-{
-    let description = "";
-    if( error.name === "NotFoundError" || error.name === "DevicesNotFoundError" )
+    /**
+     * Mix two streams with 1 audio and 1 video tracks into one.
+     * @param {MediaStream} audioStream - The stream with the audio track.
+     * @param {MediaStream} videoStream - The stream with the video track.
+     * @return {MediaStream} The mixed stream.
+     */
+    var mixStreams = function( audioStream, videoStream )
     {
-        description = "Required track is missing.";
-    }
-    else if( error.name === "NotReadableError" || error.name === "TrackStartError" )
-    {
-        description = "Microphone or Webcam are already in use.";
-    }
-    else if( error.name === "OverconstrainedError" || error.name === "ConstraintNotSatisfiedError" )
-    {
-        description = "Constraints cannot be satisfied.";
-    }
-    else if( error.name === "NotAllowedError" || error.name === "PermissionDeniedError" )
-    {
-        description = "Permission denied in browser.";
-    }
-    else if( error.name === "TypeError" || error.name === "TypeError" )
-    {
-        description = "Empty constraints object.";
-    }
-    else
-    {
-        description = "Unknown error.";
+        if( !audioStream || !(audioStream instanceof MediaStream) )
+        {
+            return undefined;
+        }
+
+        if( !videoStream || !(videoStream instanceof MediaStream) )
+        {
+            return undefined;
+        }
+
+        let audioTracks = audioStream.getAudioTracks();
+        if( !audioTracks || audioTracks.length === 0 )
+        {
+            return undefined;
+        }
+
+        let videoTracks = videoStream.getVideoTracks();
+        if( !videoTracks || videoTracks.length === 0 )
+        {
+            return undefined;
+        }
+
+        let stream = new MediaStream();
+        stream.addTrack(audioTracks[0]);
+        stream.addTrack(videoTracks[0]);
+
+        return stream;
     }
 
-    return description + " " + error.message;
-}
-
-/**
- * Error handler of the get audio stream function.
- * @param {Error} error - The catched error.
- */
-MediaAdapter.prototype.errorAudioStream = function( error )
-{
-    let description = this.errorStream(error);
-
-    if( this.DEBUG ) console.log("%cError Constraints%o", this.debugStyle, JSON.stringify(this.audioConstraints));
-    if( this.DEBUG ) console.log("%cerror_stream%o%o%o", this.debugStyle, error.name, description, JSON.stringify(this.settings));
-
-    this.emit("error_stream", { error: error.name, description: description, settings: this.settings });
-
-    if( this.previousAudioConstraints )
+    /**
+     * Stop a stream, stopping its tracks.
+     * @param {MediaStream} stream - The stream to stop.
+     */
+    var stopStream = function( stream )
     {
-        this.audioConstraints = MediaAdapter.clone(this.previousAudioConstraints);
-        this.previousAudioConstraints = undefined;
-        this.getAudioStream();
-    }
-}
+        if( !stream || !(stream instanceof MediaStream) )
+        {
+            return;
+        }
 
-/**
- * Error handler of the get video stream function.
- * @param {Error} error - The catched error.
- */
-MediaAdapter.prototype.errorVideoStream = function( error )
-{
-    let description = this.errorStream(error);
-
-    if( this.DEBUG ) console.log("%cError Constraints%o", this.debugStyle, JSON.stringify(this.videoConstraints));
-    if( this.DEBUG ) console.log("%cerror_stream%o%o%o", this.debugStyle, error.name, description, JSON.stringify(this.settings));
-
-    this.emit("error_stream", { error: error.name, description: description, settings: this.settings });
-
-    if( this.previousVideoConstraints )
-    {
-        this.videoConstraints = MediaAdapter.clone(this.previousVideoConstraints);
-        this.previousVideoConstraints = undefined;
-        this.getVideoStream();
-    }
-}
-
-/**
- * Mix two streams with 1 audio and 1 video tracks into one.
- * @param {MediaStream} audioStream - The stream with the audio track.
- * @param {MediaStream} videoStream - The stream with the video track.
- * @return {MediaStream} The mixed stream.
- */
-MediaAdapter.mixStreams = function( audioStream, videoStream )
-{
-    if( !audioStream || !(audioStream instanceof MediaStream) )
-    {
-        return undefined;
+        stream.getTracks().forEach(track => track.stop());
     }
 
-    if( !videoStream || !(videoStream instanceof MediaStream) )
+    /**
+     * Return a clone of the object.
+     * @param {Object} object - The object to clone.
+     * @return {Object} The clone of the object.
+     */
+    var clone = function( object )
     {
-        return undefined;
+        return JSON.parse(JSON.stringify(object));
     }
 
-    let audioTracks = audioStream.getAudioTracks();
-    if( !audioTracks || audioTracks.length === 0 )
-    {
-        return undefined;
-    }
+//#endregion
 
-    let videoTracks = videoStream.getVideoTracks();
-    if( !videoTracks || videoTracks.length === 0 )
-    {
-        return undefined;
-    }
+//#region PUBLIC
 
-    let stream = new MediaStream();
-    stream.addTrack(audioTracks[0]);
-    stream.addTrack(videoTracks[0]);
+    return {
+        on: on,
+        off: off,
+        start: start,
+        findDevices: findDevices,
+        setAudio: setAudio,
+        setVideo: setVideo
+    };
 
-    return stream;
-}
-
-/**
- * Stop a stream, stopping its tracks.
- * @param {MediaStream} stream - The stream to stop.
- */
-MediaAdapter.stopStream = function( stream )
-{
-    if( !stream || !(stream instanceof MediaStream) )
-    {
-        return;
-    }
-
-    stream.getTracks().forEach(track => track.stop());
-}
-
-/**
- * Return a clone of the object.
- * @param {Object} object - The object to clone.
- * @return {Object} The clone of the object.
- */
-MediaAdapter.clone = function( object )
-{
-    return JSON.parse(JSON.stringify(object));
+//#endregion
 }
 
 export { MediaAdapter };
