@@ -156,6 +156,7 @@ AppClient.prototype.sendMessage = function( message )
 AppClient.prototype.onClose = function( event )
 {
     this.emit("client_disconnected");
+    delete this.ws;
 }
 
 /**

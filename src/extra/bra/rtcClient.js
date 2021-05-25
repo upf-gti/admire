@@ -200,6 +200,7 @@ RtcClient.prototype.onClose = function( event )
     window.clearTimeout(this.keepAliveTimer);
 
     this.emit("client_disconnected");
+    delete this.ws;
 }
 
 /**
