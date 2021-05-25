@@ -1,5 +1,3 @@
-"use strict";
-
 function MediaAdapter( settings )
 {
 //#region PRIVATE
@@ -124,7 +122,7 @@ function MediaAdapter( settings )
     {
         if( !navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices )
         {
-            console?.log("%c" + "Media Devices Error" + "%o", settings.debugStyle, "Media devices are not available");
+            console?.log("%cMedia Devices Error%o", settings.debugStyle, "Media devices are not available");
             return false;
         }
 
@@ -241,9 +239,9 @@ function MediaAdapter( settings )
             }
         }
 
-        console?.log("%c" + "Device Infos" + "%o", settings.debugStyle, JSON.stringify(deviceInfos));
-        console?.log("%c" + "got_devices" + "%o%o%o", settings.debugStyle, JSON.stringify(audioDevices), JSON.stringify(videoDevices), JSON.stringify(streamSettings));
-        console?.log("%c" + "got_resolutions" + "%o%o", settings.debugStyle, JSON.stringify(resolutions), JSON.stringify(streamSettings));
+        console?.log("%cDevice Infos%o", settings.debugStyle, JSON.stringify(deviceInfos));
+        console?.log("%cgot_devices%o%o%o", settings.debugStyle, JSON.stringify(audioDevices), JSON.stringify(videoDevices), JSON.stringify(streamSettings));
+        console?.log("%cgot_resolutions%o%o", settings.debugStyle, JSON.stringify(resolutions), JSON.stringify(streamSettings));
 
         emit("got_devices", { audioDevices: audioDevices, videoDevices: videoDevices, settings: streamSettings });
         emit("got_resolutions", { resolutions: resolutions, settings: streamSettings });
@@ -257,7 +255,7 @@ function MediaAdapter( settings )
     {
         let description = "Device request not allowed in the browser context.";
 
-        console?.log("%c" + "error_devices" + "%o%o", settings.debugStyle, error, description);
+        console?.log("%cerror_devices%o%o", settings.debugStyle, error, description);
 
         emit("error_devices", { error: error, description: description });
     }
@@ -292,7 +290,7 @@ function MediaAdapter( settings )
             audioStream = getSilenceStream();
             mediaStream = mixStreams(audioStream, videoStream);
 
-            console?.log("%c" + "got_stream" + "%o%o", settings.debugStyle, mediaStream, JSON.stringify(streamSettings));
+            console?.log("%cgot_stream%o%o", settings.debugStyle, mediaStream, JSON.stringify(streamSettings));
 
             emit("got_stream", { stream: mediaStream, settings: streamSettings });
 
@@ -351,7 +349,7 @@ function MediaAdapter( settings )
             videoStream = getBlackStream(width, height);
             mediaStream = mixStreams(audioStream, videoStream);
 
-            console?.log("%c" + "got_stream" + "%o%o", settings.debugStyle, mediaStream, JSON.stringify(streamSettings));
+            console?.log("%cgot_stream%o%o", settings.debugStyle, mediaStream, JSON.stringify(streamSettings));
 
             emit("got_stream", { stream: mediaStream, settings: streamSettings });
 
@@ -442,7 +440,7 @@ function MediaAdapter( settings )
      */
     var getAudioStream = function()
     {
-        console?.log("%c" + "Get Audio Stream" + "%o", settings.debugStyle, JSON.stringify(audioConstraints));
+        console?.log("%cGet Audio Stream%o", settings.debugStyle, JSON.stringify(audioConstraints));
 
         mediaStream = undefined;
         stopStream(audioStream);
@@ -459,7 +457,7 @@ function MediaAdapter( settings )
      */
     var getVideoStream = function()
     {
-        console?.log("%c" + "Get Video Stream" + "%o", settings.debugStyle, JSON.stringify(videoConstraints));
+        console?.log("%cGet Video Stream%o", settings.debugStyle, JSON.stringify(videoConstraints));
 
         mediaStream = undefined;
         stopStream(videoStream);
@@ -480,7 +478,7 @@ function MediaAdapter( settings )
         // Audio track.
         let audioTrack = stream.getAudioTracks()[0];
         let audioTrackSettings = audioTrack.getSettings();
-        console?.log("%c" + "Audio Track" + "%o%o", settings.debugStyle, JSON.stringify(audioTrack.label), JSON.stringify(audioTrackSettings));
+        console?.log("%cAudio Track%o%o", settings.debugStyle, JSON.stringify(audioTrack.label), JSON.stringify(audioTrackSettings));
 
         // Check whether the label is listed, enumerateDevices returns an empty label if the permission for accessing the mediadevice is not given.
         if( !(audioTrack.label in audioDevices) )
@@ -497,8 +495,8 @@ function MediaAdapter( settings )
         audioStream = stream;
         mediaStream = mixStreams(audioStream, videoStream);
 
-        console?.log("%c" + "Audio Constraints" + "%o", settings.debugStyle, JSON.stringify(audioConstraints));
-        console?.log("%c" + "got_stream" + "%o%o", settings.debugStyle, mediaStream, JSON.stringify(streamSettings));
+        console?.log("%cAudio Constraints%o", settings.debugStyle, JSON.stringify(audioConstraints));
+        console?.log("%cgot_stream%o%o", settings.debugStyle, mediaStream, JSON.stringify(streamSettings));
 
         emit("got_stream", { stream: mediaStream, settings: streamSettings });
     }
@@ -512,7 +510,7 @@ function MediaAdapter( settings )
         // Video track.
         let videoTrack = stream.getVideoTracks()[0];
         let videoTrackSettings = videoTrack.getSettings();
-        console?.log("%c" + "Video Track" + "%o%o", settings.debugStyle, JSON.stringify(videoTrack.label), JSON.stringify(videoTrackSettings));
+        console?.log("%cVideo Track%o%o", settings.debugStyle, JSON.stringify(videoTrack.label), JSON.stringify(videoTrackSettings));
 
         // Check whether the label is listed, enumerateDevices returns an empty label if the permission for accessing the mediadevice is not given.
         if( !(videoTrack.label in videoDevices) )
@@ -549,8 +547,8 @@ function MediaAdapter( settings )
         videoStream = stream;
         mediaStream = mixStreams(audioStream, videoStream);
 
-        console?.log("%c" + "Video Constraints" + "%o", settings.debugStyle, JSON.stringify(videoConstraints));
-        console?.log("%c" + "got_stream" + "%o%o", settings.debugStyle, mediaStream, JSON.stringify(streamSettings));
+        console?.log("%cVideo Constraints%o", settings.debugStyle, JSON.stringify(videoConstraints));
+        console?.log("%cgot_stream%o%o", settings.debugStyle, mediaStream, JSON.stringify(streamSettings));
 
         emit("got_stream", { stream: mediaStream, settings: streamSettings });
     }
@@ -598,8 +596,8 @@ function MediaAdapter( settings )
     {
         let description = errorStream(error);
 
-        console?.log("%c" + "Error Constraints" + "%o", settings.debugStyle, JSON.stringify(audioConstraints));
-        console?.log("%c" + "error_stream" + "%o%o%o", settings.debugStyle, error.name, description, JSON.stringify(streamSettings));
+        console?.log("%cError Constraints%o", settings.debugStyle, JSON.stringify(audioConstraints));
+        console?.log("%cerror_stream%o%o%o", settings.debugStyle, error.name, description, JSON.stringify(streamSettings));
 
         emit("error_stream", { error: error.name, description: description, settings: streamSettings });
 
@@ -619,8 +617,8 @@ function MediaAdapter( settings )
     {
         let description = errorStream(error);
 
-        console?.log("%c" + "Error Constraints" + "%o", settings.debugStyle, JSON.stringify(videoConstraints));
-        console?.log("%c" + "error_stream" + "%o%o%o", settings.debugStyle, error.name, description, JSON.stringify(streamSettings));
+        console?.log("%cError Constraints%o", settings.debugStyle, JSON.stringify(videoConstraints));
+        console?.log("%cerror_stream%o%o%o", settings.debugStyle, error.name, description, JSON.stringify(streamSettings));
 
         emit("error_stream", { error: error.name, description: description, settings: streamSettings });
 
@@ -698,12 +696,13 @@ function MediaAdapter( settings )
 //#region PUBLIC
 
     return {
-        on: on,
-        off: off,
-        start: start,
-        findDevices: findDevices,
-        setAudio: setAudio,
-        setVideo: setVideo
+        on,
+        off,
+        start,
+        findDevices,
+        getDevices,
+        setAudio,
+        setVideo,
     };
 
 //#endregion

@@ -1,5 +1,3 @@
-"use strict";
-
 function Peer()
 {
     var callId = undefined;
@@ -198,7 +196,7 @@ function RtcClient( settings )
                 return;
             }
 
-            console?.log("%c%s" + "%o", settings.debugStyle, message.id, msg.data);
+            console?.log("%c%s%o", settings.debugStyle, message.id, msg.data);
 
             if( HANDLERS[message.id] instanceof Function )
             {
@@ -209,7 +207,7 @@ function RtcClient( settings )
         }
         else
         {
-            console?.log("%cunknown_message" + "%o", settings.debugStyle, msg.data);
+            console?.log("%cunknown_message%o", settings.debugStyle, msg.data);
         }
     }
 
@@ -224,7 +222,7 @@ function RtcClient( settings )
         // Log all messages except pings.
         if( message.id !== "ping" )
         {
-            console?.log("%c%s" + "%o", settings.debugStyle, message.id, msg);
+            console?.log("%c%s%o", settings.debugStyle, message.id, msg);
         }
 
         socket.send(msg);
@@ -647,7 +645,7 @@ function RtcClient( settings )
             return;
         }
 
-        console?.log("%c" + "ICE Connection State" + "%o%o", settings.debugStyle, peer.callId, peer.connection.iceConnectionState);
+        console?.log("%cICE Connection State%o%o", settings.debugStyle, peer.callId, peer.connection.iceConnectionState);
 
         switch( peer.connection.iceConnectionState )
         {
@@ -662,7 +660,7 @@ function RtcClient( settings )
             case "checking":
             case "completed":
             {
-                console?.log("%c" + "call_state" + "%o%o", settings.debugStyle, peer.callId, "ringing");
+                console?.log("%ccall_state%o%o", settings.debugStyle, peer.callId, "ringing");
                 emit("call_state", { callId: peer.callId, state: "ringing" });
                 break;
             }
@@ -670,16 +668,19 @@ function RtcClient( settings )
             {
                 let stream = getRemoteStream(peer.connection);
         
-                console?.log("%c" + "call_state" + "%o%o", settings.debugStyle, peer.callId, "open");
+                console?.log("%ccall_state%o%o", settings.debugStyle, peer.callId, "open");
                 emit("call_state", { callId: peer.callId, state: "open" });
         
-                console?.log("%c" + "call_started" + "%o%o", settings.debugStyle, peer.callId, stream);
+                console?.log("%ccall_started%o%o", settings.debugStyle, peer.callId, stream);
                 emit("call_started", { callId: peer.callId, stream: stream });
 
                 getStats(peer.callId);
 
                 break;
             }
+            default:
+                console?.error(`peer.connection.iceConnectionState case not recognised: "${peer.connection.iceConnectionState}"`, settings.debugStyle);
+                break;
         }
     }
 
@@ -731,10 +732,10 @@ function RtcClient( settings )
                 });
             }
 
-            console?.log("%c" + "call_stats" + "%o%o", settings.debugStyle, callId, callStats);
+            console?.log("%ccall_stats%o%o", settings.debugStyle, callId, callStats);
             emit("call_stats", { callId: callId, stats: callStats });
 
-        }.bind(this));
+        });
     }
 
     /**
@@ -1002,7 +1003,7 @@ function RtcClient( settings )
         // RFC 4122: https://www.ietf.org/rfc/rfc4122.txt
         return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c)
         {
-            var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+            var r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
             return v.toString(16);
         });
     }
@@ -1019,7 +1020,7 @@ function RtcClient( settings )
             return false;
         }
 
-        let regex = new RegExp("^([a-zA-Z])(([a-zA-Z0-9]+)([.\-_]?))*([a-zA-Z0-9])$");
+        let regex = new RegExp("^([a-zA-Z])(([a-zA-Z0-9]+)([.-_]?))*([a-zA-Z0-9])$");
         return regex.test(str);
     }
 

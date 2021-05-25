@@ -1,5 +1,3 @@
-"use strict";
-
 function AppClient( settings )
 {
 //#region PRIVATE
@@ -117,7 +115,7 @@ function AppClient( settings )
             window.sessionStorage.setItem("token", token);
         }
 
-        token = token;
+        this.token = token;
 
         emit("client_connected");
     }
@@ -138,7 +136,7 @@ function AppClient( settings )
                 return;
             }
 
-            console?.log(" %c%s" + "%o", settings.debugStyle, message.id, msg.data);
+            console?.log(" %c%s%o", settings.debugStyle, message.id, msg.data);
 
             if( HANDLERS[message.id] instanceof Function )
             {
@@ -149,7 +147,7 @@ function AppClient( settings )
         }
         else
         {
-            console?.log("%cunknown_message" + "%o", settings.debugStyle, msg.data);
+            console?.log("%cunknown_message%o", settings.debugStyle, msg.data);
         }
     }
 
@@ -164,7 +162,7 @@ function AppClient( settings )
         // Log all messages except pings.
         if( message.id !== "ping" )
         {
-            console?.log(" %c%s" + "%o", settings.debugStyle, message.id, msg);
+            console?.log(" %c%s%o", settings.debugStyle, message.id, msg);
         }
 
         socket.send(msg);
@@ -418,7 +416,7 @@ function AppClient( settings )
             return false;
         }
 
-        let regex = new RegExp("^([a-zA-Z])(([a-zA-Z0-9]+)([.\-_]?))*([a-zA-Z0-9])$");
+        let regex = new RegExp("^([a-zA-Z])(([a-zA-Z0-9]+)([.-_]?))*([a-zA-Z0-9])$");
         return regex.test(str);
     }
 

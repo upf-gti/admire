@@ -1,5 +1,3 @@
-"use strict"
-
 function DummyStream()
 {
 //#region PRIVATE
