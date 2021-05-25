@@ -133,8 +133,8 @@ function MediaAdapter( settings )
 
         let initialize = async function()
         {
-            await window.navigator.mediaDevices.getUserMedia({ audio: true });
-            await window.navigator.mediaDevices.getUserMedia({ video: true });
+            //await window.navigator.mediaDevices.getUserMedia({ audio: true });
+            //await window.navigator.mediaDevices.getUserMedia({ video: true });
             await findDevices();
             await setDefaultDevices();
         };
