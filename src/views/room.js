@@ -173,13 +173,13 @@ export default function Room({user, setNavItems})
         {
             {   //Replace video stream track
                 let track = localStream.getVideoTracks()[0];
-                track.enabled = true;
+                //track.enabled = true;
                 rtcClient.replaceLocalVideoTrack( callId, track );
             }
 
             {   //Replace audio stream track
                 let track = localStream.getAudioTracks()[0];
-                track.enabled = true;
+                //track.enabled = true;
                 rtcClient.replaceLocalAudioTrack( callId, track );
             }
         }
