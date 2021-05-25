@@ -20,8 +20,6 @@ export default function App() {
 
     const rtcUrl = "wss://rtcserver.brainstorm3d.com";
     const appUrl = "wss://admireapi.brainstorm3d.com";
-    //const appUrl = `wss://${window.location.hostname}:8443`;//process.env.PROXY;
-    
 
     const history = useHistory();
     const Log = useContext(ToastContext);
@@ -32,6 +30,7 @@ export default function App() {
     const [login, setLogin]       = useState(null);
     const [fetching, setFetching] = useState(false);
     const [NavItems, setNavItems] = useState({});
+
     const [ready, setReady] = useReducer((state, newState)=>{ 
         localStorage.setItem('admire-user-ready', newState);
         sessionStorage.setItem('admire-user-ready', newState);
@@ -51,26 +50,24 @@ export default function App() {
             setNavItem( 'wizzard',<Link to='/wizzard'> <li> <Image src={img3} style={{filter:'invert(1)'}} width={24}/> Wizzard</li> </Link> );
 
             appClient.on("logout_response",      onLogOut);
-            appClient.on('client_connected',     onConnect);
+            appClient.on('client_connected',     onAppClientConnect);
             appClient.on('client_disconnected',  onDisconnect);
             appClient.on("autologin_response",   onAutoLoginResponse);
             
-            function heartbeat(){
-                if(!appClient.ws) appClient.connect(appUrl);
-                if(!rtcClient.ws) rtcClient.connect(rtcUrl);
-                timeoutId = setTimeout(heartbeat,1000);
-            }
-
+            appClient.on('get_rooms_response',  ()=>{ });
             appClient.connect(appUrl);
-            rtcClient.connect(rtcUrl);
+            
+            rtcClient.on('client_connected',     onRtcClientConnect);
 
         return () => {//Acts like /componentWillUnmount'
             setNavItem('wizzard', null);
             //clearTimeout(timeoutId);
 
-            appClient.off('client_connected',    onConnect);
+            appClient.off('client_connected',    onAppClientConnect);
             appClient.off('client_disconnected', onDisconnect);
             appClient.off("logout_response",     onLogOut);
+            
+            rtcClient.off('client_connected',    onRtcClientConnect);
 
             appClient.disconnect();
             rtcClient.disconnect();
@@ -78,18 +75,26 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [appUrl, rtcUrl]); //This are the direct dependencies, the useEffect applies an observer pattern, whenever the value changes, the useEffect is called again.
 
-    //Beware!
-    useEffect(() => { 
-        if(!appClient.ws || !rtcClient.ws){
-            setLogin(null);
-            history.push('/');
-        }
-    },[history]);
-
-    function onConnect(event) {
+    function onAppClientConnect(event) {
         Log.info(`App client connected`);
+        rtcClient.connect(rtcUrl);
+    }
+
+    function onRtcClientConnect(event) {
+        Log.info(`Rtc client connected`);
         appClient.autologin();
         mediaAdapter.start();
+
+                    
+        function heartbeat(){
+            if(!appClient.ws) appClient.connect(appUrl);
+            if(!rtcClient.ws) rtcClient.connect(rtcUrl);
+            
+            if(appClient.ws){
+                //appClient.getRooms();
+            }
+        }
+        setInterval(heartbeat, 5000);
     }
 
     function onDisconnect() {
