@@ -13,7 +13,7 @@ import {StreamSettings} from 'components/streamSettings';
 import './wizzard.scss';
 
 
-export default function Wizard({ready:{ready, setReady}, setNavItem}){
+export default function Wizard( {user, ready:{ready, setReady}, setNavItem}){
 
     const { videoRef, devices:[devices,setDevices], settings:[settings,setSettings], localStream:[localStream,setLocalStream] } = useContext(StreamSettings);
 
@@ -36,7 +36,7 @@ export default function Wizard({ready:{ready, setReady}, setNavItem}){
             <Tab.Container as={Row} defaultActiveKey="0">
 
                 <Col xs={12} className='text-center' >
-                <h1 style={{color:"hsl(210, 11%, 85%)", paddingTop:"2rem"}}><Image src={img3} style={{    
+                <h1 style={{color:"hsl(210, 11%, 85%)", paddingTop:".75rem"}}><Image src={img3} style={{    
                     height: '3rem',
                     paddingBottom: '5px',
                     filter: 'invert(1)'
@@ -53,10 +53,10 @@ export default function Wizard({ready:{ready, setReady}, setNavItem}){
                     })}
                 </Nav>
 
-                <Col as={Tab.Content} xs={12} className="d-flex" style={{  height: 'calc(100vh - 2rem)'}}>
+                <Col as={Tab.Content} xs={12} className="d-flex">
                     
                     <Tab.Pane eventKey={0} className="m-auto  align-self-center">
-                        {devices && <VideoStream key={0} local fref={videoRef} videoDevices={devices.video} audioDevices={devices.audio}/> }
+                        {devices && <Video stream={localStream} user={user} id={'local'} key={-1} local playsInline/>}
                     </Tab.Pane>
 
                     <Tab.Pane as={Card} eventKey={1} className="shadow-sm p-2 m-auto  align-self-center">

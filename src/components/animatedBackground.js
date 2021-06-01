@@ -3,7 +3,7 @@ Author: Hermann Plass (hermann.plass@gmail.com)
 animatedBackground.js (c) 2021
 Desc: [animated background](https://www.csscodelab.com/react-wave-background-animation/)
 Created:  2021-01-15T22:10:42.169Z
-Modified: 2021-04-19T13:31:46.018Z
+Modified: 2021-06-01T09:13:46.584Z
 */
 
 import React from 'react';
@@ -253,10 +253,11 @@ export default class AnimatedBackground extends React.Component
                 className="animated-canvas" 
                 ref={this.dom_canvas} 
                 style={{
-                    position:"absolute",
+                    position:"fixed",
                     top: 0,
                     left: 0,
-                    width:'100vw'
+                    width:  '100vw',
+                    height: '100vh',
             }}/>
         );
     }

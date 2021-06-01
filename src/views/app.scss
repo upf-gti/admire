@@ -8,5 +8,6 @@ Modified: 2021-04-19T12:46:39.599Z
 @import "variables.scss";
 
 .app{
-    background-color:black;
+    background-color: $background !important;
+    min-height:100%;
 }

@@ -4,8 +4,9 @@ import { useEffect, useState, useRef, useContext } from 'react';
 import { Button, SplitButton, Dropdown, ButtonGroup } from 'react-bootstrap';
 
 import {StreamSettings} from 'components/streamSettings';
+import "./video.scss"
 
-export default function Video({id, user, master, local, fref, stream, setLiveCallback}){
+export default function Video({id, user, master, local, fref, stream, setLiveCallback, style}){
 
     const { videoRef, devices:[devices,setDevices], settings:[settings,setSettings], localStream:[localStream,setLocalStream] } = useContext(StreamSettings);
     
@@ -22,7 +23,7 @@ export default function Video({id, user, master, local, fref, stream, setLiveCal
     },[stream]);
 
     //style={{maxHeight:'33vh', width:'auto'}}
-    return <div key={id} style={{    textAlign: 'right'}}>
+    return <div key={id} className="Video" style={style} >
         {/*<h1 style={{zIndex:2000}}>{id}</h1>*/}
         
         <div className="stream-status">
@@ -40,7 +41,7 @@ export default function Video({id, user, master, local, fref, stream, setLiveCal
         </div>
         
 
-        {local && <div className='footer shadow' style={{zIndex:1000, textAlign: 'center'}}>
+        {local && <div className='footer' style={{zIndex:1000, textAlign: 'center'}}>
             <SplitButton
                 key={0}
                 size="lg"

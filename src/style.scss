@@ -6,15 +6,14 @@
 }
 
 body, html{
-    overflow: hidden;
-
+   // overflow: hidden;
 }
 
 #title{
     color:$color3;
     font-weight: bold;
     font-family: $principal_font;
-
+    
     .btn
     {
         color:#4666AC;
@@ -30,6 +29,9 @@ body, html{
     font-family: $principal_font;
 }
 
+#content{
+    background-color: $background;
+}
 /*==========================================
     Custom Class rules for Bootstrap
 ==========================================*/
