@@ -247,36 +247,35 @@ export default function Room({user, setNavItems})
 
         <Container id="room" className="text-center" fluid="lg" >
             {/*<h1 id="title" style={{color:"hsl(210, 11%, 85%)", marginTop:"1rem"}}></h1>*/}
-            <h1 id="title" className='pt-4'>
+            <h1 id="title" className='pt-3'>
                 <Button as={Link} to='/' size='sm' variant="outline-light" > 
                     <i className="bi bi-box-arrow-left" style={{ position: 'relative', top: '-2px', fontSize: 'x-large'}}/> 
                 </Button>
                 #{roomId}
             </h1>
             
+            <Row style={{height:"100%"}}>
             
-            <Row className="justify-content-center"> 
-            
-                <Col xs={12} className='mb-2  p-0'>
-                    <Video user={user} master={ roomInfo.master } id={'local'} key={-1} stream={localStream} local playsInline/>
-                </Col>
-
-                {streams && Object.entries(streams).map((v,k,a) => 
-                {
-                    if(!rtcClient.peers[v[0]]) 
+            {streams && Object.entries(streams).length && <Col id="otherstreams" xs={12} md={"3"} style={{}}>
+                    <Row xs={12}>
+                    {Object.entries(streams).map((v,k,a) => 
+                    {
+                        if(!rtcClient.peers[v[0]]) 
                         return null;
+                        
+                        let {calleeId, callerId} =  rtcClient.peers[v[0]];
+                        let id = (calleeId === user.id)? callerId : calleeId;
+                        
+                        return <Col key={k} className='p-1'> <Video user={user} master={ roomInfo.master } id={id} stream={ v[1] } playsInline setLiveCallback={()=>{ setShowModal(v[0]); }}/></Col>
+                    })}
+                    </Row> 
+                </Col>}
 
-                    let {calleeId, callerId} =  rtcClient.peers[v[0]];
-                    let id = (calleeId === user.id)? callerId : calleeId;
-                    
-                    return <>
-                    <Col key={k} xs={6} className='mt-1 p-0'>
-                        <Video user={user} master={ roomInfo.master } id={id} stream={ v[1] } playsInline setLiveCallback={()=>{ setShowModal(v[0]); }}/> 
-                    </Col>
-                    </> 
-                    
-                })}
-    
+                <Col id="mainstream" xs={{order:'last'}} sm={{order:'first'}}> 
+                    <div className="m-auto align-self-center">
+                        <Video user={user} master={ roomInfo.master } id={'local'} key={-1} stream={localStream} local playsInline/>
+                    </div>
+                </Col>
             </Row>
         </Container>
     </>)

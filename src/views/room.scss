@@ -2,52 +2,11 @@
 
 #room{
     color:white;
+    height: 100vh;
 
-    video{ 
-        width: 100%;
+    video{
+        object-fit: cover !important;
         height: 100%;
-        border-radius: 4px;
-        border:1px solid $color3;
-        object-fit: cover;
-    }
-
-    .dropup > .btn{
-        padding: 0.5rem 1.2rem;
-        font-size: 2rem;
-        border-radius: 10.3rem !important;
-        text-align: center;
-        margin: 0 .5rem;
-    }
-
-    .bi::before{
-        margin-left: 0;
-        margin-right: -2px;
-        margin-top: 9px;
-    }
-
-    .dropdown-toggle-split
-    {
-        position: absolute;
-        width:20px;
-        height:26px;
-        padding: .5rem 1rem !important;
-        padding-right: .75rem !important;
-        padding-left: .75rem !important;
-        bottom: 0;
-        right: 0;
-        border-radius:50%;
-        background-color: white;
-        z-index: 100;
-        color:gray;
-    }
-
-    .dropdown-toggle-split::after, .dropend .dropdown-toggle-split::after, .dropup .dropdown-toggle-split::after
-    {
-        margin-left: -7px;
-        position: relative;
-        top: -20px;
-        bottom: 20px;
-        font-size: x-large;
     }
 
     .stream-status
@@ -129,6 +88,68 @@
             }
         }
     }
+    #mainstream, #otherstreams{
+        transition: all .125s ease-out;
+    }
 
+    #mainstream
+    {
+       
+    }
+
+    #otherstreams{
+        min-height:128px;
+        min-width:128px;
+        
+        .Video
+        {
+            width:128px;
+            height:128px;
+        }
+    }
     
+        @include media-breakpoint-down(sm) {  
+            #mainstream{
+                height: calc(100% - 136px);
+            }
+
+            #otherstreams{
+                .row
+                {     
+                    height: 128px;
+                    display: flex;
+                    justify-content: flex-start;
+                    flex-direction: row;
+                    flex-wrap: nowrap;
+                    overflow-x: scroll;
+                    flex-direction: row;
+                }
+
+                //height:136px;
+                //width: 100000px;   
+            }
+        }
+
+        @include media-breakpoint-up(md) {  
+            #mainstream{
+                //height: calc(100% - 60px);
+                display: flex;
+            }
+
+            #otherstreams{
+                height: calc( 100vh );
+                width:150px;
+                overflow-y: scroll;
+            }
+
+        }
+
+        @media (max-height: 575.98px)
+        {
+
+            #title
+            {
+                display:none;
+            }
+        }
 }
