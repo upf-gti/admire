@@ -154,6 +154,12 @@ export default function Room({user, setNavItems})
         console.log(message)
     }
 
+    function isCallIdLive( callId )
+    {
+        let {calleeId, callerId} =  rtcClient.peers[callId];
+        return [calleeId, callerId].find( v => v.indexOf('.live') !== -1 )
+    }
+
     function onCallStarted({ callId, stream})
     {
         Log.success(`Call ${callId} started`);
@@ -165,11 +171,7 @@ export default function Room({user, setNavItems})
 
         //rtcClient.replaceLocalStream(callId, localStream);
 
-        
-        
-        
-        let {calleeId, callerId} =  rtcClient.peers[callId];
-        if(![calleeId, callerId].find( v => v.indexOf('.live') !== -1 ))
+        if(!isCallIdLive(callId))
         {
             {   //Replace video stream track
                 let track = localStream.getVideoTracks()[0];
