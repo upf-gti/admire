@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useReducer, useContext } from 'react';
 import { BrowserRouter as Router, Switch, Route, Redirect, Link, useHistory } from 'react-router-dom';
-import { Image } from 'react-bootstrap';
+import { Image, Button } from 'react-bootstrap';
 
 import { rtcClient, appClient, mediaAdapter } from 'extra/bra';
 
@@ -43,7 +43,7 @@ export default function App() {
         return state;
     });  
 
-  
+    
     useEffect(() => { //Acts like 'componentWillMount'
             console.clear();    
             //setFetching(true);
@@ -126,17 +126,27 @@ export default function App() {
     }
 
     //if(fetching) return <><Toasts/></>
-    if(!login) return <><Login login={login} setLogin={setLogin}/></>;
+    if(!login) return (<>
+        {
+            document.fullscreenEnabled && 
+            <Button onClick={()=>document.fullscreen?document.exitFullscreen():document.body.requestFullscreen()} variant="link" style={{zIndex:10000, position:"absolute", top:10, right:10, border:"none", boxShadow:"none"}}> <i class={"bi " + document.fullscreen?"bi-fullscreen-exit":"bi-fullscreen"}></i> </Button>    
+        }
+        <Login login={login} setLogin={setLogin}/>
+    </>);
 
     return (<>
+        {
+            document.fullscreenEnabled && 
+            <Button onClick={()=>document.fullscreen?document.exitFullscreen():document.body.requestFullscreen()} variant="link" style={{zIndex:10000, position:"absolute", top:10, right:10, border:"none", boxShadow:"none"}}> <i class={"bi " + document.fullscreen?"bi-fullscreen-exit":"bi-fullscreen"}></i> </Button>    
+        }
         <Router>
             <Toasts/>
             <div className="app wrapper">
                 <Navbar user={login} doLogOut={doLogOut} items={Object.values(NavItems)}/>
                 <div id="content">
                 <Switch>
-                        { !ready && <Wizard ready={{ready, setReady}} setNavItem={setNavItem}/> }
-                        <Route exact path='/wizzard'> <Wizard ready={{ready, setReady}} setNavItem={setNavItem}/> </Route>
+                        { !ready && <Wizard user={login} ready={{ready, setReady}} setNavItem={setNavItem}/> }
+                        <Route exact path='/wizzard'> <Wizard user={login} ready={{ready, setReady}} setNavItem={setNavItem}/> </Route>
                         <Route exact path='/rooms/:roomId'> <Room user={login} setNavItem={setNavItem}/> </Route>
                         <Route> <Lobby setLogin={setLogin} user={login} setNavItem={setNavItem} key={Math.floor((Math.random() * 10000))} /> </Route>
                 </Switch>
