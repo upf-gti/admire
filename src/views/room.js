@@ -258,7 +258,7 @@ export default function Room({user, setNavItems})
             
             <Row style={{height:"100%"}}>
             
-            {streams && Object.entries(streams).length && <Col id="otherstreams" xs={12} md={"3"} style={{}}>
+            {streams && Object.entries(streams).length >= 0 && <Col id="otherstreams" xs={12} md={"3"} style={{}}>
                     <Row xs={12}>
                     {Object.entries(streams).map((v,k,a) => 
                     {

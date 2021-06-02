@@ -92,20 +92,10 @@
         transition: all .125s ease-out;
     }
 
-    #mainstream
-    {
-       
-    }
-
     #otherstreams{
+        background-color: rgba(0,0,0,.5);
         min-height:128px;
         min-width:128px;
-        
-        .Video
-        {
-            width:128px;
-            height:128px;
-        }
     }
     
         @include media-breakpoint-down(sm) {  
@@ -124,7 +114,10 @@
                     overflow-x: scroll;
                     flex-direction: row;
                 }
-
+                .Video
+                {
+                    height:128px;
+                }
                 //height:136px;
                 //width: 100000px;   
             }
@@ -140,6 +133,10 @@
                 height: calc( 100vh );
                 width:150px;
                 overflow-y: scroll;
+                .Video
+                {
+                    width:128px;
+                }
             }
 
         }
