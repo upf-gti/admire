@@ -1,10 +1,18 @@
 # AdMiRe User App
 
+
+
 The client application has to be run in a separated thread from the server. 
-To do it so run:
+The first time you clone the repository you will need to also install all the node depencencies:
 ```bash
-npm start
+    git clone https://github.com/upf-gti/admire.git
+    cd admire
+    npm install
+    npm start
 ```
+after this first installation you only need to do the npm start command.
+
+
 * Runs by default in port 3000. 
 * Is proxying any routes tarting with /api to the backend server.
 
