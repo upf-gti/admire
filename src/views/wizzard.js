@@ -75,7 +75,7 @@ export default function Wizard( {user, ready:{ready, setReady}, setNavItem}){
                 </Col>
             </Tab.Container>
 
-            { <div className="footer text-center">
+            { <div className="text-center">
                 { (window.location.pathname === '/wizzard') && <Link to='/'>  <Button  variant="primary" size="lg" onClick={()=>setReady(true)} title={'Ready!'}>Ready!</Button> </Link>}
                 { (window.location.pathname !== '/wizzard') && <Button  variant="primary" size="lg" onClick={()=>setReady(true)} title={'Ready!'}>Ready!</Button> }
             </div> }
