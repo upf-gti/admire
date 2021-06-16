@@ -18,8 +18,8 @@ import img3 from 'assets/img/wizard2.png';
 let timeoutId; 
 export default function App() {
 
-    const rtcUrl = "wss://rtcserver.brainstorm3d.com";
-    const appUrl = "wss://admireapi.brainstorm3d.com";
+    const rtcUrl = "wss://admire-dev-rtc.brainstorm3d.com/";
+    const appUrl = "wss://admire-dev-lobby.brainstorm3d.com/";
 
     const history = useHistory();
     const Log = useContext(ToastContext);
