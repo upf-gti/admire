@@ -10,7 +10,7 @@ import Lobby from 'views/lobby';
 import Wizard from 'views/wizzard';
 import Navbar from 'components/navbar';
 import {StreamSettings} from 'components/streamSettings';
-import {Toasts, ToastContext} from 'components/toasts';
+import {ToastContext} from 'components/toasts';
 
 import "./app.scss";
 import img3 from 'assets/img/wizard2.png';
@@ -23,7 +23,6 @@ export default function App() {
 
     const history = useHistory();
     const Log = useContext(ToastContext);
-    const [list] = Log.toasts;
     const { videoRef, devices:[devices,setDevices], settings:[settings,setSettings], localStream:[localStream,setLocalStream] } = useContext(StreamSettings);
     
 
@@ -140,7 +139,6 @@ export default function App() {
             <Button onClick={()=>document.fullscreen?document.exitFullscreen():document.body.requestFullscreen()} variant="link" style={{zIndex:10000, position:"absolute", top:10, right:10, border:"none", boxShadow:"none"}}> <i class={"bi " + document.fullscreen?"bi-fullscreen-exit":"bi-fullscreen"}></i> </Button>    
         }
         <Router>
-            <Toasts/>
             <div className="app wrapper">
                 <Navbar user={login} doLogOut={doLogOut} items={Object.values(NavItems)}/>
                 <div id="content">
