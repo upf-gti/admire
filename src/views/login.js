@@ -19,7 +19,8 @@ export default function Login({ setLogin }) {
     const passRef = useRef(null);
 
     function doSubmit() {
-        appClient.login(userRef.current.value, passRef.current.value);
+        //appClient.login(userRef.current.value, passRef.current.value);
+        appClient.login('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI0IiwidXNlcm5hbWUiOiJHYW5kYWxmIiwicm9sZSI6MX0.g1jOrsjPGDt_gBkNcM62SQpJaccAZ88dOQZ5XD9FTLs');
     }
 
     function onLogin(event) {
@@ -97,6 +98,20 @@ export default function Login({ setLogin }) {
                     </Modal.Header>
                     <Modal.Body as={Form}>
 
+                        <span>Fullfill your contact information to continue.</span>
+
+                        <Form.Group className="mb-2 mt-4" controlId="formRegisterID">
+                            <Form.Control required placeholder='first name' />
+                        </Form.Group>
+
+                        <Form.Group className="mb-2" controlId="formRegisterID">
+                            <Form.Control required placeholder='last name' />
+                        </Form.Group>
+
+                        <Form.Group className="mb-2" controlId="formRegisterPassword">
+                            <Form.Control type="date" placeholder='Birthday' />
+                        </Form.Group>
+
                         <Form.Group className="mb-2" controlId="formRegisterID">
                             <Form.Control placeholder='mail' />
                         </Form.Group>
@@ -118,7 +133,7 @@ export default function Login({ setLogin }) {
                     onHide={() => setShowRecovery(false)}
                     backdrop="static"
                     keyboard={true}
-                    size="sm"
+                    size="md"
                     dialogClassName="modal-shadow-lg"
                 >
                     <Modal.Header>
@@ -126,10 +141,12 @@ export default function Login({ setLogin }) {
                     </Modal.Header>
                     <Modal.Body as={Form}>
 
+                        <span>Please enter the adress mail you registered with. Check mail the next 5 minutes to receive next steps.</span>
 
+                        <Form.Group className="mb-2 mt-4" controlId="formRegisterID">
+                            <Form.Control placeholder='someone@myprovider.com' />
+                        </Form.Group>
 
-
-                        RECOVER YOUR PASSWORD
                     </Modal.Body>
                     <Modal.Footer>
                         <Button variant="primary"><i class="bi bi-telegram"></i> Send</Button>

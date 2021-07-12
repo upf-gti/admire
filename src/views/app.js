@@ -51,7 +51,7 @@ export default function App() {
             appClient.on("logout_response",      onLogOut);
             appClient.on('client_connected',     onAppClientConnect);
             appClient.on('client_disconnected',  onDisconnect);
-            appClient.on("autologin_response",   onAutoLoginResponse);
+            //appClient.on("autologin_response",   onAutoLoginResponse);
             
             rtcClient.on('client_connected',     onRtcClientConnect);
             
@@ -79,7 +79,7 @@ export default function App() {
 
     function onRtcClientConnect(event) {
         Log.info(`Rtc client connected`);
-        appClient.autologin();
+        //appClient.autologin();
         mediaAdapter.start();
     }
 
@@ -87,7 +87,7 @@ export default function App() {
         Log.warn(`App client disconnected`);
     }
 
-    function onAutoLoginResponse(event){
+    /*function onAutoLoginResponse(event){
         let {status, description, userId, userType} = event;
         //setFetching(false);
 
@@ -102,7 +102,7 @@ export default function App() {
             case 'error': Log.error(description);break;
             default: Log.warn(description); break;
         }
-    }
+    }*/
 
     function doLogOut(){
         appClient.logout();

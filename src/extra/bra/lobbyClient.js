@@ -1,8 +1,8 @@
-function AppClient( settings )
+export function LobbyClient( settings )
 {
 //#region PRIVATE
 
-    var defaults =
+    let _defaultSettings =
     {
         // Debug messages to console?
         debug: false,
@@ -15,116 +15,101 @@ function AppClient( settings )
     };
 
     settings = (typeof settings !== "object") ? { } : settings;
-    settings = Object.assign(defaults, settings);
+    settings = Object.assign(_defaultSettings, settings);
 
-    var console = (settings.debug) ? window.console : undefined;
-    var events = { };
-    var socket = undefined;
-    var keepAliveTimeout = undefined;
+    let console = (settings.debug) ? window.console : null;
 
-    var token = undefined;
-    var userId = undefined;
-    var userType = undefined;
-    var roomId = undefined;
-    var channels = { };
+    let _events = { };
+    let _token = null;
+    let _socket = null;
+    let _keepAliveTimeout = null;
+
+    let _userId = null;
+    let _roomId = null;
+    let _channels = { };
 
     /**
      * Add a function that will be called whenever the specified event is emitted.
      * @param {String} event - The event name.
      * @param {Function} listener - The function to add.
      */
-    var on = function( event, listener )
+    let on = function( event, listener )
     {
-        if( typeof events[event] !== "object" )
+        if( typeof _events[event] !== "object" )
         {
-            events[event] = [];
+            _events[event] = [];
         }
 
-        events[event].push(listener);
-    }
+        _events[event].push(listener);
+    };
 
     /**
      * Remove the function previously added to be called whenever the specified event is emitted.
      * @param {String} event - The event name.
      * @param {Function} listener - The previously added function.
      */
-    var off = function( event, listener )
+    let off = function( event, listener )
     {   
-        if( typeof events[event] === "object" )
+        if( typeof _events[event] === "object" )
         {
-            let index = events[event].indexOf(listener);
+            let index = _events[event].indexOf(listener);
             if( index > -1 )
             {
-                events[event].splice(index, 1);
+                _events[event].splice(index, 1);
             }
         }
-    }
+    };
 
     /**
      * Emit the specified event.
      * @param {String} event - The event name.
      */
-    var emit = function( event )
+    let emit = function( event )
     {
         let args = [].slice.call(arguments, 1);
 
-        if( typeof events[event] === "object" )
+        if( typeof _events[event] === "object" )
         {
-            let listeners = events[event].slice();
+            let listeners = _events[event].slice();
             for( let i = 0; i < listeners.length; i++ )
             {
                 listeners[i].apply(this, args);
             }
         }
-    }
+    };
 
     /**
-     * Open the web socket connection.
+     * Connect to the server.
      * @param {String} url - The URL of the server.
      */
-    var openWebSocket = function( url )
+    let connect = function( url )
     {
-        socket = new WebSocket(url);
+        _socket = new WebSocket(url);
 
-        socket.onopen = onOpen;
-        socket.onmessage = onMessage;
-        socket.onclose = onClose;
-    }
-
-    /**
-     * Close the web socket connection.
-     */
-    var closeWebSocket = function()
-    {
-        socket?.close();
-    }
+        _socket.onopen = onOpen;
+        _socket.onmessage = onMessage;
+        _socket.onclose = onClose;
+    };
 
     /**
      * Event handler called when the connection is opened.
      * @param {EventListener} event - The dispatched event.
      */
-    var onOpen = function( event )
+    let onOpen = function( event )
     {
         // Start the keep alive routine.
         keepAlive();
 
-        // Try to get the token.
-        let token = window.sessionStorage.getItem("token") ?? window.localStorage.getItem("token");
-        if( token )
-        {
-            window.sessionStorage.setItem("token", token);
-        }
+        console?.log("%cclient_connected%o", settings.debugStyle, _socket.url);
 
-        this.token = token;
-
-        emit("client_connected");
-    }
+        emit("client_connected", { url: _socket.url });
+    };
 
     /**
      * Event handler called when a message is received from the server.
      * @param {EventListener} msg - The message received.
      */
-    var onMessage = function( msg )
+    let onMessage = function( msg )
     {
         let message = JSON.parse(msg.data);
 
@@ -136,7 +121,7 @@ function AppClient( settings )
                 return;
             }
 
-            console?.log(" %c%s%o", settings.debugStyle, message.id, msg.data);
+            console?.log("%c%s%o", settings.debugStyle, message.id, msg.data);
 
             if( HANDLERS[message.id] instanceof Function )
             {
@@ -149,13 +134,13 @@ function AppClient( settings )
         {
             console?.log("%cunknown_message%o", settings.debugStyle, msg.data);
         }
-    }
+    };
 
     /**
      * Send a message to the server.
      * @param {Object} message - The message to send.
      */
-    var sendMessage = function( message )
+    let sendMessage = function( message )
     {
         let msg = JSON.stringify(message);
 
@@ -165,396 +150,348 @@ function AppClient( settings )
             console?.log(" %c%s%o", settings.debugStyle, message.id, msg);
         }
 
-        socket.send(msg);
-    }
+        _socket.send(msg);
+    };
 
     /**
      * Event handler called when the connection is closed.
      * @param {EventListener} event - The dispatched event.
      */
-    var onClose = function( event )
+    let onClose = function( event )
     {
         // Stop the keep alive routine.
-        window.clearTimeout(keepAliveTimeout);
+        window.clearTimeout(_keepAliveTimeout);
 
-        delete this.socket;
+        console?.log("%cclient_disconnected%o", settings.debugStyle, _socket.url);
 
-        emit("client_disconnected");
-    }
+        emit("client_disconnected", { url: _socket.url });
+    };
+ 
+    /**
+     * Disconnect from the server.
+     */
+    let disconnect = function()
+    {
+        _socket?.close();
+    };
 
     /**
      * Start a keep alive routine.
      */
-    var keepAlive = function()
+    let keepAlive = function()
     {
-        if( !socket )
+        if( !_socket )
         {
-            console?.error("Websocket is undefined");
+            console?.error("Websocket is null");
             return;
         }
 
         // Check whether the connection is open and ready to communicate.
-        if( socket.readyState !== 1 )
+        if( _socket.readyState !== 1 )
         {
-            console?.error("Connection not open, ready state " + socket.readyState);
+            console?.error("Connection not open, ready state " + _socket.readyState);
             return;
         }
 
         ping();
 
-        keepAliveTimeout = window.setTimeout(keepAlive, settings.pingPeriod);
-    }
+        _keepAliveTimeout = window.setTimeout(keepAlive, settings.pingPeriod);
+    };
 
     /**
      * Send a ping to the server.
      */
-    var ping = function()
+    let ping = function()
     {
         let message = { id: "ping" };
         sendMessage(message);
-    }
-
-    /**
-     * Connect to the server.
-     * @param {String} url - The URL of the server.
-     */
-    var connect = function( url )
-    {
-        openWebSocket(url);
-    }
- 
-    /**
-     * Disconnect from the server.
-     */
-    var disconnect = function()
-    {
-        closeWebSocket();
-    }
+    };
 
     /**
      * Login to the server.
-     * @param {String} userId - The user id.
-     * @param {String} password - The password.
+     * @param {String} token - The authentication token.
      */
-    var login = function( userId, password )
+    let login = function( token )
     {
-        let message = { id: "login", userId: userId, password: password };
+        _token = token;
+
+        let message = { id: "login", token: _token };
         sendMessage(message);
-    }
+    };
 
     /**
      * Logout from the server.
      */
-    var logout = function()
+    let logout = function()
     {
-        let message = { id: "logout", token: token };
+        let message = { id: "logout", token: _token };
         sendMessage(message);
-    }
-
-    /**
-     * Autologin to the server.
-     */
-    var autologin = function()
-    {
-        let message = { id: "autologin", token: token };
-        sendMessage(message);
-    }
+    };
 
     /**
      * Get the current room information.
      */
-    var getRoom = function()
+    let getRoom = function()
     {
-        let message = { id: "get_room", token: token };
+        let message = { id: "get_room", token: _token };
         sendMessage(message);
-    }
+    };
 
     /**
      * Get the list of room informations.
      */
-    var getRooms = function()
+    let getRooms = function()
     {
-        let message = { id: "get_rooms", token: token };
+        let message = { id: "get_rooms", token: _token };
         sendMessage(message);
-    }
+    };
 
     /**
      * Create a room.
-     * @param {String} roomId - The room id.
+     * @param {String} roomId - The room ID.
      */
-    var createRoom = function( roomId )
+    let createRoom = function( roomId )
     {
-        if( !validateString(roomId) )
+        if( !validateId(roomId) )
         {
             return false;
         }
 
-        let message = { id: "create_room", token: token, roomId: roomId };
+        let message = { id: "create_room", token: _token, roomId: roomId };
         sendMessage(message);
 
         return true;
-    }
+    };
 
     /**
      * Join a room.
-     * @param {String} roomId - The room id.
+     * @param {String} roomId - The room ID.
      */
-    var joinRoom = function( roomId )
+    let joinRoom = function( roomId )
     {
-        let message = { id: "join_room", token: token, roomId: roomId };
+        let message = { id: "join_room", token: _token, roomId: roomId };
         sendMessage(message);
-    }
+    };
 
     /**
      * Leave the room.
      */
-    var leaveRoom = function()
+    let leaveRoom = function()
     {
-        let message = { id: "leave_room", token: token };
+        let message = { id: "leave_room", token: _token };
         sendMessage(message);
-    }
+    };
 
     /**
      * Enable a user to the channel.
-     * @param {String} channelId - The channel id.
+     * @param {String} channelId - The channel ID.
      */
-    var enableChannel = function( userId, channelId )
+    let enableChannel = function( userId, channelId )
     {
-        let message = { id: "enable_channel", token: token, userId: userId, channelId: channelId };
+        let message = { id: "enable_channel", token: _token, userId: userId, channelId: channelId };
         sendMessage(message);
-    }
+    };
 
     /**
      * Disable a user from the channel.
-     * @param {String} channelId - The channel id.
+     * @param {String} channelId - The channel ID.
      */
-    var disableChannel = function( userId, channelId )
+    let disableChannel = function( userId, channelId )
     {
-        let message = { id: "disable_channel", token: token, userId: userId, channelId: channelId };
+        let message = { id: "disable_channel", token: _token, userId: userId, channelId: channelId };
         sendMessage(message);
-    }
+    };
 
     /**
      * Join a channel.
-     * @param {String} channelId - The channel id.
+     * @param {String} channelId - The channel ID.
      */
-    var joinChannel = function( channelId )
+    let joinChannel = function( channelId )
     {
-        let message = { id: "join_channel", token: token, channelId: channelId };
+        let message = { id: "join_channel", token: _token, channelId: channelId };
         sendMessage(message);
-    }
+    };
 
     /**
      * Leave a channel.
-     * @param {String} channelId - The channel id.
+     * @param {String} channelId - The channel ID.
      */
-    var leaveChannel = function( channelId )
+    let leaveChannel = function( channelId )
     {
-        let message = { id: "leave_channel", token: token, channelId: channelId };
+        let message = { id: "leave_channel", token: _token, channelId: channelId };
         sendMessage(message);
-    }
+    };
 
     /**
      * Forward a message to other user.
-     * @param {String} userId - The user id.
+     * @param {String} userId - The user ID.
      * @param {Object} msg - The message to forward.
      */
-    var forwardMessage = function( userId, msg )
+    let forwardMessage = function( userId, msg )
     {
-        if( this.userId === userId )
+        if( _userId === userId )
         {
             return;
         }
 
-        let message = { id: "forward_message", token: token, userId: userId, msg: msg };
+        let message = { id: "forward_message", token: _token, userId: userId, msg: msg };
         sendMessage(message);
-    }
+    };
 
     /**
      * Returns whether or not the client is disconnected.
      * @returns Whether or not the client is disconnected.
      */
-    var isDisconnected = function()
+    let isDisconnected = function()
     {
-        return !socket || socket.readyState === "3"; // Closed.
-    }
+        return !_socket || _socket.readyState === "3"; // Closed.
+    };
 
     /**
      * Returns whether or not the user is logged in this client.
-     * @param {String} userId - The user id.
+     * @param {String} userId - The user ID.
      * @return Whether or not the user is logged in this client.
      */
-    var isLogged = function( userId )
+    let isLogged = function( userId )
     {
-        if( this.userId )
+        if( _userId )
         {
-            return this.userId === userId;
+            return _userId === userId;
         }
 
         return false;
-    }
+    };
 
     /**
      * Returns whether or not the user is joined to the channel.
-     * @param {String} channelId - The channel id.
+     * @param {String} channelId - The channel ID.
      * @return Whether or not the user is joined to the channel.
      */
-    var isInChannel = function( channelId )
+    let isInChannel = function( channelId )
     {
-        return channelId in channels;
-    }
+        return channelId in _channels;
+    };
 
     /**
-     * Validates the specified string following a regular expression.
-     * @param {String} str - The string to validate.
-     * @return Whether or not the string is valid.
+     * Validates the specified ID following a regular expression.
+     * @param {String} str - The ID to validate.
+     * @return Whether or not the ID is valid.
      */
-    var validateString = function( str )
+    let validateId = function( id )
     {
-        if( !str || str === "" )
+        if( !id || id === "" )
         {
             return false;
         }
 
-        let regex = new RegExp("^([a-zA-Z])(([a-zA-Z0-9]+)([.-_]?))*([a-zA-Z0-9])$");
-        return regex.test(str);
-    }
+        let regex = new RegExp("^([a-zA-Z])(([a-zA-Z0-9]+)([.\-_]?))*([a-zA-Z0-9])$");
+        return regex.test(id);
+    };
 
     /**
      * Login response event handler.
      * @param {Object} event - The event object.
      */
-    var onLoginResponse = function( event )
+    let onLoginResponse = function( event )
     {
         if( event.status === "ok" )
         {
-            token = event.token;
-            userId = event.userId;
-            userType = event.userType;
-
-            window.sessionStorage.setItem("token", token);
-            window.localStorage.setItem("token", token);
+            _userId = event.userId;
         }
-    }
+    };
 
     /**
      * Logout response event handler.
      * @param {Object} event - The event object.
      */
-    var onLogoutResponse = function( event )
+    let onLogoutResponse = function( event )
     {
         if( event.status === "ok" )
         {
-            token = undefined;
-            userId = undefined;
-            userType = undefined;
-            roomId = undefined;
-            channels = { };
-
-            window.sessionStorage.removeItem("token");
-            window.localStorage.removeItem("token");
+            _token = null;
+            _userId = null;
+            _roomId = null;
+            _channels = { };
         }
-    }
-
-    /**
-     * Autologin response event handler.
-     * @param {Object} event - The event object.
-     */
-    var onAutoLoginResponse = function( event )
-    {
-        if( event.status === "ok" )
-        {
-            userId = event.userId;
-            userType = event.userType;
-            if( event.roomInfo )
-            {
-                roomId = event.roomInfo.id;
-            }
-        }
-
-        if( event.status === "error" )
-        {
-            token = undefined;
-        }
-    }
+    };
 
     /**
      * Create room response event handler.
      * @param {Object} event - The event object.
      */
-    var onCreateRoomResponse = function( event )
+    let onCreateRoomResponse = function( event )
     {
         if( event.status === "ok" )
         {
-            roomId = event.roomId;
+            _roomId = event.roomId;
         }
-    }
+    };
 
     /**
      * Join room response event handler.
      * @param {Object} event - The event object.
      */
-    var onJoinRoomResponse = function( event )
+    let onJoinRoomResponse = function( event )
     {
         if( event.status === "ok" )
         {
-            roomId = event.roomId;
+            _roomId = event.roomId;
         }
-    }
+    };
 
     /**
      * Leave room response event handler.
      * @param {Object} event - The event object.
      */
-    var onLeaveRoomResponse = function( event )
+    let onLeaveRoomResponse = function( event )
     {
         if( event.status === "ok" )
         {
-            roomId = undefined;
-            channels = { };
+            _roomId = null;
+            _channels = { };
         }
-    }
+    };
 
     /**
      * Channel disabled event handler.
      * @param {Object} event - The event object.
      */
-    var onChannelDisabled = function( event )
+    let onChannelDisabled = function( event )
     {
-        if( event.userId !== userId )
+        if( event.userId !== _userId )
         {
             return;
         }
 
-        if( event.channelId in channels )
+        if( event.channelId in _channels )
         {
-            delete channels[event.channelId];
+            delete _channels[event.channelId];
         }
-    }
+    };
 
     /**
      * Join channel response event handler.
      * @param {Object} event - The event object.
      */
-    var onJoinChannelResponse = function( event )
+    let onJoinChannelResponse = function( event )
     {
         if( event.status === "ok" )
         {
-            channels[event.channelId] = true;
+            _channels[event.channelId] = true;
         }
-    }
+    };
 
     /**
      * Leave channel response event handler.
      * @param {Object} event - The event object.
      */
-    var onLeaveChannelResponse = function( event )
+    let onLeaveChannelResponse = function( event )
     {
         if( event.status === "ok" )
         {
-            delete channels[event.channelId];
+            delete _channels[event.channelId];
         }
-    }
+    };
 
     /**
      * Handlers used to listen messages from the server.
@@ -565,28 +502,31 @@ function AppClient( settings )
      */
     const HANDLERS =
     {
-        "pong": false,
-        "login_response": onLoginResponse,
-        "logout_response": onLogoutResponse,
-        "autologin_response": onAutoLoginResponse,
-        "get_room_response": true,
-        "get_rooms_response": true,
-        "create_room_response": onCreateRoomResponse,
-        "join_room_response": onJoinRoomResponse,
-        "guest_joined_room": true,
-        "leave_room_response": onLeaveRoomResponse,
-        "master_left_room": true,
-        "guest_left_room": true,
-        "enable_channel_response": true,
-        "channel_enabled": true,
-        "disable_channel_response": true,
-        "channel_disabled": onChannelDisabled,
-        "join_channel_response": onJoinChannelResponse,
-        "user_joined_channel": true,
-        "leave_channel_response": onLeaveChannelResponse,
-        "user_left_channel": true,
-        "forward_message_response": true,
-        "remote_message": true
+        "pong":                         false,
+        "login_response":               onLoginResponse,
+        "logout_response":              onLogoutResponse,
+        "get_room_response":            true,
+        "get_rooms_response":           true,
+        "create_room_response":         onCreateRoomResponse,
+        "room_created":                 true,
+        "join_room_response":           onJoinRoomResponse,
+        "guest_joined_room":            true,
+        "user_joined_room":             true,
+        "leave_room_response":          onLeaveRoomResponse,
+        "master_left_room":             true,
+        "guest_left_room":              true,
+        "user_left_room":               true,
+        "room_deleted":                 true,
+        "enable_channel_response":      true,
+        "channel_enabled":              true,
+        "disable_channel_response":     true,
+        "channel_disabled":             onChannelDisabled,
+        "join_channel_response":        onJoinChannelResponse,
+        "user_joined_channel":          true,
+        "leave_channel_response":       onLeaveChannelResponse,
+        "user_left_channel":            true,
+        "forward_message_response":     true,
+        "remote_message":               true
     };
 
 //#endregion
@@ -594,29 +534,26 @@ function AppClient( settings )
 //#region PUBLIC
 
     return {
-        on: on,
-        off: off,
-        connect: connect,
-        disconnect: disconnect,
-        login: login,
-        logout: logout,
-        autologin: autologin,
-        getRoom: getRoom,
-        getRooms: getRooms,
-        createRoom: createRoom,
-        joinRoom: joinRoom,
-        leaveRoom: leaveRoom,
-        enableChannel: enableChannel,
-        disableChannel: disableChannel,
-        joinChannel: joinChannel,
-        leaveChannel: leaveChannel,
-        forwardMessage: forwardMessage,
-        isDisconnected: isDisconnected,
-        isLogged: isLogged,
-        isInChannel: isInChannel
+        on,
+        off,
+        connect,
+        disconnect,
+        login,
+        logout,
+        getRoom,
+        getRooms,
+        createRoom,
+        joinRoom,
+        leaveRoom,
+        enableChannel,
+        disableChannel,
+        joinChannel,
+        leaveChannel,
+        forwardMessage,
+        isDisconnected,
+        isLogged,
+        isInChannel
     };
 
 //#endregion
 }
-
-export { AppClient };
