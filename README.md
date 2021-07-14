@@ -1,5 +1,7 @@
 # AdMiRe User App
 
+Application served: [ [Production](https://github.com/upf-gti/admire) | Dev ]
+
 The client application has to be run in a separated thread from the server. 
 To do it so run:
 ```bash
