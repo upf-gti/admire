@@ -1,8 +1,8 @@
-export function RtcClient( settings )
+export function RTCClient( settings )
 {
 //#region PRIVATE
 
-    let _defaultSettings =
+    let _settings =
     {
         // Debug messages to console?
         debug: false,
@@ -11,23 +11,24 @@ export function RtcClient( settings )
         debugStyle: "background: hsla(0, 0%, 13%, 1); color: hsla(74, 64%, 60%, 1)",
 
         // Period to send ping messages in ms.
-        pingPeriod: 5 * 1000
+        pingPeriod: 5 * 1000,
+
+        // The default stream to send.
+        defaultStream: new MediaStream()
     };
 
     settings = (typeof settings !== "object") ? { } : settings;
-    settings = Object.assign(_defaultSettings, settings);
+    settings = Object.assign(_settings, settings);
 
     let console = (settings.debug) ? window.console : null;
 
     let _events = { };
     let _socket = null;
     let _keepAliveTimeout = null;
-
-    let _peers = { };
-    let _localStreams = { };
+    let _calls = { };
 
     let _userId = null;
-    let _configuration = { iceServers: null };
+    let _rtcConfiguration = { iceServers: null };
 
     /**
      * Add a function that will be called whenever the specified event is emitted.
@@ -80,16 +81,53 @@ export function RtcClient( settings )
     };
 
     /**
+     * Get the call identified by the specified ID.
+     * @param {String} callId - The call ID.
+     * @return The call.
+     */
+    let getCall = function( callId )
+    {
+        return (callId in _calls) ? _calls[callId] : null;
+    };
+ 
+    /**
+     * Get all the calls.
+     * @return The calls collection.
+     */
+    let getCalls = function()
+    {
+        return _calls;
+    };
+
+    /**
      * Connect to the server.
      * @param {String} url - The URL of the server.
      */
     let connect = function( url )
     {
+        if( _socket && _socket.readyState != 3 ) // Closed.
+        {
+            return;
+        }
+
         _socket = new WebSocket(url);
 
         _socket.onopen = onOpen;
         _socket.onmessage = onMessage;
         _socket.onclose = onClose;
+    };
+
+    /**
+     * Disconnect from the server.
+     */
+    let disconnect = function()
+    {
+        if( !_socket || _socket.readyState == 1 ) // Open.
+        {
+            return;
+        }
+
+        _socket?.close();
     };
 
     /**
@@ -138,6 +176,22 @@ export function RtcClient( settings )
     };
 
     /**
+     * Event handler called when the connection is closed.
+     * @param {EventListener} event - The dispatched event.
+     */
+    let onClose = function( event )
+    {
+        _userId = null;
+        _rtcConfiguration.iceServers = null;
+
+        // Stop the keep alive routine.
+        window.clearTimeout(_keepAliveTimeout);
+
+        console?.log("%c" + "client_disconnected" + "%o", settings.debugStyle, _socket.url);
+        emit("client_disconnected", { url: _socket.url });
+    };
+
+    /**
      * Send a message to the server.
      * @param {Object} message - The message to send.
      */
@@ -155,73 +209,13 @@ export function RtcClient( settings )
     };
 
     /**
-     * Event handler called when the connection is closed.
-     * @param {EventListener} event - The dispatched event.
-     */
-    let onClose = function( event )
-    {
-        _userId = null;
-        _configuration.iceServers = null;
-
-        // Stop the keep alive routine.
-        window.clearTimeout(_keepAliveTimeout);
-
-        console?.log("%c" + "client_disconnected" + "%o", settings.debugStyle, _socket.url);
-
-        emit("client_disconnected", { url: _socket.url });
-    };
-
-    /**
-     * Close a call.
-     * @param {String} callId - The call ID.
-     */
-    let closeCall = function( callId )
-    {
-        if( !(callId in _peers) )
-        {
-            console?.error("Call " + callId + " not found");
-            return;
-        }
-
-        let peer = _peers[callId];
-        delete(_peers[callId]);
-        if( peer.connection )
-        {
-            peer.connection.close();
-        }
-
-        let id = (peer.callerId === _userId) ? peer.callerStream : peer.calleeStream;
-        if( id in _localStreams )
-        {
-            delete _localStreams[id];
-        }
-
-        emit("call_state", { callId: callId, state: "closed" });
-    };
-
-    /**
-     * Disconnect from the server.
-     */
-    let disconnect = function()
-    {
-        _socket?.close();
-    };
-
-    /**
      * Start a keep alive routine.
      */
     let keepAlive = function()
     {
-        if( !_socket )
+        if( !_socket || _socket.readyState !== 1 ) // Open.
         {
-            console?.error("Websocket is null");
-            return;
-        }
-
-        // Check whether the connection is open and ready to communicate.
-        if( _socket.readyState !== 1 )
-        {
-            console?.error("Connection not open, ready state " + _socket.readyState);
+            console?.error("Socket state: " + _socket.readyState);
             return;
         }
 
@@ -235,8 +229,19 @@ export function RtcClient( settings )
      */
     let ping = function()
     {
-        let message = { id: "ping" };
+        if( !_socket || _socket.readyState !== 1 ) // Open.
+        {
+            console?.error("Socket state: " + _socket.readyState);
+            return false;
+        }
+
+        let message =
+        {
+            id: "ping"
+        };
         sendMessage(message);
+
+        return true;
     };
 
     /**
@@ -246,6 +251,12 @@ export function RtcClient( settings )
      */
     let register = function( userId )
     {
+        if( !_socket || _socket.readyState !== 1 ) // Open.
+        {
+            console?.error("Socket state: " + _socket.readyState);
+            return false;
+        }
+
         if( _userId )
         {
             console?.error("Client already registered");
@@ -258,7 +269,11 @@ export function RtcClient( settings )
             return false;
         }
 
-        let message = { id: "register", userId: userId };
+        let message =
+        {
+            id: "register",
+            userId: userId
+        };
         sendMessage(message);
 
         return true;
@@ -269,16 +284,25 @@ export function RtcClient( settings )
      */
     let unregister = function()
     {
+        if( !_socket || _socket.readyState !== 1 ) // Open.
+        {
+            console?.error("Socket state: " + _socket.readyState);
+            return false;
+        }
+
         if( !_userId )
         {
             console?.error("Client not registered");
             return false;
         }
 
-        // Hang up the calls.
         hangup();
 
-        let message = { id: "unregister", userId: _userId };
+        let message =
+        {
+            id: "unregister",
+            userId: _userId
+        };
         sendMessage(message);
 
         return true;
@@ -287,59 +311,82 @@ export function RtcClient( settings )
     /**
      * Call a user with the specified stream.
      * @param {String} calleeId - The callee ID.
-     * @param {MediaStream} localStream - The local stream to share.
      */
-    let call = function( calleeId, localStream )
+    let call = function( calleeId )
     {
+        if( !_socket || _socket.readyState !== 1 ) // Open.
+        {
+            console?.error("Socket state: " + _socket.readyState);
+            return false;
+        }
+
         if( _userId === calleeId || !validateId(calleeId) )
         {
             console?.error("Invalid user id " + calleeId);
             return false;
         }
 
-        if( !localStream || !(localStream instanceof MediaStream) )
+        let message =
         {
-            console?.error("Invalid local stream prototype");
-            return false;
-        }
-
-        let id = generateStreamId();
-        _localStreams[id] = localStream;
-
-        let message = { id: "call", callerId: _userId, calleeId: calleeId, callerStream: id };
+            id: "call",
+            callerId: _userId,
+            calleeId: calleeId
+        };
         sendMessage(message);
 
         return true;
     };
 
     /**
-     * Accept a call with the specified stream.
+     * Close a call.
      * @param {String} callId - The call ID.
-     * @param {MediaStream} localStream - The local stream to share.
      */
-    let acceptCall = function( callId, localStream )
+    let closeCall = function( callId )
     {
-        if( !(callId in _peers) )
+        if( !(callId in _calls) )
         {
-            console?.error("Call " + callId + " not found");
-            return;
-        }
-
-        if( !localStream || !(localStream instanceof MediaStream) )
-        {
-            console?.error("Invalid local stream prototype");
             return false;
         }
 
-        let id = generateStreamId();
-        _localStreams[id] = localStream;
+        let call = _calls[callId];
+        call.connection?.close();
+        delete(_calls[callId]);
 
-        // Update the peer.
-        let peer = _peers[callId];
-        peer.calleeStream = id;
+        emit("call_closed", { call: call });
 
-        let message = { id: "accept_call", callId: peer.callId, callerId: peer.callerId, calleeId: peer.calleeId, callerStream: peer.callerStream, calleeStream: peer.calleeStream };
+        return true;
+    };
+
+    /**
+     * Accept a call.
+     * @param {String} callId - The call ID.
+     */
+    let acceptCall = function( callId )
+    {
+        if( !_socket || _socket.readyState !== 1 ) // Open.
+        {
+            console?.error("Socket state: " + _socket.readyState);
+            return false;
+        }
+
+        if( !(callId in _calls) )
+        {
+            console?.error("Call " + callId + " not found");
+            return false;
+        }
+
+        let call = _calls[callId];
+
+        let message =
+        {
+            id: "accept_call",
+            callId: call.callId,
+            callerId: call.callerId,
+            calleeId: call.calleeId
+        };
         sendMessage(message);
+
+        return true;
     };
 
     /**
@@ -348,49 +395,81 @@ export function RtcClient( settings )
      */
     let cancelCall = function( callId )
     {
-        if( !(callId in _peers) )
+        if( !_socket || _socket.readyState !== 1 ) // Open.
         {
-            console?.error("Call " + callId + " not found");
-            return;
+            console?.error("Socket state: " + _socket.readyState);
+            return false;
         }
 
-        // Delete the peer.
-        let peer = _peers[callId];
-        delete _peers[callId];
+        if( !(callId in _calls) )
+        {
+            console?.error("Call " + callId + " not found");
+            return false;
+        }
 
-        let message = { id: "cancel_call", callId: peer.callId, callerId: peer.callerId, calleeId: peer.calleeId, callerStream: peer.callerStream };
+        // Delete the call.
+        let call = _calls[callId];
+        delete _calls[callId];
+
+        let message =
+        {
+            id: "cancel_call",
+            callId: call.callId,
+            callerId: call.callerId,
+            calleeId: call.calleeId
+        };
         sendMessage(message);
+
+        return true;
     };
 
     /**
-     * Hang up a call. If callId is undefined then all calls are hang up.
+     * Hang up a call. If call ID is undefined then all calls are hang up.
      * @param {String} callId - The call ID.
      */
     let hangup = function( callId )
     {
-        if( callId && !(callId in _peers) )
+        if( !_socket || _socket.readyState !== 1 ) // Open.
         {
-            console?.error("Call " + callId + " not found");
-            return;
+            console?.error("Socket state: " + _socket.readyState);
+            return false;
         }
 
-        if( !callId )
+        if( callId && !(callId in _calls) )
         {
-            for( let callId in _peers )
+            console?.error("Call " + callId + " not found");
+            return false;
+        }
+
+        if( callId )
+        {
+            closeCall(callId);
+
+            let message =
+            {
+                id: "hangup",
+                callId: callId
+            };
+            sendMessage(message);
+
+            return true;
+        }
+        else // Hang up all calls.
+        {
+            for( let callId in _calls )
             {
                 closeCall(callId);
 
-                let message = { id: "hangup", callId: callId };
+                let message =
+                {
+                    id: "hangup",
+                    callId: callId
+                };
                 sendMessage(message);
             }
 
-            return;
+            return true;
         }
-
-        closeCall(callId);
-
-        let message = { id: "hangup", callId: callId };
-        sendMessage(message);
     };
 
     /**
@@ -402,7 +481,7 @@ export function RtcClient( settings )
         if( event.status === "ok" )
         {
             _userId = event.userId;
-            _configuration.iceServers = JSON.parse(event.iceServers);
+            _rtcConfiguration.iceServers = JSON.parse(event.iceServers);
         }
     };
 
@@ -415,7 +494,7 @@ export function RtcClient( settings )
         if( event.status === "ok" )
         {
             _userId = null;
-            _configuration.iceServers = null;
+            _rtcConfiguration.iceServers = null;
         }
     };
 
@@ -427,21 +506,9 @@ export function RtcClient( settings )
     {
         if( event.status === "ok" )
         {
-            // Create the peer.
-            let peer = new Peer();
-            peer.callId = event.callId;
-            peer.callerId = event.callerId;
-            peer.calleeId = event.calleeId;
-            peer.callerStream = event.callerStream;
-            _peers[peer.callId] = peer;
-        }
-
-        if( event.status === "error" )
-        {
-            if( event.callerStream in _localStreams )
-            {
-                delete _localStreams[event.callerStream];
-            }
+            // Create the call.
+            let call = new RTCCall(event.callId, event.callerId, event.calleeId);
+            _calls[call.callId] = call;
         }
     };
 
@@ -451,62 +518,79 @@ export function RtcClient( settings )
      */
     let onIncomingCall = function( event )
     {
-        // Create the peer.
-        let peer = new Peer();
-        peer.callId = event.callId;
-        peer.callerId = event.callerId;
-        peer.calleeId = event.calleeId;
-        peer.callerStream = event.callerStream;
-        _peers[event.callId] = peer;
+        // Create the call.
+        let call = new RTCCall(event.callId, event.callerId, event.calleeId);
+        _calls[event.callId] = call;
     };
 
     /**
-     * Start call event handler.
+     * Call accepted event handler.
      * @param {Object} event - The event object.
      */
-    let onStartCall = function( event )
+    let onCallAccepted = function( event )
     {
         // Create the peer connection.
-        let peerConnection = new RTCPeerConnection(_configuration);
-        let peer = _peers[event.callId];
-        peer.calleeStream = event.calleeStream;
-        peer.connection = peerConnection;
+        let peerConnection = new RTCPeerConnection(_rtcConfiguration);
+        let call = _calls[event.callId];
+        call.connection = peerConnection;
 
-        // Track the peer connection state.
-        peer.connection.oniceconnectionstatechange = function( other )
+        // Handle the peer connection lifecycle.
+        call.connection.oniceconnectionstatechange = function( other )
         {
-            onIceConnectionStateChange(peer);
+            onIceConnectionStateChange(call);
         }
 
         // Generate candidates.
-        peer.connection.onicecandidate = function( other )
+        call.connection.onicecandidate = function( other )
         {
-            if( !other || !other.candidate )
+            if( !other.candidate || other.candidate === "" ) // Empty if the RTCIceCandidate is an "end of candidates" indicator.
             {
                 return;
             }
 
-            let message = { id: "candidate", callId: event.callId, callerId: event.callerId, calleeId: event.calleeId, candidate: JSON.stringify(other.candidate) };
+            let message =
+            {
+                id: "candidate",
+                callId: event.callId,
+                callerId: event.callerId,
+                calleeId: event.calleeId,
+                candidate: JSON.stringify(other.candidate)
+            };
             sendMessage(message);
         };
 
-        peer.connection.onnegotiationneeded = function( other )
+        call.connection.onnegotiationneeded = function( other )
         {
-            // Generate SDP offer.
-            peer.connection.createOffer().then(function( sdp )
+            // Generate offer.
+            call.connection.createOffer().then(function( sdp )
             {
                 // Set caller local description.
-                peer.connection.setLocalDescription(sdp);
+                call.connection.setLocalDescription(sdp);
 
-                let message = event;
-                message["id"] = "offer";
-                message["offer"] = JSON.stringify(sdp);
+                let message =
+                {
+                    id: "offer",
+                    callId: event.callId,
+                    callerId: event.callerId,
+                    calleeId: event.calleeId,
+                    offer: JSON.stringify(sdp)
+                };
                 sendMessage(message);
             });
         };
 
-        // Add the stream. This action triggers the ICE negotiation process.
-        peer.connection.addStream(_localStreams[event.callerStream]);
+        // Add the tracks. This action triggers the ICE negotiation process.
+        let tracks = _settings.defaultStream.getTracks();
+        tracks.forEach(track => call.connection.addTrack(track));
+    };
+
+    /**
+     * Call canceled event handler.
+     * @param {Object} event - The event object.
+     */
+    let onCallCanceled = function( event )
+    {
+        closeCall(event.callId);
     };
 
     /**
@@ -516,48 +600,61 @@ export function RtcClient( settings )
     let onRemoteOffer = function( event )
     {
         // Create the peer connection.
-        let peerConnection = new RTCPeerConnection(_configuration);
-        let peer = _peers[event.callId];
-        peer.connection = peerConnection;
+        let peerConnection = new RTCPeerConnection(_rtcConfiguration);
+        let call = _calls[event.callId];
+        call.connection = peerConnection;
 
-        // Track the peer connection state.
-        peer.connection.oniceconnectionstatechange = function( other )
+        // Handle the peer connection lifecycle.
+        call.connection.oniceconnectionstatechange = function( other )
         {
-            onIceConnectionStateChange(peer);
+            onIceConnectionStateChange(call);
         }
 
         // Set callee remote description.
-        peer.connection.setRemoteDescription(JSON.parse(event.offer));
+        call.connection.setRemoteDescription(JSON.parse(event.offer));
 
         // Gather the pending candidates.
-        peer.gatherIceCandidates();
+        call.gatherPendingCandidates();
 
         // Generate candidates.
-        peer.connection.onicecandidate = function( other )
+        call.connection.onicecandidate = function( other )
         {
-            if( !other || !other.candidate )
+            if( !other.candidate || other.candidate === "" ) // Empty if the RTCIceCandidate is an "end of candidates" indicator.
             {
                 return;
             }
 
-            let message = { id: "candidate", callId: event.callId, callerId: event.callerId, calleeId: event.calleeId, candidate: JSON.stringify(other.candidate) };
+            let message =
+            {
+                id: "candidate",
+                callId: event.callId,
+                callerId: event.callerId,
+                calleeId: event.calleeId,
+                candidate: JSON.stringify(other.candidate)
+            };
             sendMessage(message);
         };
 
-        // Add the stream.
-        peer.connection.addStream(_localStreams[event.calleeStream]);
+        // Add the tracks.
+        let tracks = _settings.defaultStream.getTracks();
+        tracks.forEach(track => call.connection.addTrack(track));
 
         // Generate answer.
         window.setTimeout(function()
         {
-            peer.connection.createAnswer().then(function( sdp )
+            call.connection.createAnswer().then(function( sdp )
             {
                 // Set callee local description.
-                peer.connection.setLocalDescription(sdp);
+                call.connection.setLocalDescription(sdp);
 
-                let message = event;
-                message["id"] = "answer";
-                message["answer"] = JSON.stringify(sdp);
+                let message =
+                {
+                    id: "answer",
+                    callId: event.callId,
+                    callerId: event.callerId,
+                    calleeId: event.calleeId,
+                    answer: JSON.stringify(sdp)
+                };
                 sendMessage(message);
             });
         }, 500);
@@ -569,10 +666,12 @@ export function RtcClient( settings )
      */
     let onRemoteAnswer = function( event )
     {
-        if( event.callId in _peers )
+        if( event.callId in _calls )
         {
+            let answer = JSON.parse(event.answer);
+
             // Set caller remote description.
-            _peers[event.callId].connection.setRemoteDescription(JSON.parse(event.answer));
+            _calls[event.callId].connection.setRemoteDescription(answer);
         }
     };
 
@@ -582,23 +681,17 @@ export function RtcClient( settings )
      */
     let onRemoteCandidate = function( event )
     {
-        if( event.callId in _peers )
+        let candidate = JSON.parse(event.candidate);
+        if( !candidate || !candidate.candidate || candidate.candidate === "" ) // Empty if the RTCIceCandidate is an "end of candidates" indicator.
         {
-            let peer = _peers[event.callId];
-            let candidate = JSON.parse(event.candidate);
-            peer.addIceCandidate(candidate);
+            return;
         }
-    };
 
-    /**
-     * Call canceled event handler.
-     * @param {Object} event - The event object.
-     */
-    let onCallCanceled = function( event )
-    {
-        closeCall(event.callId);
-
-        emit("call_state", { callId: event.callId, state: "closed" });
+        if( event.callId in _calls )
+        {
+            let call = _calls[event.callId];
+            call.addCandidate(candidate);
+        }
     };
 
     /**
@@ -608,32 +701,24 @@ export function RtcClient( settings )
     let onUserHangup = function( event )
     {
         closeCall(event.callId);
-
-        emit("call_state", { callId: event.callId, state: "closed" });
     };
 
     /**
-     * Handle the connection state change event.
-     * @param {String} callId - The call ID.
+     * Handle the ICE connection state change event.
+     * @param {RTCCall} call - The call.
      */
-    let onIceConnectionStateChange = async function( peer )
+    let onIceConnectionStateChange = async function( call )
     {
-        if( !peer || !peer.connection )
-        {
-            return;
-        }
+        let state = call.getState();
+        console?.log("%c" + "Connection State" + "%o%o", settings.debugStyle, call.callId, state);
 
-        console?.log("%c" + "ICE Connection State" + "%o%o", settings.debugStyle, peer.callId, peer.connection.iceConnectionState);
-        console?.log("%c" + "call_state" + "%o%o", settings.debugStyle, peer.callId, peer.connection.iceConnectionState);
-        emit("call_state", { callId: peer.callId, state: peer.connection.iceConnectionState });
-
-        switch( peer.connection.iceConnectionState )
+        switch( state )
         {
             case "failed":
             case "disconnected":
             case "closed":
             {
-                hangup(peer.callId);
+                hangup(call.callId);
                 break;
             }
             case "new":
@@ -644,13 +729,9 @@ export function RtcClient( settings )
             }
             case "connected":
             {
-                let stream = getRemoteStream(peer.connection);
-        
-                console?.log("%c" + "call_started" + "%o%o", settings.debugStyle, peer.callId, stream);
-                emit("call_started", { callId: peer.callId, stream: stream });
-
-                let stats = await peer.getStats();
-                console?.log("%c" + "stats" + "%o%o", settings.debugStyle, stats);
+                let stream = call.getRemoteStream();
+                console?.log("%c" + "call_opened" + "%o%o", settings.debugStyle, call.callId, stream);
+                emit("call_opened", { call: call, stream: stream });
 
                 break;
             }
@@ -659,276 +740,6 @@ export function RtcClient( settings )
                 break;
             }
         }
-    };
-
-    /**
-     * Get the first remote audio track.
-     * @param {RTCPeerConnection} peerConnection - The peer connection
-     * @return {MediaStreamTrack} The remote audio track.
-     */
-    let getRemoteAudioTrack = function ( peerConnection )
-    {
-        if( !peerConnection || !(peerConnection instanceof RTCPeerConnection) )
-        {
-            console?.error("Invalid peer connection prototype");
-            return null;
-        }
-
-        let receivers = peerConnection.getReceivers();
-        if( !receivers || receivers.length === 0 )
-        {
-            console?.error("No receivers found");
-            return null;
-        }
-
-        for( let i = 0; i < receivers.length; i++ )
-        {
-            let receiver = receivers[i];
-            if( receiver.track.kind === "audio" )
-            {
-                return receiver.track;
-            }
-        }
-
-        return null;
-    };
-
-    /**
-     * Get the first remote video track.
-     * @param {RTCPeerConnection} peerConnection - The peer connection
-     * @return {MediaStreamTrack} The remote video track.
-     */
-    let getRemoteVideoTrack = function ( peerConnection )
-    {
-        if( !peerConnection || !(peerConnection instanceof RTCPeerConnection) )
-        {
-            console?.error("Invalid peer connection prototype");
-            return null;
-        }
-
-        let receivers = peerConnection.getReceivers();
-        if( !receivers || receivers.length === 0 )
-        {
-            console?.error("No receivers found");
-            return null;
-        }
-
-        for( let i = 0; i < receivers.length; i++ )
-        {
-            let receiver = receivers[i];
-            if( receiver.track.kind === "video" )
-            {
-                return receiver.track;
-            }
-        }
-
-        return null;
-    };
-
-    /**
-     * Get the remote stream of the peer connection. The peer connection must have 1 audio track and 1 video track.
-     * @param {RTCPeerConnection} peerConnection - The peer connection.
-     * @return {MediaStream} The remote stream.
-     */
-    let getRemoteStream = function( peerConnection )
-    {
-        if( !peerConnection || !(peerConnection instanceof RTCPeerConnection) )
-        {
-            console?.error("Invalid peer connection prototype");
-            return null;
-        }
-
-        let receivers = peerConnection.getReceivers();
-        if( !receivers || receivers.length === 0 )
-        {
-            console?.error("No receivers found");
-            return null;
-        }
-
-        let audioTrack = null;
-        for( let i = 0; i < receivers.length; i++ )
-        {
-            let receiver = receivers[i];
-            if( receiver.track.kind === "audio" )
-            {
-                audioTrack = receiver.track;
-                break;
-            }
-        }
-
-        let videoTrack = null;
-        for( let i = 0; i < receivers.length; i++ )
-        {
-            let receiver = receivers[i];
-            if( receiver.track.kind === "video" )
-            {
-                videoTrack = receiver.track;
-                break;
-            }
-        }
-
-        if( !audioTrack )
-        {
-            console?.error("Audio track not found");
-            return null;
-        }
-
-        if( !videoTrack )
-        {
-            console?.error("Video track not found");
-            return null;
-        }
-
-        let stream = new MediaStream();
-        stream.addTrack(audioTrack);
-        stream.addTrack(videoTrack);
-
-        return stream;
-    };
-
-    /**
-     * Replace the local audio track.
-     * @param {String} callId - The call ID.
-     * @param {MediaStreamTrack} track - The local audio track.
-     */
-    let replaceLocalAudioTrack = function( callId, track )
-    {
-        if( !track || !(track instanceof MediaStreamTrack) )
-        {
-            console?.error("Invalid local audio track prototype");
-            return;
-        }
-
-        if( !(callId in _peers) )
-        {
-            console?.error("Call " + callId + " not found");
-            return;
-        }
-
-        let peer = _peers[callId];
-        if( !peer.connection )
-        {
-            console?.error("Peer connection is null");
-            return;
-        }
-
-        let senders = peer.connection.getSenders();
-        for( let i = 0; i < senders.length; i++ )
-        {
-            let sender = senders[i];
-            if( sender.track && sender.track.kind === "audio" )
-            {
-                sender.replaceTrack(track);
-                return;
-            }
-        }
-    };
-
-    /**
-     * Replace the local video track.
-     * @param {String} callId - The call ID.
-     * @param {MediaStreamTrack} track - The local video track.
-     */
-    let replaceLocalVideoTrack = function( callId, track )
-    {
-        if( !track || !(track instanceof MediaStreamTrack || track instanceof CanvasCaptureMediaStreamTrack) )
-        {
-            console?.error("Invalid local video track prototype");
-            return;
-        }
-
-        if( !(callId in _peers) )
-        {
-            console?.error("Call " + callId + " not found");
-            return;
-        }
-
-        let peer = _peers[callId];
-        if( !peer.connection )
-        {
-            console?.error("Peer connection is null");
-            return;
-        }
-
-        let senders = peer.connection.getSenders();
-        for( let i = 0; i < senders.length; i++ )
-        {
-            let sender = senders[i];
-            if( sender.track && sender.track.kind === "video" )
-            {
-                sender.replaceTrack(track);
-                return;
-            }
-        }
-    };
-
-    /**
-     * Replace the local stream. The stream must have 1 audio track and 1 video track.
-     * @param {String} callId - The call ID.
-     * @param {MediaStream} stream - The local stream.
-     */
-    let replaceLocalStream = function( callId, stream )
-    {
-        if( !stream || !(stream instanceof MediaStream) )
-        {
-            console?.error("Invalid local stream prototype");
-            return;
-        }
-
-        if( !(callId in _peers) )
-        {
-            console?.error("Call " + callId + " not found");
-            return;
-        }
-
-        let peer = _peers[callId];
-        if( !peer.connection )
-        {
-            console?.error("Peer connection is null");
-            return;
-        }
-
-        let audioTracks = stream.getAudioTracks();
-        let videoTracks = stream.getVideoTracks();
-        if( audioTracks.length === 0 || videoTracks.length === 0 )
-        {
-            console?.error("There must be at least 1 audio track and 1 video track");
-            return;
-        }
-
-        replaceLocalAudioTrack(callId, audioTracks[0]);
-        replaceLocalVideoTrack(callId, videoTracks[0]);
-    };
-
-    /**
-     * Generate an id for a stream.
-     * @return {String} The ID of the stream.
-     */
-    let generateStreamId = function()
-    {
-        let id = "";
-
-        do
-        {
-            id = uuidv4();
-        }
-        while( id in _localStreams );
-
-        return id;
-    };
-
-    /**
-     * Generate an unique identifier.
-     * @return {String} The unique identifier.
-     */
-    let uuidv4 = function()
-    {
-        // RFC 4122: https://www.ietf.org/rfc/rfc4122.txt
-        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c)
-        {
-            var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
-            return v.toString(16);
-        });
     };
 
     /**
@@ -963,14 +774,14 @@ export function RtcClient( settings )
         "incoming_call":            onIncomingCall,
         "accept_call_response":     false,
         "cancel_call_response":     false,
-        "start_call":               onStartCall,
+        "call_accepted":            onCallAccepted,
+        "call_canceled":            onCallCanceled,
         "offer_response":           false,
         "remote_offer":             onRemoteOffer,
         "answer_response":          false,
         "remote_answer":            onRemoteAnswer,
         "candidate_response":       false,
         "remote_candidate":         onRemoteCandidate,
-        "call_canceled":            onCallCanceled,
         "hangup_response":          true,
         "user_hangup":              onUserHangup
     };
@@ -980,9 +791,10 @@ export function RtcClient( settings )
 //#region PUBLIC
 
     return {
-        get peers() { return _peers; },
         on,
         off,
+        getCall,
+        getCalls,
         connect,
         disconnect,
         register,
@@ -990,58 +802,35 @@ export function RtcClient( settings )
         call,
         acceptCall,
         cancelCall,
-        hangup,
-        replaceLocalAudioTrack,
-        replaceLocalVideoTrack,
-        replaceLocalStream
+        hangup
     };
 
 //#endregion
 }
 
-function Peer()
+export function RTCCall( callId, callerId, calleeId )
 {
 //#region PRIVATE
 
-    let _callId = null;
-    let _callerId = null;
-    let _calleeId = null;
-    let _callerStream = null;
-    let _calleeStream = null;
+    let _callId = callId;
+    let _callerId = callerId;
+    let _calleeId = calleeId;
+
     let _connection = null;
     let _candidates = [];
 
     /**
-     * Add a candidate or save it for gathering.
-     * @param {Object} candidate 
+     * Get the call state.
+     * @return {String} The call state.
      */
-    let addIceCandidate = function( candidate )
+    let getState = function()
     {
-        if( !_connection )
-        {
-            _candidates.push(candidate);
-        }
-        else
-        {
-            _connection.addIceCandidate(candidate);
-        }
-    };
+        return (_connection) ? _connection.iceConnectionState : "closed";
+    }
 
     /**
-     * Gather the pending candidates.
-     */
-    let gatherIceCandidates = function()
-    {
-        if( _candidates.length > 0 )
-        {
-            _candidates.forEach(candidate => _connection.addIceCandidate(candidate));
-            _candidates = [];
-        }
-    };
-
-    /**
-     * Get the peer stats.
-     * @return {Object} The peer stats.
+     * Get the call stats.
+     * @return {Object} The call stats.
      */
     let getStats = async function()
     {
@@ -1052,7 +841,7 @@ function Peer()
 
         return await _connection.getStats(null).then(function( stats )
         {
-            let peerStats = { callId: _callId };
+            let callStats = { callId: _callId, callerId: _callerId, calleeId: _calleeId };
 
             // Get the stats of the succeeded candidate pair.
             let candidatePair = null;
@@ -1071,23 +860,231 @@ function Peer()
                 {
                     if( report.id === candidatePair.localCandidateId )
                     {
-                        peerStats.localType = report.candidateType;
-                        peerStats.localAddress = report.address ?? report.ip;
-                        peerStats.localPort = report.port;
-                        peerStats.localProtocol = report.protocol;
+                        callStats.localType = report.candidateType;
+                        callStats.localAddress = report.address ?? report.ip;
+                        callStats.localPort = report.port;
+                        callStats.localProtocol = report.protocol;
                     }
                     if( report.id === candidatePair.remoteCandidateId )
                     {
-                        peerStats.remoteType = report.candidateType;
-                        peerStats.remoteAddress = report.address ?? report.ip;
-                        peerStats.remotePort = report.port;
-                        peerStats.remoteProtocol = report.protocol;
+                        callStats.remoteType = report.candidateType;
+                        callStats.remoteAddress = report.address ?? report.ip;
+                        callStats.remotePort = report.port;
+                        callStats.remoteProtocol = report.protocol;
                     }
                 });
             }
 
-            return Promise.resolve(peerStats);
+            return Promise.resolve(callStats);
         });
+    };
+
+    /**
+     * Add a candidate or save it for gathering.
+     * @param {Object} candidate 
+     */
+    let addCandidate = function( candidate )
+    {
+        if( !_connection )
+        {
+            _candidates.push(candidate);
+        }
+        else
+        {
+            _connection.addIceCandidate(candidate);
+        }
+    };
+
+    /**
+     * Gather the pending candidates.
+     */
+    let gatherPendingCandidates = function()
+    {
+        if( _candidates.length > 0 )
+        {
+            _candidates.forEach(candidate => _connection.addIceCandidate(candidate));
+            _candidates = [];
+        }
+    };
+
+    /**
+     * Get the remote audio track specified by index.
+     * @param {Number} index
+     * @return {MediaStreamTrack} The audio track.
+     */
+    let getRemoteAudioTrack = function ( index = 0 )
+    {
+        if( !_connection )
+        {
+            return null;
+        }
+
+        let receivers = _connection.getReceivers();
+        if( !receivers )
+        {
+            return null;
+        }
+
+        let tracks = [];
+        for( let i = 0; i < receivers.length; i++ )
+        {
+            let receiver = receivers[i];
+            if( receiver.track.kind === "audio" )
+            {
+                tracks.push(receiver.track);
+            }
+        }
+
+        if( index >= 0 && index < tracks.length )
+        {
+            return tracks[index];
+        }
+
+        return null;
+    };
+
+    /**
+     * Get the remote video track specified by index.
+     * @param {Number} index
+     * @return {MediaStreamTrack} The video track.
+     */
+    let getRemoteVideoTrack = function ( index = 0 )
+    {
+        if( !_connection )
+        {
+            return null;
+        }
+
+        let receivers = _connection.getReceivers();
+        if( !receivers )
+        {
+            return null;
+        }
+
+        let tracks = [];
+        for( let i = 0; i < receivers.length; i++ )
+        {
+            let receiver = receivers[i];
+            if( receiver.track.kind === "video" )
+            {
+                tracks.push(receiver.track);
+            }
+        }
+
+        if( index >= 0 && index < tracks.length )
+        {
+            return tracks[index];
+        }
+
+        return null;
+    };
+
+    /**
+     * Get the remote stream of the peer connection composed by all the audio and video tracks.
+     * @return {MediaStream} The remote stream.
+     */
+    let getRemoteStream = function()
+    {
+        if( !_connection )
+        {
+            return null;
+        }
+
+        let receivers = _connection.getReceivers();
+        if( !receivers )
+        {
+            return null;
+        }
+
+        let tracks = [];
+        for( let i = 0; i < receivers.length; i++ )
+        {
+            let receiver = receivers[i];
+            if( receiver.track )
+            {
+                tracks.push(receiver.track);
+            }
+        }
+
+        if( tracks.length === 0 )
+        {
+            return null;
+        }
+
+        let stream = new MediaStream();
+        for( let i = 0; i < tracks.length; i++ )
+        {
+            let track = tracks[i];
+            stream.addTrack(track);
+        }
+
+        return stream;
+    };
+
+    /**
+     * Replace the local audio track specified by index.
+     * @param {MediaStreamTrack} track - The audio track.
+     * @param {Number} index
+     * @return Whether the track has been replaced.
+     */
+    let replaceLocalAudioTrack = function( track, index = 0 )
+    {
+        if( !_connection || !track )
+        {
+            return false;
+        }
+
+        let audioSenders = [];
+        let senders = _connection.getSenders();
+        for( let i = 0; i < senders.length; i++ )
+        {
+            let sender = senders[i];
+            if( sender.track && sender.track.kind === "audio" )
+            {
+                audioSenders.push(sender);
+            }
+        }
+
+        if( index >= 0 && index < audioSenders.length )
+        {
+            audioSenders[index].replaceTrack(track);
+            return true;
+        }
+
+        return false;
+    };
+
+    /**
+     * Replace the local video track specified by index.
+     * @param {MediaStreamTrack} track - The video track.
+     * @param {Number} index
+     * @returns Whether the track has been replaced.
+     */
+    let replaceLocalVideoTrack = function( track, index = 0 )
+    {
+        if( !_connection || !track )
+        {
+            return false;
+        }
+
+        let videoSenders = [];
+        let senders = _connection.getSenders();
+        for( let i = 0; i < senders.length; i++ )
+        {
+            let sender = senders[i];
+            if( sender.track && sender.track.kind === "video" )
+            {
+                videoSenders.push(sender);
+            }
+        }
+
+        if( index >= 0 && index < videoSenders.length )
+        {
+            videoSenders[index].replaceTrack(track);
+            return true;
+        }
+
+        return false;
     };
 
 //#endregion
@@ -1096,20 +1093,19 @@ function Peer()
 
     return {
         get callId() { return _callId; },
-        set callId( value ) { _callId = value; },
         get callerId() { return _callerId; },
-        set callerId( value ) { _callerId = value; },
         get calleeId() { return _calleeId; },
-        set calleeId( value ) { _calleeId = value; },
-        get callerStream() { return _callerStream; },
-        set callerStream( value ) { _callerStream = value; },
-        get calleeStream() { return _calleeStream; },
-        set calleeStream( value ) { _calleeStream = value; },
         get connection() { return _connection; },
         set connection( value ) { _connection = value; },
-        addIceCandidate,
-        gatherIceCandidates,
-        getStats
+        getState,
+        getStats,
+        addCandidate,
+        gatherPendingCandidates,
+        getRemoteAudioTrack,
+        getRemoteVideoTrack,
+        getRemoteStream,
+        replaceLocalAudioTrack,
+        replaceLocalVideoTrack
     };
 
 //#endregion

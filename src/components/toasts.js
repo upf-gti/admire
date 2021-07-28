@@ -29,7 +29,7 @@ export default function ({children}){
     {
         console.log(`%c Error %c: ${description}`, "background-color:red; color:white", 'color:white');
         //setList([...list, {id:++id, show:true, type:"Error",description}]);
-        toast(`${description}`, {icon:'❌', style:{ background:'#DC143C'}});
+        toast(`${description}`, {icon:'👎', style:{ background:'#DC143C'}});
     }
 
     function warn(description)
@@ -44,11 +44,29 @@ export default function ({children}){
     {
         console.log(`%c Success %c: ${description}`, "background-color:green", 'color:white');
         //setList([...list, {id:++id, show:true, type:"Success",description} ]);
-        toast.success(`${description}`)
+        toast.success(`${description}`, {icon:'👍'})
+    }
+
+    function promise(promise, success, error)
+    {
+        toast.promise(promise, {
+            loading: 'Processing...', 
+            success: (s) => { console.log(s); return (s??'Success!'); }, 
+            error:   (e) => { console.error(e); return (`Error:${e}`); }
+        },
+        {
+            style: {
+              minWidth: '250px',
+            },
+            loading: {icon: '📤'},
+            success: {icon: '👍'},
+            error:   {icon: '👎'},
+        });
     }
 
     const store = {
         //toasts: [list, setList],
+        promise,
         success,
         error,
         info,
