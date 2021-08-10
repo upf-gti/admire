@@ -18,54 +18,60 @@ let id = 0;
 export default function ({children}){
     const [list, setList] = useState([]);
 
-    function info(description)
+    function info(description, options)
     {
         console.log(`%c Info %c: ${description}`, "background-color:cyan; color:black; font-weight: bolder;", 'color:white');
-        toast(`${description}`, {icon:'📣'})
+        toast(`${description}`, Object.assign({icon:'📣'},options))
         //setList([...list,{id:++id, show:true, type:"Info",description}]);
     }
 
-    function error(description)
+    function error(description, options)
     {
-        console.log(`%c Error %c: ${description}`, "background-color:red; color:white", 'color:white');
+        console.trace(`%c Error %c: ${description}`, "background-color:red; color:white", 'color:white');
         //setList([...list, {id:++id, show:true, type:"Error",description}]);
-        toast(`${description}`, {icon:'👎', style:{ background:'#DC143C'}});
+        toast(`${description}`, Object.assign({icon:'👎', style:{ background:'#DC143C'}},options));
     }
 
-    function warn(description)
+    function warn(description, options)
     {
         console.warn(`%c Warn %c: ${description}`, "background-color:orange; color:black", 'color:white');
         //setList([...list, {id:++id, show:true, type:"Warn",description}]);
 
-        toast(`${description}`, {icon:'⚠️', style:{background:'#FFA500'}})
+        toast(`${description}`, Object.assign({icon:'⚠️', style:{background:'#FFA500'}},options))
     }
 
-    function success(description)
+    function success(description, options)
     {
         console.log(`%c Success %c: ${description}`, "background-color:green", 'color:white');
         //setList([...list, {id:++id, show:true, type:"Success",description} ]);
-        toast.success(`${description}`, {icon:'👍'})
+        toast.success(`${description}`, Object.assign({icon:'👍'},options))
     }
 
-    function promise(promise, success, error)
+    function promise(promise, success, error, options)
     {
         toast.promise(promise, {
             loading: 'Processing...', 
-            success: (s) => { console.log(s); return (s??'Success!'); }, 
-            error:   (e) => { console.error(e); return (`Error:${e}`); }
+            success: success??((s) => { console.log(s); return (s??'Success!'); }), 
+            error:   error??((e) => { console.error(e); return (`Error:${e}`); })
         },
-        {
+        Object.assign({
             style: {
               minWidth: '250px',
             },
             loading: {icon: '📤'},
             success: {icon: '👍'},
             error:   {icon: '👎'},
-        });
+        },options));
+    }
+
+    function loading(text, options)
+    {
+        toast.loading(text??'Loading...', options);
     }
 
     const store = {
         //toasts: [list, setList],
+        loading,
         promise,
         success,
         error,
