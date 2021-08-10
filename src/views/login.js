@@ -3,8 +3,8 @@ import { useRef, useEffect, useState, useContext, useReducer } from 'react';
 import { rtcClient, appClient } from 'extra/bra';
 import { Container, Card, Image as ReactImage, Button, Form, Modal, Col } from 'react-bootstrap';
 import { ToastContext } from 'components/toasts';
-import Gravatar from 'gravatar'
 
+import Gravatar from 'gravatar'
 import AnimatedBackground from 'components/animatedBackground';
 
 import login_img from "assets/img/logo.png"
@@ -53,7 +53,7 @@ async function post(url = '', data = {}) {
     // Default options are marked with *
     const response = await fetch(url, {
         method: 'POST', // *GET, POST, PUT, DELETE, etc.
-        mode: 'no-cors', // no-cors, *cors, same-origin
+        mode: 'cors', // no-cors, *cors, same-origin
         cache: 'no-cache', // *default, no-cache, reload, force-cache, only-if-cached
         //credentials: 'same-origin', // include, *same-origin, omit
         headers: {
@@ -62,7 +62,7 @@ async function post(url = '', data = {}) {
         },
         //redirect: 'follow', // manual, *follow, error
         //referrerPolicy: 'no-referrer', // no-referrer, *no-referrer-when-downgrade, origin, origin-when-cross-origin, same-origin, strict-origin, strict-origin-when-cross-origin, unsafe-url
-        body: data // body data type must match "Content-Type" header
+        body: d // body data type must match "Content-Type" header
     });
     return response.json(); // parses JSON response into native JavaScript objects
 }
@@ -70,7 +70,9 @@ async function post(url = '', data = {}) {
 export default function Login({ setLogin }) {
 
     const Log = useContext(ToastContext);
-    const API = 'https://admire-dev-auth.brainstorm3d.com';
+    let API = 'https://admire-dev-auth.brainstorm3d.com';
+    const CORS = "https://cors-anywhere.herokuapp.com/"
+    API = CORS+API;//Comment this on development
     
     const [showRegister, setShowRegister] = useState(false);
     const [showRecovery, setShowRecovery] = useState(false);
@@ -112,14 +114,32 @@ export default function Login({ setLogin }) {
 
         //appClient.login('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI0IiwidXNlcm5hbWUiOiJHYW5kYWxmIiwicm9sZSI6MX0.g1jOrsjPGDt_gBkNcM62SQpJaccAZ88dOQZ5XD9FTLs');
 
-        Log.promise(post(`${API}/login`, { email, password }),
-            token => {
-                appClient.login(token);
-                return 'Success';
-            },
-            error => {
-                return `Error: ${error}`;
-            });
+        const toastId = Log.loading('Logging in...');
+        await post(`${API}/login`, { email, password })
+        .then(response => {
+            switch( response.statusCode ){
+                case 401: //Invalid credentials
+                case 404: //Not found
+                Log.error(`Error ${response.statusCode}: ${response.message}`, {id: toastId});
+                return;
+            }
+
+            Log.success('Success', {id: toastId});
+            appClient.login(response.access_token);
+        })
+        .catch(err => {
+            Log.error(`Error catch: ${err}`, {id: toastId});
+        });
+
+
+        /*Log.promise(post(`${API}/login`, { email, password }),
+        token => {
+            appClient.login(token);
+            return 'Success';
+        },
+        error => {
+            return `Error: ${error}`;
+        });*/
     }
 
     async function doSubmitRegister(e) {
@@ -128,25 +148,40 @@ export default function Login({ setLogin }) {
 
         const ref = registerRef.current;
         const data = Object.assign({}, { username, email, password, avatar, name, surname, birthdate, role });
-        Log.promise( post(`${API}/register`, data),
-        function success(response){
-            return 'Success';
-        },
-        function error(error){
-            return `Error: ${error}`;
+
+        const toastId = Log.loading('Registering...');
+        await post(`${API}/register`, data)
+        .then(response => {
+            switch(response.statusCode)
+            {
+                case 400:  Log.error(`Error: ${response.message}`, {id: toastId}); return;
+            }
+
+            setShowRegister(false);
+            Log.success('Success', {id: toastId});
+        })
+        .catch(err => {
+            Log.error(`Error: ${err}`, {id: toastId});
         });
     }
 
-    function doSubmitRecovery(e) {
+    async function doSubmitRecovery(e) {
         e.preventDefault();
         const [email] = Array.from(recoveryRef.current.elements).map(v => v.value);
+        const toastId = Log.loading('Resetting password...');
+        await post(`${API}/forgot-password`, { email })
+        .then(response => {
+      
+            if(!response){
+                Log.error(`Error: ${response.message}`, {id: toastId});
+                return;
+            }
 
-            Log.promise( post(`${API}/forgot-password`, { email }),
-        function success(success){
-            return success?'Success':'oops!';
-        },
-        function error(error){
-            return `Error: ${error}`;
+            setShowRecovery(false);
+            Log.success('Success', {id: toastId});
+        })
+        .catch(err => {
+            Log.error(`Error: ${err}`, {id: toastId});
         });
     }
 
@@ -177,7 +212,12 @@ export default function Login({ setLogin }) {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    
+    const handleKeypress = e => {
+        //it triggers by pressing the enter key
+      if (e.keyCode === 13) {
+        doSubmitLogin();
+      }
+    };
     
     return (<>
         <Helmet>
@@ -195,10 +235,10 @@ export default function Login({ setLogin }) {
                         <h1 id="title" className="mb-2 text-center">admire</h1>
                         {/*<h4 id="subtitle">Login</h4>*/}
 
-                        <Form noValidate ref={loginRef}>
+                        <Form noValidate ref={loginRef} onKeyPress={handleKeypress}>
 
                             <Form.Group className="mb-2">
-                                <Form.Control placeholder='id' />
+                                <Form.Control placeholder='email' />
                             </Form.Group>
 
                             <Form.Group className="mb-2">
@@ -243,13 +283,13 @@ export default function Login({ setLogin }) {
                         <span>Fullfill your contact information to continue.</span>
 
                         
-                        <Form.Group children={<Form.Control placeholder='username'  type="text"     required    /> }/>
-                        <Form.Group children={<Form.Control placeholder='email'     type="email"    required    value={userEmail} onChange={event => setEmail(event.target.value)} isInvalid={!isEmailValid} /> }/>
-                        <Form.Group children={<Form.Control placeholder='password'  type="password" required    /> }/>
-                        <Form.Group children={<Form.Control placeholder='avatar URL'type="text"     value={image_url!==''?image_url:gravatar_url} onChange={event => setImageURL(event.target.value)}  /> }/>
-                        <Form.Group children={<Form.Control placeholder='name'      type="text"                 /> }/>
-                        <Form.Group children={<Form.Control placeholder='surname'   type="text"                 /> }/>
-                        <Form.Group children={<Form.Control placeholder='birthdate' type="date"                 /> }/>
+                        <Form.Group className="mb-1" children={<Form.Control placeholder='username'  type="text"     required    /> }/>
+                        <Form.Group className="mb-1" children={<Form.Control placeholder='email'     type="email"    required    value={userEmail} onChange={event => setEmail(event.target.value)} isInvalid={!isEmailValid} /> }/>
+                        <Form.Group className="mb-1" children={<Form.Control placeholder='password'  type="password" required    /> }/>
+                        <Form.Group className="mb-1" children={<Form.Control placeholder='avatar URL'type="text"     value={image_url!==''?image_url:gravatar_url} onChange={event => setImageURL(event.target.value)}  /> }/>
+                        <Form.Group className="mb-1" children={<Form.Control placeholder='name'      type="text"                 /> }/>
+                        <Form.Group className="mb-1" children={<Form.Control placeholder='surname'   type="text"                 /> }/>
+                        <Form.Group className="mb-1" children={<Form.Control placeholder='birthdate' type="date"                 /> }/>
 
                         <div className="form-floating">
                             <select className="form-select" id="floatingSelect" aria-label="Floating label select example">
