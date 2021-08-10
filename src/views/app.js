@@ -8,6 +8,7 @@ import Room from 'views/room';
 import Login from 'views/login';
 import Lobby from 'views/lobby';
 import Wizard from 'views/wizzard';
+import ResetPassword from 'views/reset-password';
 import Navbar from 'components/navbar';
 import {StreamSettings} from 'components/streamSettings';
 import {ToastContext} from 'components/toasts';
@@ -124,22 +125,16 @@ export default function App() {
         setNavItems( Object.assign({},NavItems) );
     }
 
-    //if(fetching) return <><Toasts/></>
-    if(!login) return (<>
-        {
-            document.fullscreenEnabled && 
-            <Button onClick={()=>document.fullscreen?document.exitFullscreen():document.body.requestFullscreen()} variant="link" style={{zIndex:10000, position:"absolute", top:10, right:10, border:"none", boxShadow:"none"}}> <i className={"bi " + document.fullscreen?"bi-fullscreen-exit":"bi-fullscreen"}></i> </Button>    
-        }
-        <Login login={login} setLogin={setLogin}/>
-    </>);
-
     return (<>
         {
             document.fullscreenEnabled && 
             <Button onClick={()=>document.fullscreen?document.exitFullscreen():document.body.requestFullscreen()} variant="link" style={{zIndex:10000, position:"absolute", top:10, right:10, border:"none", boxShadow:"none"}}> <i className={"bi " + document.fullscreen?"bi-fullscreen-exit":"bi-fullscreen"}></i> </Button>    
         }
         <Router>
-            <div className="app wrapper">
+            { !login && <Route exact path='/reset-password/:token'> <ResetPassword/> </Route> }
+            { !login && <Route><Login login={login} setLogin={setLogin}/></Route> }
+
+            { login && <div className="app wrapper">
                 <Navbar user={login} doLogOut={doLogOut} items={Object.values(NavItems)}/>
                 <div id="content">
                 <Switch>
@@ -149,7 +144,7 @@ export default function App() {
                         <Route> <Lobby setLogin={setLogin} user={login} setNavItem={setNavItem} key={Math.floor((Math.random() * 10000))} /> </Route>
                 </Switch>
                 </div>
-            </div>
+            </div> }
         </Router>
     </>);
 }
