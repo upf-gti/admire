@@ -21,7 +21,7 @@ export default function ({children}){
     function info(description, options)
     {
         console.log(`%c Info %c: ${description}`, "background-color:cyan; color:black; font-weight: bolder;", 'color:white');
-        toast(`${description}`, Object.assign({icon:'📣'},options))
+        return toast(`${description}`, Object.assign({icon:'📣'},options))
         //setList([...list,{id:++id, show:true, type:"Info",description}]);
     }
 
@@ -29,7 +29,7 @@ export default function ({children}){
     {
         console.trace(`%c Error %c: ${description}`, "background-color:red; color:white", 'color:white');
         //setList([...list, {id:++id, show:true, type:"Error",description}]);
-        toast(`${description}`, Object.assign({icon:'👎', style:{ background:'#DC143C'}},options));
+        return toast(`${description}`, Object.assign({icon:'👎', style:{ background:'#DC143C'}},options));
     }
 
     function warn(description, options)
@@ -37,19 +37,19 @@ export default function ({children}){
         console.warn(`%c Warn %c: ${description}`, "background-color:orange; color:black", 'color:white');
         //setList([...list, {id:++id, show:true, type:"Warn",description}]);
 
-        toast(`${description}`, Object.assign({icon:'⚠️', style:{background:'#FFA500'}},options))
+        return toast(`${description}`, Object.assign({icon:'⚠️', style:{background:'#FFA500'}},options))
     }
 
     function success(description, options)
     {
         console.log(`%c Success %c: ${description}`, "background-color:green", 'color:white');
         //setList([...list, {id:++id, show:true, type:"Success",description} ]);
-        toast.success(`${description}`, Object.assign({icon:'👍'},options))
+        return toast.success(`${description}`, Object.assign({icon:'👍'},options))
     }
 
     function promise(promise, success, error, options)
     {
-        toast.promise(promise, {
+        return toast.promise(promise, {
             loading: 'Processing...', 
             success: success??((s) => { console.log(s); return (s??'Success!'); }), 
             error:   error??((e) => { console.error(e); return (`Error:${e}`); })
@@ -66,7 +66,7 @@ export default function ({children}){
 
     function loading(text, options)
     {
-        toast.loading(text??'Loading...', options);
+        return toast.loading(text??'Loading...', options);
     }
 
     const store = {
