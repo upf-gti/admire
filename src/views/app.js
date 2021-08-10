@@ -8,9 +8,10 @@ import Room from 'views/room';
 import Login from 'views/login';
 import Lobby from 'views/lobby';
 import Wizard from 'views/wizzard';
+import ResetPassword from 'views/reset-password';
 import Navbar from 'components/navbar';
 import {StreamSettings} from 'components/streamSettings';
-import {Toasts, ToastContext} from 'components/toasts';
+import {ToastContext} from 'components/toasts';
 
 import "./app.scss";
 import img3 from 'assets/img/wizard2.png';
@@ -18,12 +19,11 @@ import img3 from 'assets/img/wizard2.png';
 let timeoutId; 
 export default function App() {
 
-    const rtcUrl = "wss://rtcserver.brainstorm3d.com";
-    const appUrl = "wss://admireapi.brainstorm3d.com";
+    const rtcUrl = "wss://admire-dev-rtc.brainstorm3d.com/";
+    const appUrl = "wss://admire-dev-lobby.brainstorm3d.com/";
 
     const history = useHistory();
     const Log = useContext(ToastContext);
-    const [list] = Log.toasts;
     const { videoRef, devices:[devices,setDevices], settings:[settings,setSettings], localStream:[localStream,setLocalStream] } = useContext(StreamSettings);
     
 
@@ -52,7 +52,7 @@ export default function App() {
             appClient.on("logout_response",      onLogOut);
             appClient.on('client_connected',     onAppClientConnect);
             appClient.on('client_disconnected',  onDisconnect);
-            appClient.on("autologin_response",   onAutoLoginResponse);
+            //appClient.on("autologin_response",   onAutoLoginResponse);
             
             rtcClient.on('client_connected',     onRtcClientConnect);
             
@@ -80,7 +80,7 @@ export default function App() {
 
     function onRtcClientConnect(event) {
         Log.info(`Rtc client connected`);
-        appClient.autologin();
+        //appClient.autologin();
         mediaAdapter.start();
     }
 
@@ -88,7 +88,7 @@ export default function App() {
         Log.warn(`App client disconnected`);
     }
 
-    function onAutoLoginResponse(event){
+    /*function onAutoLoginResponse(event){
         let {status, description, userId, userType} = event;
         //setFetching(false);
 
@@ -103,7 +103,7 @@ export default function App() {
             case 'error': Log.error(description);break;
             default: Log.warn(description); break;
         }
-    }
+    }*/
 
     function doLogOut(){
         appClient.logout();
@@ -125,23 +125,16 @@ export default function App() {
         setNavItems( Object.assign({},NavItems) );
     }
 
-    //if(fetching) return <><Toasts/></>
-    if(!login) return (<>
-        {
-            document.fullscreenEnabled && 
-            <Button onClick={()=>document.fullscreen?document.exitFullscreen():document.body.requestFullscreen()} variant="link" style={{zIndex:10000, position:"absolute", top:10, right:10, border:"none", boxShadow:"none"}}> <i class={"bi " + document.fullscreen?"bi-fullscreen-exit":"bi-fullscreen"}></i> </Button>    
-        }
-        <Login login={login} setLogin={setLogin}/>
-    </>);
-
     return (<>
         {
             document.fullscreenEnabled && 
-            <Button onClick={()=>document.fullscreen?document.exitFullscreen():document.body.requestFullscreen()} variant="link" style={{zIndex:10000, position:"absolute", top:10, right:10, border:"none", boxShadow:"none"}}> <i class={"bi " + document.fullscreen?"bi-fullscreen-exit":"bi-fullscreen"}></i> </Button>    
+            <Button onClick={()=>document.fullscreen?document.exitFullscreen():document.body.requestFullscreen()} variant="link" style={{zIndex:10000, position:"absolute", top:10, right:10, border:"none", boxShadow:"none"}}> <i className={"bi " + document.fullscreen?"bi-fullscreen-exit":"bi-fullscreen"}></i> </Button>    
         }
         <Router>
-            <Toasts/>
-            <div className="app wrapper">
+            { !login && <Route exact path='/reset-password/:token'> <ResetPassword/> </Route> }
+            { !login && <Route><Login login={login} setLogin={setLogin}/></Route> }
+
+            { login && <div className="app wrapper">
                 <Navbar user={login} doLogOut={doLogOut} items={Object.values(NavItems)}/>
                 <div id="content">
                 <Switch>
@@ -151,7 +144,7 @@ export default function App() {
                         <Route> <Lobby setLogin={setLogin} user={login} setNavItem={setNavItem} key={Math.floor((Math.random() * 10000))} /> </Route>
                 </Switch>
                 </div>
-            </div>
+            </div> }
         </Router>
     </>);
 }

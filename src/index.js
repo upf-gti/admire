@@ -1,30 +1,39 @@
-import React, {useState} from 'react';
+import React, { useEffect, useState } from 'react';
 import ReactDOM from 'react-dom';
 
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap/dist/js/bootstrap.bundle.min.js';
 import "style.scss";
 
+import toast, { Toaster } from 'react-hot-toast';
+
 import ToastContext from 'components/toasts';
 import StreamSettings from 'components/streamSettings';
 
 import App from "views/app";
 
-function ContextContainer({children}){
-  const [state,setState] = useState(0);
+
+function ContextContainer({ children }) {
+  useEffect(() => window.toast = toast, [])
+  const [state, setState] = useState(0);
 
   return <>
-      <ToastContext  >
+    <ToastContext>
+
+      <Toaster
+        position="top-right"
+        reverseOrder={false}
+      />
       <StreamSettings>
-      {children}
+        {children}
       </StreamSettings>
-      </ToastContext>
-    </>
+    </ToastContext>
+  </>
 }
 
 ReactDOM.render(
   <ContextContainer>
-    <App/>
+    <App />
   </ContextContainer>
-  ,document.getElementById('root')
+  , document.getElementById('root')
 );
