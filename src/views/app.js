@@ -2,6 +2,7 @@ import React, { useState, useEffect, useReducer, useContext, lazy, Suspense } fr
 import { BrowserRouter as Router, Switch, Route, Redirect, Link, useHistory } from 'react-router-dom';
 import { Image, Button, ProgressBar  } from 'react-bootstrap';
 
+import { getCookie, setCookie } from 'extra/cookies';
 import { rtcClient, appClient, mediaAdapter } from 'extra/bra';
 
 import {ToastContext} from 'components/toasts';
@@ -114,6 +115,7 @@ export default function App() {
     function onLogOut(){
         Log.info(`Logout`);
         setLogin(null);
+        setCookie('credentials',null, -1);
         rtcClient.unregister();
     }
 

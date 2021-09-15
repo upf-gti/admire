@@ -3,6 +3,7 @@ import { useRef, useEffect, useState, useContext, useReducer } from 'react';
 import { rtcClient, appClient } from 'extra/bra';
 import { Container, Card, Image as ReactImage, Button, Form, Modal, Col } from 'react-bootstrap';
 import { ToastContext } from 'components/toasts';
+import { getCookie, setCookie } from 'extra/cookies';
 
 import Gravatar from 'gravatar'
 import AnimatedBackground from 'components/animatedBackground';
@@ -100,20 +101,12 @@ export default function Login({ setLogin }) {
         return newValue;
     }, '');
 
-    
-
-
-
     const loginRef = useRef(null);
     const registerRef = useRef(null);
     const recoveryRef = useRef(null);
 
-
-    async function doSubmitLogin() {
-        const [email, password] = Array.from(loginRef.current.elements).map(v => v.value);
-
+    async function login(email, password){
         //appClient.login('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI0IiwidXNlcm5hbWUiOiJHYW5kYWxmIiwicm9sZSI6MX0.g1jOrsjPGDt_gBkNcM62SQpJaccAZ88dOQZ5XD9FTLs');
-
         const toastId = Log.loading('Logging in...');
         await post(`${API}/login`, { email, password })
         .then(response => {
@@ -124,22 +117,29 @@ export default function Login({ setLogin }) {
                     break;
                 default:
                     Log.success('Success', {id: toastId});
+                    if(loginRef.current){
+                        setCookie('credentials', JSON.stringify({ id: email, pass: password }), 30);
+                    }
                     appClient.login(response.access_token);
             }
         })
         .catch(err => {
             Log.error(`Error catch: ${err}`, {id: toastId});
         });
+    }
 
+    async function autoLogin(){
+        const credentials = getCookie('credentials');
+        if(credentials)
+        {
+            const {id, pass} = JSON.parse(credentials);
+            await login(id, pass);
+        } 
+    }
 
-        /*Log.promise(post(`${API}/login`, { email, password }),
-        token => {
-            appClient.login(token);
-            return 'Success';
-        },
-        error => {
-            return `Error: ${error}`;
-        });*/
+    async function doSubmitLogin() {
+        const [email, password] = Array.from(loginRef.current.elements).map(v => v.value);
+        await login(email, password);
     }
 
     async function doSubmitRegister(e) {
@@ -208,6 +208,7 @@ export default function Login({ setLogin }) {
 
     useEffect(() => { //Acts like 'componentWillMount'
         appClient.on("login_response", onLogin);
+        autoLogin();
         return () => {//Acts like /componentWillUnmount'
             appClient.off("login_response", onLogin);
         }
