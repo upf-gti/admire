@@ -30,7 +30,7 @@ async function post(url = '', data = {}) {
     return response.json(); // parses JSON response into native JavaScript objects
 }
 
-export default () => {
+export default function ResetPassword(){
     
     let { token } = useParams();
     const history = useHistory();

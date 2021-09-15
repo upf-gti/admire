@@ -1,8 +1,11 @@
 import React, { useEffect, useState } from 'react';
+import Helmet from 'react-helmet';
 import ReactDOM from 'react-dom';
 
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap/dist/js/bootstrap.bundle.min.js';
+import 'bootstrap/scss/bootstrap.scss';
+import "bootstrap-icons/font/bootstrap-icons.css";
 import "style.scss";
 
 import toast, { Toaster } from 'react-hot-toast';
@@ -18,6 +21,9 @@ function ContextContainer({ children }) {
   const [state, setState] = useState(0);
 
   return <>
+    <Helmet>
+      <link rel="preload" as="stylesheet" href="bootstrap-icons/font/bootstrap-icons.css"/>
+    </Helmet>
     <ToastContext>
 
       <Toaster

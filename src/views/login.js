@@ -120,12 +120,12 @@ export default function Login({ setLogin }) {
             switch( response.statusCode ){
                 case 401: //Invalid credentials
                 case 404: //Not found
-                Log.error(`Error ${response.statusCode}: ${response.message}`, {id: toastId});
-                return;
+                    Log.error(`Error ${response.statusCode}: ${response.message}`, {id: toastId});
+                    break;
+                default:
+                    Log.success('Success', {id: toastId});
+                    appClient.login(response.access_token);
             }
-
-            Log.success('Success', {id: toastId});
-            appClient.login(response.access_token);
         })
         .catch(err => {
             Log.error(`Error catch: ${err}`, {id: toastId});
@@ -154,11 +154,13 @@ export default function Login({ setLogin }) {
         .then(response => {
             switch(response.statusCode)
             {
-                case 400:  Log.error(`Error: ${response.message}`, {id: toastId}); return;
+                case 400:  
+                    Log.error(`Error: ${response.message}`, {id: toastId}); 
+                    break;
+                default:
+                    setShowRegister(false);
+                    Log.success('Success', {id: toastId});
             }
-
-            setShowRegister(false);
-            Log.success('Success', {id: toastId});
         })
         .catch(err => {
             Log.error(`Error: ${err}`, {id: toastId});
@@ -222,6 +224,13 @@ export default function Login({ setLogin }) {
     return (<>
         <Helmet>
             <title>AdMiRe: LogIn</title>
+            <link
+            rel="preload"
+            as="image"
+            href={image_url!==''?image_url:gravatar_url} 
+            imagesrcset="wolf_400px.jpg 400w, wolf_800px.jpg 800w, wolf_1600px.jpg 1600w"
+            imagesizes="50vw"
+            />
         </Helmet>
         <AnimatedBackground color1="#1B222E" color2="#666" speed={3} />
 
@@ -231,7 +240,7 @@ export default function Login({ setLogin }) {
                 <Card className="shadow-lg" style={{ width: '18rem' }}>
                     <Card.Body>
 
-                        <ReactImage id="login-logo" src={login_img} fluid />
+                        <ReactImage id="login-logo" alt="logo" src={login_img} fluid width={254} height={254} />
                         <h1 id="title" className="mb-2 text-center">admire</h1>
                         {/*<h4 id="subtitle">Login</h4>*/}
 
@@ -266,8 +275,11 @@ export default function Login({ setLogin }) {
                             <ReactImage 
                             src={image_url!==''?image_url:gravatar_url} 
                             roundedCircle 
-                            className='position-absolute top-0 start-100 p-1 bg-danger shadow' 
-                            style={{ 
+                            alt="avatar image"
+                            className = 'position-absolute top-0 start-100 p-1 bg-danger shadow'
+                            width     = {(isImageValid || gravatar_url !== ''?` 128`: 0)}
+                            height    = {(isImageValid || gravatar_url !== ''? `128`: 0)}
+                            style     = {{ 
                                 width:      isImageValid || gravatar_url !== ''?` 128px`: 0, 
                                 height:     isImageValid || gravatar_url !== ''? `128px`: 0, 
                                 transform: 'translate(-50%, -50%)', transition: '.25s ease-in-out'}}
