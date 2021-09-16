@@ -71,16 +71,16 @@ export default function Room({ user, setNavItems }) {
         appClient.getRooms();
         appClient.on('get_rooms_response', validationCallback = ({ id, status, description, roomInfos }) => {
             appClient.off('get_rooms_response', validationCallback);
-            roomInfo = roomInfos[roomId];
-            setRoomInfo(Object.assign({}, roomInfo));
-            if (!roomInfo) {
+            //roomInfo = roomInfos[roomId];
+            setRoomInfo(Object.assign({}, roomInfos[roomId]));
+            if (!roomInfos[roomId]) {
                 Log.error("No RoomInfo");
                 history.push("/");
                 //window.location = '/';//Todo: como leches hago esto
                 return;
             }
 
-            if ([...roomInfo.guests, roomInfo.master].filter(v => v !== user.id).length)
+            if ([...roomInfos[roomId].guests, roomInfos[roomId].master].filter(v => v !== user.id).length)
                 appClient.joinRoom(roomId);
 
         });
@@ -103,8 +103,11 @@ export default function Room({ user, setNavItems }) {
 
             //window.removeEventListener('beforeunload', onBeforeUnload);
             window.removeEventListener('unload', onUnload);
-
-            Object.keys(rtcClient.peers).forEach(callId => rtcClient.hangup(callId));
+            
+            Object.keys(rtcClient.getCalls()).forEach( 
+            callId => { 
+                return rtcClient.hangup(callId)
+            });
             appClient.leaveRoom();
 
             console.log('dismount');

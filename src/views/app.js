@@ -1,20 +1,24 @@
-import React, { useState, useEffect, useReducer, useContext } from 'react';
+import React, { useState, useEffect, useReducer, useContext, lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Switch, Route, Redirect, Link, useHistory } from 'react-router-dom';
-import { Image, Button } from 'react-bootstrap';
+import { Image, Button, ProgressBar  } from 'react-bootstrap';
 
+import { getCookie, setCookie } from 'extra/cookies';
 import { rtcClient, appClient, mediaAdapter } from 'extra/bra';
 
-import Room from 'views/room';
-import Login from 'views/login';
-import Lobby from 'views/lobby';
-import Wizard from 'views/wizzard';
-import ResetPassword from 'views/reset-password';
-import Navbar from 'components/navbar';
-import {StreamSettings} from 'components/streamSettings';
 import {ToastContext} from 'components/toasts';
+import {StreamSettings} from 'components/streamSettings';
 
 import "./app.scss";
 import img3 from 'assets/img/wizard2.png';
+
+
+const Room = lazy(() => import('views/room'));
+const Login = lazy(() => import('views/login'));
+const Lobby = lazy(() => import('views/lobby'));
+const Wizzard = lazy(() => import('views/wizzard'));
+const ResetPassword = lazy(() => import('views/reset-password'));
+const Navbar = lazy(() => import('components/navbar'));
+
 
 let timeoutId; 
 export default function App() {
@@ -26,7 +30,6 @@ export default function App() {
     const Log = useContext(ToastContext);
     const { videoRef, devices:[devices,setDevices], settings:[settings,setSettings], localStream:[localStream,setLocalStream] } = useContext(StreamSettings);
     
-
     const [login, setLogin]       = useState(null);
     const [fetching, setFetching] = useState(false);
     const [NavItems, setNavItems] = useState({});
@@ -112,6 +115,7 @@ export default function App() {
     function onLogOut(){
         Log.info(`Logout`);
         setLogin(null);
+        setCookie('credentials',null, -1);
         rtcClient.unregister();
     }
 
@@ -125,11 +129,18 @@ export default function App() {
         setNavItems( Object.assign({},NavItems) );
     }
 
+    
+    const renderLoader = () => (<>
+        <ProgressBar animated now={100} />
+    </>);
+
     return (<>
         {
             document.fullscreenEnabled && 
             <Button onClick={()=>document.fullscreen?document.exitFullscreen():document.body.requestFullscreen()} variant="link" style={{zIndex:10000, position:"absolute", top:10, right:10, border:"none", boxShadow:"none"}}> <i className={"bi " + document.fullscreen?"bi-fullscreen-exit":"bi-fullscreen"}></i> </Button>    
         }
+      
+        <Suspense fallback={renderLoader()}>
         <Router>
             { !login && <Route exact path='/reset-password/:token'> <ResetPassword/> </Route> }
             { !login && <Route><Login login={login} setLogin={setLogin}/></Route> }
@@ -138,13 +149,14 @@ export default function App() {
                 <Navbar user={login} doLogOut={doLogOut} items={Object.values(NavItems)}/>
                 <div id="content">
                 <Switch>
-                        { !ready && <Wizard user={login} ready={{ready, setReady}} setNavItem={setNavItem}/> }
-                        <Route exact path='/wizzard'> <Wizard user={login} ready={{ready, setReady}} setNavItem={setNavItem}/> </Route>
+                        { !ready && <Wizzard user={login} ready={{ready, setReady}} setNavItem={setNavItem}/> }
+                        <Route exact path='/wizzard'> <Wizzard user={login} ready={{ready, setReady}} setNavItem={setNavItem}/> </Route>
                         <Route exact path='/rooms/:roomId'> <Room user={login} setNavItem={setNavItem}/> </Route>
                         <Route> <Lobby setLogin={setLogin} user={login} setNavItem={setNavItem} key={Math.floor((Math.random() * 10000))} /> </Route>
                 </Switch>
                 </div>
             </div> }
         </Router>
+        </Suspense>
     </>);
 }

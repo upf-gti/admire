@@ -13,7 +13,7 @@ import {StreamSettings} from 'components/streamSettings';
 import './wizzard.scss';
 
 
-export default function Wizard( {user, ready:{ready, setReady}, setNavItem}){
+export default function Wizzard( {user, ready:{ready, setReady}, setNavItem}){
 
     const { videoRef, devices:[devices,setDevices], settings:[settings,setSettings], localStream:[localStream,setLocalStream] } = useContext(StreamSettings);
 
