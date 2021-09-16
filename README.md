@@ -1,6 +1,6 @@
 # AdMiRe User App
 
-Application served: [ [Production](https://github.com/upf-gti/admire) | Dev ]
+Application served: [ [Production]( https://admire.brainstorm3d.com) | [Dev](https://admire-dev-web.brainstorm3d.com/) ]
 
 The client application has to be run in a separated thread from the server. 
 The first time you clone the repository you will need to also install all the node depencencies:
