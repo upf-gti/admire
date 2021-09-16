@@ -71,7 +71,7 @@ export default function Room({ user, setNavItems }) {
         appClient.getRooms();
         appClient.on('get_rooms_response', validationCallback = ({ id, status, description, roomInfos }) => {
             appClient.off('get_rooms_response', validationCallback);
-            //roomInfo = roomInfos[roomId];
+            roomInfo = roomInfos[roomId];
             setRoomInfo(Object.assign({}, roomInfos[roomId]));
             if (!roomInfos[roomId]) {
                 Log.error("No RoomInfo");
@@ -104,10 +104,7 @@ export default function Room({ user, setNavItems }) {
             //window.removeEventListener('beforeunload', onBeforeUnload);
             window.removeEventListener('unload', onUnload);
             
-            Object.keys(rtcClient.getCalls()).forEach( 
-            callId => { 
-                return rtcClient.hangup(callId)
-            });
+            Object.keys(rtcClient.getCalls()).forEach(callId => rtcClient.hangup(callId));
             appClient.leaveRoom();
 
             console.log('dismount');
@@ -178,7 +175,7 @@ export default function Room({ user, setNavItems }) {
     }
 
     function onCallClosed({ call }) {
-        const callId = call.callId();
+        const callId = call.callId;
 
         Log.warn(`Call ${callId} hangup`);
         delete streams[callId];
