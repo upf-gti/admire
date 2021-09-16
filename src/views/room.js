@@ -103,8 +103,11 @@ export default function Room({ user, setNavItems }) {
 
             //window.removeEventListener('beforeunload', onBeforeUnload);
             window.removeEventListener('unload', onUnload);
-
-            Object.keys(rtcClient.peers).forEach(callId => rtcClient.hangup(callId));
+            
+            Object.keys(rtcClient.getCalls()).forEach( 
+            callId => { 
+                return rtcClient.hangup(callId)
+            });
             appClient.leaveRoom();
 
             console.log('dismount');

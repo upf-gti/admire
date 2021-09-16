@@ -108,12 +108,12 @@ export default function Login({ setLogin }) {
     async function login(email, password){
         //appClient.login('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI0IiwidXNlcm5hbWUiOiJHYW5kYWxmIiwicm9sZSI6MX0.g1jOrsjPGDt_gBkNcM62SQpJaccAZ88dOQZ5XD9FTLs');
         const toastId = Log.loading('Logging in...');
-        await post(`${API}/login`, { email, password })
+        await post(`${API}/auth/basic`, { email, password })
         .then(response => {
-            switch( response.statusCode ){
+            switch( response.status ){
                 case 401: //Invalid credentials
                 case 404: //Not found
-                    Log.error(`Error ${response.statusCode}: ${response.message}`, {id: toastId});
+                    Log.error(`Error ${response.error}: ${response.message}`, {id: toastId});
                     break;
                 default:
                     Log.success('Success', {id: toastId});
