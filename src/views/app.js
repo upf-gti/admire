@@ -109,13 +109,13 @@ export default function App() {
     }*/
 
     function doLogOut(){
+        setCookie('credentials',null, 0);
         appClient.logout();
     }
 
     function onLogOut(){
         Log.info(`Logout`);
         setLogin(null);
-        setCookie('credentials',null, -1);
         rtcClient.unregister();
     }
 
