@@ -18,6 +18,7 @@ const Lobby = lazy(() => import('views/lobby'));
 const Wizzard = lazy(() => import('views/wizzard'));
 const ResetPassword = lazy(() => import('views/reset-password'));
 const Navbar = lazy(() => import('components/navbar'));
+const UserForm = lazy(() => import('components/userForm'));
 
 
 let timeoutId; 
@@ -33,6 +34,7 @@ export default function App() {
     const [login, setLogin]       = useState(null);
     const [fetching, setFetching] = useState(false);
     const [NavItems, setNavItems] = useState({});
+    const [showUserModal, setShowUserModal] = useState(false);
 
     const [ready, setReady] = useReducer((state, newState)=>{ 
         localStorage.setItem('admire-user-ready', newState);
@@ -46,11 +48,12 @@ export default function App() {
         return state;
     });  
 
-    
     useEffect(() => { //Acts like 'componentWillMount'
             console.clear();    
             //setFetching(true);
-            setNavItem( 'wizzard',<Link to='/wizzard'> <li> <Image src={img3} style={{filter:'invert(1)'}} width={24}/> Wizzard</li> </Link> );
+
+            setNavItem( 'wizzard', <Link to='/wizzard'> <li> <Image src={img3} style={{filter:'invert(1)'}} width={24}/> Wizzard</li> </Link> );
+            setNavItem( 'user preferences', <li onClick={ ()=>setShowUserModal(true)}> <Image src={img3} style={{filter:'invert(1)'}} width={24} /> User Data</li> );
 
             appClient.on("logout_response",      onLogOut);
             appClient.on('client_connected',     onAppClientConnect);
@@ -141,6 +144,7 @@ export default function App() {
         }
       
         <Suspense fallback={renderLoader()}>
+        <UserForm show={showUserModal} setShow={setShowUserModal} />
         <Router>
             { !login && <Route exact path='/reset-password/:token'> <ResetPassword/> </Route> }
             { !login && <Route><Login login={login} setLogin={setLogin}/></Route> }
