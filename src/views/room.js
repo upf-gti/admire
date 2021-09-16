@@ -151,7 +151,7 @@ export default function Room({ user, setNavItems }) {
     }
 
     function isCallIdLive(callId) {
-        let { calleeId, callerId } = rtcClient.peers[callId];
+        let { calleeId, callerId } = rtcClient.getCalls()[callId];
         return [calleeId, callerId].find(v => v.indexOf('.live') !== -1)
     }
 
@@ -175,7 +175,7 @@ export default function Room({ user, setNavItems }) {
     }
 
     function onCallClosed({ call }) {
-        const callId = call.callId;
+        const callId = call.callId();
 
         Log.warn(`Call ${callId} hangup`);
         delete streams[callId];
@@ -188,7 +188,7 @@ export default function Room({ user, setNavItems }) {
             return;
         }
 
-        const { callerId, calleeId, } = rtcClient.peers[showModal];
+        const { callerId, calleeId, } = rtcClient.getCalls()[showModal];
         const [callId, target, liveuser, stream] = [showModal, livestreamRef.current.value, calleeId === user.id ? callerId : calleeId, streams[showModal]];
 
         if (!rtcClient.call(target, stream))
@@ -243,10 +243,10 @@ export default function Room({ user, setNavItems }) {
                 {streams && Object.entries(streams).length >= 0 && <Col id="otherstreams" xs={12} md={"3"} style={{}}>
                     <Row xs={12}>
                         {Object.entries(streams).map((v, k, a) => {
-                            if (!rtcClient.peers[v[0]])
+                            if (!rtcClient.getCalls()[v[0]])
                                 return null;
 
-                            let { calleeId, callerId } = rtcClient.peers[v[0]];
+                            let { calleeId, callerId } = rtcClient.getCalls()[v[0]];
                             let id = (calleeId === user.id) ? callerId : calleeId;
 
                             return <Col key={k} className='p-1'> <Video user={user} master={roomInfo.master} id={id} stream={v[1]} playsInline setLiveCallback={() => { setShowModal(v[0]); }} /></Col>
