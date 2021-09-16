@@ -57,9 +57,9 @@ export default function Room({ user, setNavItems }) {
 
         rtcClient.on("incoming_call", onIncomingCall);
         rtcClient.on("call_opened", onCallOpened);
-        rtcClient.on('call_closed', onCallClosed);
         rtcClient.on("call_response", onCallResponse);
-        rtcClient.on('user_hangup', onCallClosed);
+        rtcClient.on('call_closed', onCallClosed);
+        rtcClient.on('user_hangup', onCallHangup);
 
         //This is to be sure when user is leaving the room because a refresh/closing/leaving the tab
         let onBeforeUnload, onUnload;
@@ -156,13 +156,15 @@ export default function Room({ user, setNavItems }) {
     }
 
     function onCallOpened({ call, stream }) {
-        const callId = call.callId();
+        const callId = call.callId;
 
         Log.success(`Call ${callId} started`);
 
         window.streams = streams;
 
         streams[callId] = stream;
+        console.log('el stream de adri es:', stream.id, 'el stream de her es:', localStream.id);
+
         setStreams(Object.assign({}, streams));
 
         if (!isCallIdLive(callId)) {
@@ -174,10 +176,28 @@ export default function Room({ user, setNavItems }) {
         }
     }
 
-    function onCallClosed({ call }) {
-        const callId = call.callId();
+    function onCallHangup({ callId }) { 
+        if(!callId)
+        {
+            console.error("No call");
+            return;
+        }
 
         Log.warn(`Call ${callId} hangup`);
+        delete streams[callId];
+        setStreams(Object.assign({}, streams));
+    }
+    
+    function onCallClosed({ call }) {
+        if(!call)
+        {
+            console.error("No call");
+            return;
+        }
+        
+        const callId = call.callId;
+
+        Log.warn(`Call ${callId} closed`);
         delete streams[callId];
         setStreams(Object.assign({}, streams));
     }
@@ -188,7 +208,7 @@ export default function Room({ user, setNavItems }) {
             return;
         }
 
-        const { callerId, calleeId, } = rtcClient.getCalls()[showModal];
+        const { callerId, calleeId } = rtcClient.getCalls()[showModal];
         const [callId, target, liveuser, stream] = [showModal, livestreamRef.current.value, calleeId === user.id ? callerId : calleeId, streams[showModal]];
 
         if (!rtcClient.call(target, stream))
@@ -249,7 +269,7 @@ export default function Room({ user, setNavItems }) {
                             let { calleeId, callerId } = rtcClient.getCalls()[v[0]];
                             let id = (calleeId === user.id) ? callerId : calleeId;
 
-                            return <Col key={k} className='p-1'> <Video user={user} master={roomInfo.master} id={id} stream={v[1]} playsInline setLiveCallback={() => { setShowModal(v[0]); }} /></Col>
+                            return <Col key={k} className='p-1'> <Video user={user} master={roomInfo.master} id={id} key={id} stream={v[1]} playsInline setLiveCallback={() => { setShowModal( v[0] ); }} /></Col>
                         })}
                     </Row>
                 </Col>}
