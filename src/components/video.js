@@ -15,6 +15,7 @@ export default function Video({id, user, master, local, fref, stream, setLiveCal
     const [videoEnabled, setVideo] = useState(settings && settings.video && settings.video !== 'None');
 
     useEffect(()=>{ 
+        if(!settings) return;
         setAudio(settings.audio && settings.audio !== 'None');
         setVideo(settings.video && settings.video !== 'None');
     },[settings?.audio, settings?.video]);
