@@ -11,11 +11,13 @@ export default function Video({id, user, master, local, fref, stream, setLiveCal
     const { videoRef, devices:[devices,setDevices], settings:[settings,setSettings], localStream:[localStream,setLocalStream] } = useContext(StreamSettings);
     
     let ref = useRef(null);
-    const [audioEnabled, setAudio]        = useState(settings && settings.audio && settings.audio !== 'None');
-    const [videoEnabled, setVideo]        = useState(settings && settings.video && settings.video !== 'None');
+    const [audioEnabled, setAudio] = useState(settings && settings.audio && settings.audio !== 'None');
+    const [videoEnabled, setVideo] = useState(settings && settings.video && settings.video !== 'None');
 
-    //if(local) 
-    //ref = videoRef;
+    useEffect(()=>{ 
+        setAudio(settings.audio && settings.audio !== 'None');
+        setVideo(settings.video && settings.video !== 'None');
+    },[settings?.audio, settings?.video]);
 
     useEffect(()=>{ 
         if(stream && ref && ref.current )
@@ -34,8 +36,6 @@ export default function Video({id, user, master, local, fref, stream, setLiveCal
         <video ref={ref} autoPlay playsInline muted={local}/>
         
         <div className="stream-controls">
-            {/*!local &&  audioEnabled && <i class="bi bi-volume-up-fill  " onClick={ ()=> stream.getAudioTracks().forEach( track => {track.enabled = !track.enabled; setAudio(track.enabled);}) } /> }
-            {!local && !audioEnabled && <i class="bi bi-volume-mute-fill"  /> */}
             {!local && !audioEnabled && <i className={`bi ${audioEnabled?"bi-volume-up-fill":"bi-volume-mute-fill"}`} onClick={ ()=> stream.getAudioTracks().forEach( track => {track.enabled = !track.enabled; setAudio(track.enabled);}) }/> }
             {!local && user.id === master && <button className="live-btn" onClick={(e)=>{ setLiveCallback(); e.currentTarget.classList.toggle('active'); }}> Live </button>}
         </div>
@@ -51,21 +51,17 @@ export default function Video({id, user, master, local, fref, stream, setLiveCal
                 variant="primary"
                 title={<i className={`bi ${videoEnabled?"bi-camera-video-fill":"bi-camera-video-off-fill"}`}/>}
                 toggleLabel=""
-                //onClick={()=> setVideo(!videoEnabled)}
                 onClick={ ()=> stream.getVideoTracks().forEach( track => {track.enabled = !track.enabled; setVideo(track.enabled);}) }
 
                 onSelect={(eventKey,event)=>{ 
-                    Array.from(event.currentTarget.parentElement.children).forEach((v,k,a)=>v.classList.remove("active"));
-                    event.currentTarget.classList.add("active");
-                    mediaAdapter.setVideo(event.currentTarget.getAttribute("value"));
+                    let [ option, set ] = [event.currentTarget, Array.from( event.currentTarget.parentElement.children ) ];
+                    set.forEach( v => v.classList.remove("active") );
+                    option.classList.add("active");
+                    mediaAdapter.setVideo(option.getAttribute("value"));
                 }}
             >
                 {(!devices || !devices.video) && <Dropdown.Item key={0} disabled eventKey={0}>No options available</Dropdown.Item>}
-                { devices && devices.video &&  Object.entries(devices.video).map((v,k,a)=>{
-                    const [id,value] = v;
-                    return <Dropdown.Item key={k} eventKey={k} value={id}> {id} </Dropdown.Item>
-                    
-                })}
+                {  devices &&  devices.video  &&  Object.entries(devices.video).map(([id,value], k) => <Dropdown.Item key={k} eventKey={k} value={id} > {id} </Dropdown.Item> )}
             </SplitButton>
 
             <SplitButton
@@ -77,21 +73,16 @@ export default function Video({id, user, master, local, fref, stream, setLiveCal
                 variant="primary"
                 title={<i className={`bi ${audioEnabled?"bi-mic-fill":"bi-mic-mute-fill"}`}/>}
                 toggleLabel=""
-                //onClick={()=>setAudio(!audioEnabled)}
                 onClick={ ()=> stream.getAudioTracks().forEach( track => {track.enabled = !track.enabled; setAudio(track.enabled);}) }
                 onSelect={(eventKey,event)=>{ 
-                    Array.from(event.currentTarget.parentElement.children).forEach((v,k,a)=>v.classList.remove("active"));
-                    event.currentTarget.classList.add("active");
-                    mediaAdapter.setAudio(event.currentTarget.getAttribute("value"));
+                    let [ option, set ] = [event.currentTarget, Array.from( event.currentTarget.parentElement.children ) ];
+                    set.forEach( v => v.classList.remove("active") );
+                    option.classList.add("active");
+                    mediaAdapter.setVideo(option.getAttribute("value"));
                 }}
             >
                 {(!devices || !devices.audio) && <Dropdown.Item key={0} disabled eventKey={0}>No options available</Dropdown.Item>}
-                {  devices && devices.audio &&  Object.entries(devices.audio).map((v,k,a)=>{
-                    const [id,value] = v;
-                    return (<>
-                        <Dropdown.Item key={k} eventKey={k} value={id} > {id} </Dropdown.Item>
-                    </>);
-                })}
+                {  devices &&  devices.audio  &&  Object.entries(devices.audio).map(([id,value], k) => <Dropdown.Item key={k} eventKey={k} value={id} > {id} </Dropdown.Item> )}
             </SplitButton>
         </div>}
     </div>;
