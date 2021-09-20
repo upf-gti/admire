@@ -19,14 +19,11 @@ export default function Room({ user, setNavItems }) {
     //All stream properties
     const { videoRef, devices: [devices, setDevices], settings: [settings, setSettings], localStream: [localStream, setLocalStream] } = useContext(StreamSettings);
 
-
-    //References for vDOM elements
-    //let localVideo                          = useRef(null);
-
     //Retrieved from URL
     let { roomId } = useParams();
     let [state, setState] = useState(0);
     let [calls, setCalls] = useState(0);
+    let [liveCallId, setLiveCallId] = useState(null);    
 
     function forcerefresh() {
         setState(state + 1)
@@ -35,10 +32,11 @@ export default function Room({ user, setNavItems }) {
 
     let livestreamRef = useRef(null);
     let [streams, setStreams] = useState({});
+    let [forwardStreams, setForwardStreams] = useState({});
+
     let [roomInfo, setRoomInfo] = useState(null);
     let [selected, setSelected] = useState('local');
     let [showModal, setShowModal] = useState(null);
-    let [selectedStream, setSelectedStream] = useState(null);
 
     //let   [ users,        setUsers ]        = useState( [] );
     //const [ settings,     setSettings ]     = useState(null);
@@ -57,9 +55,9 @@ export default function Room({ user, setNavItems }) {
 
         rtcClient.on("incoming_call", onIncomingCall);
         rtcClient.on("call_opened", onCallOpened);
-        rtcClient.on('call_closed', onCallClosed);
         rtcClient.on("call_response", onCallResponse);
-        rtcClient.on('user_hangup', onCallClosed);
+        rtcClient.on('call_closed', onCallClosed);
+        rtcClient.on('user_hangup', onCallHangup);
 
         //This is to be sure when user is leaving the room because a refresh/closing/leaving the tab
         let onBeforeUnload, onUnload;
@@ -146,26 +144,39 @@ export default function Room({ user, setNavItems }) {
     }
 
     function onCallResponse(message) {
-        Log.warn(`onCallResponse`);
+        Log.success(`onCallResponse`);
         console.log(message)
     }
 
-    function isCallIdLive(callId) {
-        let { calleeId, callerId } = rtcClient.getCalls()[callId];
-        return [calleeId, callerId].find(v => v.indexOf('.live') !== -1)
-    }
-
     function onCallOpened({ call, stream }) {
-        const callId = call.callId();
+        const callId = call.callId;
 
         Log.success(`Call ${callId} started`);
 
         window.streams = streams;
 
         streams[callId] = stream;
-        setStreams(Object.assign({}, streams));
+        console.log('el stream de adri es:', stream.id, 'el stream de her es:', localStream.id);
 
-        if (!isCallIdLive(callId)) {
+        setStreams(Object.assign({}, streams));
+        
+        const isForwardingHub = Object.entries(forwardStreams).some(
+            ([forwardingCallId, mediaHubtarget]) => {
+                if(mediaHubtarget !== call.calleeId) return false;
+
+                //Entonces es la que acabo de forwardear al mediahub
+                const forward_stream = streams[forwardingCallId];
+                //Replace video and audio stream tracks
+                let videotrack = forward_stream.getVideoTracks()[0];
+                let audiotrack = forward_stream.getAudioTracks()[0];
+                call.replaceLocalVideoTrack(videotrack);
+                call.replaceLocalAudioTrack(audiotrack);
+
+                return true;
+            });
+        
+        if( !isForwardingHub ) //calleeid es mediahub?
+        {
             //Replace video and audio stream tracks
             let videotrack = localStream.getVideoTracks()[0];
             let audiotrack = localStream.getAudioTracks()[0];
@@ -174,10 +185,28 @@ export default function Room({ user, setNavItems }) {
         }
     }
 
-    function onCallClosed({ call }) {
-        const callId = call.callId();
+    function onCallHangup({ callId }) { 
+        if(!callId)
+        {
+            console.error("No call");
+            return;
+        }
 
         Log.warn(`Call ${callId} hangup`);
+        delete streams[callId];
+        setStreams(Object.assign({}, streams));
+    }
+    
+    function onCallClosed({ call }) {
+        if(!call)
+        {
+            console.error("No call");
+            return;
+        }
+        
+        const callId = call.callId;
+
+        Log.warn(`Call ${callId} closed`);
         delete streams[callId];
         setStreams(Object.assign({}, streams));
     }
@@ -188,10 +217,12 @@ export default function Room({ user, setNavItems }) {
             return;
         }
 
-        const { callerId, calleeId, } = rtcClient.getCalls()[showModal];
-        const [callId, target, liveuser, stream] = [showModal, livestreamRef.current.value, calleeId === user.id ? callerId : calleeId, streams[showModal]];
+        const [forwardingCallId, mediaHubtarget] = [showModal, livestreamRef.current.value];
 
-        if (!rtcClient.call(target, stream))
+        forwardStreams[forwardingCallId] = mediaHubtarget;
+        setForwardStreams( Object.assign({}, forwardStreams) );
+
+        if (!rtcClient.call(mediaHubtarget))
             Log.error(`call missed to backend ${user}`);
     }
 
@@ -249,7 +280,7 @@ export default function Room({ user, setNavItems }) {
                             let { calleeId, callerId } = rtcClient.getCalls()[v[0]];
                             let id = (calleeId === user.id) ? callerId : calleeId;
 
-                            return <Col key={k} className='p-1'> <Video user={user} master={roomInfo.master} id={id} stream={v[1]} playsInline setLiveCallback={() => { setShowModal(v[0]); }} /></Col>
+                            return <Col key={k} className='p-1'> <Video user={user} master={roomInfo.master} id={id} key={id} stream={v[1]} playsInline setLiveCallback={() => { setShowModal( v[0] ); }} /></Col>
                         })}
                     </Row>
                 </Col>}
