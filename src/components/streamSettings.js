@@ -43,17 +43,21 @@ export default function({children})
     { 
         setSettings(settings);
         setLocalStream(stream);
-        for( let callId in rtcClient.getCalls() )
+
+        for( const callId in rtcClient.getCalls() )
         {
+            let call = rtcClient.getCall(callId);
+            
             //track.enabled = true;
             {
                 let track = stream.getVideoTracks()[0];
-                rtcClient.replaceLocalVideoTrack(callId, track);
+                call.replaceLocalVideoTrack(track);
             }
             {
                 let track = stream.getAudioTracks()[0];
-                rtcClient.replaceLocalAudioTrack(callId, track);
+                call.replaceLocalAudioTrack(track);
             }
+            
         }
     }
 
