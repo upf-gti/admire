@@ -71,15 +71,14 @@ export default function Lobby({user, setLogin, setNavItem}) {
         <title>AdMiRe: {`${user.type !== "0" ? "Admin" : "User"} ${ user.id }`}</title>
     </Helmet>
     <Modal 
-        centered 
         id="create-room-modal" 
-        show={showModal?true:false} 
-        //onHide={()=>setShowModal(false)}
+        show={showModal?true:false}
+        onHide={() => setShowModal(null)}
+        onKeyDown={ (e)=> { if(e.keyCode === 13)doCreateRoom();} } 
+        
+        centered 
+        tabIndex="0"
         aria-labelledby="contained-modal-title-vcenter"
-        onKeyDown={ (e)=>{
-            if(e.keyCode === 13)
-                doCreateRoom();
-        } } tabIndex="0"
     >
         <Modal.Header>
             <Modal.Title>Create new teleporting room</Modal.Title>
