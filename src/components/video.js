@@ -79,7 +79,7 @@ export default function Video({id, user, master, local, fref, stream, setLiveCal
                     let [ option, set ] = [event.currentTarget, Array.from( event.currentTarget.parentElement.children ) ];
                     set.forEach( v => v.classList.remove("active") );
                     option.classList.add("active");
-                    mediaAdapter.setVideo(option.getAttribute("value"));
+                    mediaAdapter.setAudio(option.getAttribute("value"));
                 }}
             >
                 {(!devices || !devices.audio) && <Dropdown.Item key={0} disabled eventKey={0}>No options available</Dropdown.Item>}
