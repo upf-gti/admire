@@ -1,7 +1,8 @@
 import Helmet from 'react-helmet';
 import { useRef, useEffect, useState, useContext, useReducer } from 'react';
 import { rtcClient, appClient } from 'extra/bra';
-import { Container, Card, Image as ReactImage, Button, Form, Modal, Col } from 'react-bootstrap';
+import { Container, Card, Image as ReactImage, Button, Form, Modal, Col  } from 'react-bootstrap';
+import FloatingLabel from 'react-bootstrap/FloatingLabel';
 import { ToastContext } from 'components/toasts';
 import { getCookie, setCookie } from 'extra/cookies';
 
@@ -295,15 +296,14 @@ export default function Login({ setLogin }) {
                     <Modal.Body>
 
                         <span>Fullfill your contact information to continue.</span>
-
-                        
-                        <Form.Group className="mb-1" children={<Form.Control placeholder='username'  type="text"     required    /> }/>
-                        <Form.Group className="mb-1" children={<Form.Control placeholder='email'     type="email"    required    value={userEmail} onChange={event => setEmail(event.target.value)} isInvalid={!isEmailValid} /> }/>
-                        <Form.Group className="mb-1" children={<Form.Control placeholder='password'  type="password" required    /> }/>
-                        <Form.Group className="mb-1" children={<Form.Control placeholder='avatar URL'type="text"     value={image_url!==''?image_url:gravatar_url} onChange={event => setImageURL(event.target.value)}  /> }/>
-                        <Form.Group className="mb-1" children={<Form.Control placeholder='name'      type="text"                 /> }/>
-                        <Form.Group className="mb-1" children={<Form.Control placeholder='surname'   type="text"                 /> }/>
-                        <Form.Group className="mb-1" children={<Form.Control placeholder='birthdate' type="date"                 /> }/>
+                                
+                        <Form.Group className = "mb-1" children = {<FloatingLabel label="username">     <Form.Control placeholder='username'  type="text" />    </FloatingLabel> }/>
+                        <Form.Group className = "mb-1" children = {<FloatingLabel label="email">        <Form.Control placeholder='email'     type="email"    value={userEmail} onChange={event => setEmail(event.target.value)} isInvalid={!isEmailValid} /></FloatingLabel> }/>
+                        <Form.Group className = "mb-1" children = {<FloatingLabel label="password">     <Form.Control placeholder='password'  type="password" /></FloatingLabel> }/>
+                        <Form.Group className = "mb-1" children = {<FloatingLabel label="avatar URL">   <Form.Control placeholder='avatar URL'type="text"     value={image_url!==''?image_url: userEmail !==''? gravatar_url: ''} onChange={event => setImageURL(event.target.value)}  /></FloatingLabel> }/>
+                        <Form.Group className = "mb-1" children = {<FloatingLabel label="name">         <Form.Control placeholder='name'      type="text" />    </FloatingLabel> }/>
+                        <Form.Group className = "mb-1" children = {<FloatingLabel label="surname">      <Form.Control placeholder='surname'   type="text" />    </FloatingLabel> }/>
+                        <Form.Group className = "mb-1" children = {<FloatingLabel label="birthddate">   <Form.Control placeholder='birthdate' type="date" />    </FloatingLabel> }/>
 
                         <div className="form-floating">
                             <select className="form-select" id="floatingSelect" aria-label="Floating label select example">
