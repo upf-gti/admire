@@ -139,6 +139,7 @@ export default function Login({ setLogin }) {
 
     async function doSubmitLogin() {
         const [email, password] = Array.from(loginRef.current.elements).map(v => v.value);
+        if(!email || !password){ Log.error('Please fill in all fields'); return; }
         await login(email, password);
     }
 
@@ -245,7 +246,7 @@ export default function Login({ setLogin }) {
                         <h1 id="title" className="mb-2 text-center">admire</h1>
                         {/*<h4 id="subtitle">Login</h4>*/}
 
-                        <Form noValidate ref={loginRef} onKeyPress={handleKeypress}>
+                        <Form noValidate ref={loginRef} onKeyDown={ (e)=> { if(e.keyCode === 13)doSubmitLogin();} } >
 
                             <Form.Group className="mb-2">
                                 <Form.Control placeholder='email' />
