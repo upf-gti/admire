@@ -29,6 +29,9 @@ function ContextContainer({ children }) {
       <Toaster
         position="top-right"
         reverseOrder={false}
+        toastOptions={{
+          duration: 2000,
+        }}
       />
       <StreamSettings>
         {children}
