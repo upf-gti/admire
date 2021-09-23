@@ -23,7 +23,7 @@ export default function Room({ user, setNavItems }) {
     let { roomId } = useParams();
     let [state, setState] = useState(0);
     let [calls, setCalls] = useState(0);
-    let [liveCallId, setLiveCallId] = useState(null);    
+    let [liveCallId, setLiveCallId] = useState(null);
 
     function forcerefresh() {
         setState(state + 1)
@@ -101,7 +101,7 @@ export default function Room({ user, setNavItems }) {
 
             //window.removeEventListener('beforeunload', onBeforeUnload);
             window.removeEventListener('unload', onUnload);
-            
+
             Object.keys(rtcClient.getCalls()).forEach(callId => rtcClient.hangup(callId));
             appClient.leaveRoom();
 
@@ -159,10 +159,10 @@ export default function Room({ user, setNavItems }) {
         console.log('el stream de adri es:', stream.id, 'el stream de her es:', localStream.id);
 
         setStreams(Object.assign({}, streams));
-        
+
         const isForwardingHub = Object.entries(forwardStreams).some(
             ([forwardingCallId, mediaHubtarget]) => {
-                if(mediaHubtarget !== call.calleeId) return false;
+                if (mediaHubtarget !== call.calleeId) return false;
 
                 //Entonces es la que acabo de forwardear al mediahub
                 const forward_stream = streams[forwardingCallId];
@@ -174,8 +174,8 @@ export default function Room({ user, setNavItems }) {
 
                 return true;
             });
-        
-        if( !isForwardingHub ) //calleeid es mediahub?
+
+        if (!isForwardingHub) //calleeid es mediahub?
         {
             //Replace video and audio stream tracks
             let videotrack = localStream.getVideoTracks()[0];
@@ -185,9 +185,8 @@ export default function Room({ user, setNavItems }) {
         }
     }
 
-    function onCallHangup({ callId }) { 
-        if(!callId)
-        {
+    function onCallHangup({ callId }) {
+        if (!callId) {
             console.error("No call");
             return;
         }
@@ -196,14 +195,13 @@ export default function Room({ user, setNavItems }) {
         delete streams[callId];
         setStreams(Object.assign({}, streams));
     }
-    
+
     function onCallClosed({ call }) {
-        if(!call)
-        {
+        if (!call) {
             console.error("No call");
             return;
         }
-        
+
         const callId = call.callId;
 
         Log.warn(`Call ${callId} closed`);
@@ -220,7 +218,7 @@ export default function Room({ user, setNavItems }) {
         const [forwardingCallId, mediaHubtarget] = [showModal, livestreamRef.current.value];
 
         forwardStreams[forwardingCallId] = mediaHubtarget;
-        setForwardStreams( Object.assign({}, forwardStreams) );
+        setForwardStreams(Object.assign({}, forwardStreams));
 
         if (!rtcClient.call(mediaHubtarget))
             Log.error(`call missed to backend ${user}`);
@@ -260,14 +258,9 @@ export default function Room({ user, setNavItems }) {
             </Modal.Footer>
         </Modal>
 
-        <Container id="room" className="text-center" fluid="lg" >
+        <Container id="room" className="text-center" fluid >
             {/*<h1 id="title" style={{color:"hsl(210, 11%, 85%)", marginTop:"1rem"}}></h1>*/}
-            <h1 id="title" className='pt-3'>
-                <Button as={Link} to='/' size='sm' variant="outline-light" >
-                    <i className="bi bi-box-arrow-left" style={{ position: 'relative', top: '-2px', fontSize: 'x-large' }} />
-                </Button>
-                #{roomId}
-            </h1>
+
 
             <Row style={{ height: "100%" }}>
 
@@ -280,12 +273,20 @@ export default function Room({ user, setNavItems }) {
                             let { calleeId, callerId } = rtcClient.getCalls()[v[0]];
                             let id = (calleeId === user.id) ? callerId : calleeId;
 
-                            return <Col key={k} className='p-1'> <Video user={user} master={roomInfo.master} id={id} key={id} stream={v[1]} playsInline setLiveCallback={() => { setShowModal( v[0] ); }} /></Col>
+                            return <Col key={k} className='p-1'> <Video user={user} master={roomInfo.master} id={id} key={id} stream={v[1]} playsInline setLiveCallback={() => { setShowModal(v[0]); }} /></Col>
                         })}
                     </Row>
                 </Col>}
 
                 <Col id="mainstream" xs={{ order: 'last' }} sm={{ order: 'first' }}>
+
+                    <h1 id="title" className='pt-3'>
+                        <Button as={Link} to='/' size='sm' variant="outline-light" >
+                            <i className="bi bi-box-arrow-left" style={{ position: 'relative', top: '-2px', fontSize: 'x-large' }} />
+                        </Button>
+                        #{roomId}
+                    </h1>
+
                     <div className="m-auto align-self-center">
                         <Video user={user} master={roomInfo.master} id={'local'} key={-1} stream={localStream} local playsInline />
                     </div>

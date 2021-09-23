@@ -1,18 +1,19 @@
 import React, { useState, useEffect, useReducer, useContext, lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Switch, Route, Redirect, Link, useHistory } from 'react-router-dom';
-import { Image, Button, ProgressBar  } from 'react-bootstrap';
+import { Image, Button, ProgressBar } from 'react-bootstrap';
 
 import { getCookie, setCookie } from 'extra/cookies';
 import { rtcClient, appClient, mediaAdapter } from 'extra/bra';
 
-import {ToastContext} from 'components/toasts';
-import {StreamSettings} from 'components/streamSettings';
+import { ToastContext } from 'components/toasts';
+import { StreamSettings } from 'components/streamSettings';
 
 import "./app.scss";
 import img3 from 'assets/img/wizard2.png';
 
 
 const Room = lazy(() => import('views/room'));
+const V404 = lazy(() => import('views/v404'));
 const Login = lazy(() => import('views/login'));
 const Lobby = lazy(() => import('views/lobby'));
 const Wizzard = lazy(() => import('views/wizzard'));
@@ -20,7 +21,7 @@ const ResetPassword = lazy(() => import('views/reset-password'));
 const Navbar = lazy(() => import('components/navbar'));
 
 
-let timeoutId; 
+let timeoutId;
 export default function App() {
 
     const rtcUrl = "wss://admire-dev-rtc.brainstorm3d.com/";
@@ -28,52 +29,52 @@ export default function App() {
 
     const history = useHistory();
     const Log = useContext(ToastContext);
-    const { videoRef, devices:[devices,setDevices], settings:[settings,setSettings], localStream:[localStream,setLocalStream] } = useContext(StreamSettings);
-    
-    const [login, setLogin]       = useState(null);
+    const { videoRef, devices: [devices, setDevices], settings: [settings, setSettings], localStream: [localStream, setLocalStream] } = useContext(StreamSettings);
+
+    const [login, setLogin] = useState(null);
     const [fetching, setFetching] = useState(false);
     const [NavItems, setNavItems] = useState({});
 
-    const [ready, setReady] = useReducer((state, newState)=>{ 
+    const [ready, setReady] = useReducer((state, newState) => {
         localStorage.setItem('admire-user-ready', newState);
         sessionStorage.setItem('admire-user-ready', newState);
-        return newState; 
-    }, null, 
-    (initialValue)=>{
-        let state = JSON.parse(sessionStorage.getItem('admire-user-ready') ?? localStorage.getItem('admire-user-ready')) ?? initialValue;
-        localStorage.setItem('admire-user-ready', state);
-        sessionStorage.setItem('admire-user-ready', state); 
-        return state;
-    });  
+        return newState;
+    }, null,
+        (initialValue) => {
+            let state = JSON.parse(sessionStorage.getItem('admire-user-ready') ?? localStorage.getItem('admire-user-ready')) ?? initialValue;
+            localStorage.setItem('admire-user-ready', state);
+            sessionStorage.setItem('admire-user-ready', state);
+            return state;
+        });
 
-    
+
     useEffect(() => { //Acts like 'componentWillMount'
-            console.clear();    
-            //setFetching(true);
-            setNavItem( 'wizzard',<Link to='/wizzard'> <li> <Image src={img3} style={{filter:'invert(1)'}} width={24}/> Wizzard</li> </Link> );
+        console.clear();
+        //setFetching(true);
+        setNavItem('wizzard', <Link to='/wizzard'> <li> <Image src={img3} style={{ filter: 'invert(1)' }} width={24} /> Wizzard</li> </Link>);
 
-            appClient.on("logout_response",      onLogOut);
-            appClient.on('client_connected',     onAppClientConnect);
-            appClient.on('client_disconnected',  onDisconnect);
-            //appClient.on("autologin_response",   onAutoLoginResponse);
-            
-            rtcClient.on('client_connected',     onRtcClientConnect);
-            
-            appClient.connect(appUrl);
-            
+        appClient.on("logout_response", onLogOut);
+        appClient.on('client_connected', onAppClientConnect);
+        appClient.on('client_disconnected', onDisconnect);
+        //appClient.on("autologin_response",   onAutoLoginResponse);
+
+        rtcClient.on('client_connected', onRtcClientConnect);
+
+        appClient.connect(appUrl);
+
         return () => {//Acts like /componentWillUnmount'
             setNavItem('wizzard', null);
 
-            appClient.off('client_connected',    onAppClientConnect);
+            appClient.off('client_connected', onAppClientConnect);
             appClient.off('client_disconnected', onDisconnect);
-            appClient.off("logout_response",     onLogOut);
-            
-            rtcClient.off('client_connected',    onRtcClientConnect);
+            appClient.off("logout_response", onLogOut);
+
+            rtcClient.off('client_connected', onRtcClientConnect);
 
             appClient.disconnect();
             rtcClient.disconnect();
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [appUrl, rtcUrl]); //This are the direct dependencies, the useEffect applies an observer pattern, whenever the value changes, the useEffect is called again.
 
     function onAppClientConnect(event) {
@@ -108,55 +109,57 @@ export default function App() {
         }
     }*/
 
-    function doLogOut(){
-        setCookie('credentials',null, 0);
+    function doLogOut() {
+        setCookie('credentials', null, 0);
         appClient.logout();
     }
 
-    function onLogOut(){
+    function onLogOut() {
         Log.info(`Logout`);
         setLogin(null);
         rtcClient.unregister();
     }
 
-    function setNavItem(id, item)
-    {  
-        if(item === null)
+    function setNavItem(id, item) {
+        if (item === null)
             delete NavItems[id];
         else
             NavItems[id] = item;
 
-        setNavItems( Object.assign({},NavItems) );
+        setNavItems(Object.assign({}, NavItems));
     }
 
-    
+
     const renderLoader = () => (<>
         <ProgressBar animated now={100} />
     </>);
 
     return (<>
         {
-            document.fullscreenEnabled && 
-            <Button onClick={()=>document.fullscreen?document.exitFullscreen():document.body.requestFullscreen()} variant="link" style={{zIndex:10000, position:"absolute", top:10, right:10, border:"none", boxShadow:"none"}}> <i className={"bi " + document.fullscreen?"bi-fullscreen-exit":"bi-fullscreen"}></i> </Button>    
+            document.fullscreenEnabled &&
+            <Button onClick={() => document.fullscreen ? document.exitFullscreen() : document.body.requestFullscreen()} variant="link" style={{ zIndex: 10000, position: "absolute", top: 10, right: 10, border: "none", boxShadow: "none" }}> <i className={"bi " + document.fullscreen ? "bi-fullscreen-exit" : "bi-fullscreen"}></i> </Button>
         }
-      
-        <Suspense fallback={renderLoader()}>
-        <Router>
-            { !login && <Route exact path='/reset-password/:token'> <ResetPassword/> </Route> }
-            { !login && <Route><Login login={login} setLogin={setLogin}/></Route> }
 
-            { login && <div className="app wrapper">
-                <Navbar user={login} doLogOut={doLogOut} items={Object.values(NavItems)}/>
-                <div id="content">
+        <Suspense fallback={renderLoader()}>
+
+            <Router>
                 <Switch>
-                        { !ready && <Wizzard user={login} ready={{ready, setReady}} setNavItem={setNavItem}/> }
-                        <Route exact path='/wizzard'> <Wizzard user={login} ready={{ready, setReady}} setNavItem={setNavItem}/> </Route>
-                        <Route exact path='/rooms/:roomId'> <Room user={login} setNavItem={setNavItem}/> </Route>
-                        <Route> <Lobby setLogin={setLogin} user={login} setNavItem={setNavItem} key={Math.floor((Math.random() * 10000))} /> </Route>
+                    <Route exact path='/room-not-found'> <V404 /> </Route>
+
+                    {!login && <Route exact path='/reset-password/:token'> <ResetPassword /> </Route>}
+                    {!login && <Route><Login login={login} setLogin={setLogin} /></Route>}
+                    { login && <div className="app wrapper">
+                        <Navbar user={login} doLogOut={doLogOut} items={Object.values(NavItems)} />
+                        <div id="content">
+
+                            {!ready && <Wizzard user={login} ready={{ ready, setReady }} setNavItem={setNavItem} />}
+                            <Route exact path='/wizzard'> <Wizzard user={login} ready={{ ready, setReady }} setNavItem={setNavItem} /> </Route>
+                            <Route exact path='/rooms/:roomId'> <Room user={login} setNavItem={setNavItem} /> </Route>
+                            <Route exact path='/'> <Lobby setLogin={setLogin} user={login} setNavItem={setNavItem} key={Math.floor((Math.random() * 10000))} /> </Route>
+                        </div>
+                    </div>}
                 </Switch>
-                </div>
-            </div> }
-        </Router>
+            </Router>
         </Suspense>
     </>);
 }
