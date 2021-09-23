@@ -5,7 +5,7 @@ import { Modal, Form, FloatingLabel, Button } from 'react-bootstrap';
 import post from 'extra/post';
 
 
-export default function ({show, setShow = () => alert('not defined')}) {
+export default function ({show, setShow}) {
     const Log = useContext(ToastContext);
 
     const recoveryRef = useRef(null);

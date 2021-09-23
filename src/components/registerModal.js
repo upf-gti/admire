@@ -7,7 +7,7 @@ import post from 'extra/post';
 
 
 
-export default function  ({show, setShow = () => alert('not defined') }) {
+export default function  ({show, setShow }) {
     const Log = useContext(ToastContext);
 
     const registerRef = useRef(null);
