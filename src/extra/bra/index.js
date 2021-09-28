@@ -1,7 +1,7 @@
 // eslint-disable
 
 //import AdapterJS from 'adapterjs';
-import { RTCClient }    from "./rtcClient.js";      // eslint-disable-line
+import { RTCEvent, RTCClient }    from "./rtcClient.js";      // eslint-disable-line
 import { LobbyClient }  from './lobbyClient.js';      // eslint-disable-line
 import { MediaAdapter } from "./mediaAdapter.js";   // eslint-disable-line
 import { DummyStream }  from "./dummyStream.js";
@@ -16,6 +16,7 @@ let appClient    = window.appClient    = new LobbyClient(),
     mediaAdapter.DEBUG = false;
 
 export {
+   RTCEvent,
    rtcClient, 
    appClient,
    mediaAdapter,

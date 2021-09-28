@@ -31,9 +31,7 @@ export default function App() {
     const { videoRef, devices:[devices,setDevices], settings:[settings,setSettings], localStream:[localStream,setLocalStream] } = useContext(StreamSettings);
     
     const [login, setLogin]       = useState(null);
-    const [fetching, setFetching] = useState(false);
     const [NavItems, setNavItems] = useState({});
-
     const [ready, setReady] = useReducer((state, newState)=>{ 
         localStorage.setItem('admire-user-ready', newState);
         sessionStorage.setItem('admire-user-ready', newState);
@@ -49,14 +47,11 @@ export default function App() {
     
     useEffect(() => { //Acts like 'componentWillMount'
             console.clear();    
-            //setFetching(true);
             setNavItem( 'wizzard',<Link to='/wizzard'> <li> <Image src={img3} style={{filter:'invert(1)'}} width={24}/> Wizzard</li> </Link> );
 
             appClient.on("logout_response",      onLogOut);
             appClient.on('client_connected',     onAppClientConnect);
             appClient.on('client_disconnected',  onDisconnect);
-            //appClient.on("autologin_response",   onAutoLoginResponse);
-            
             rtcClient.on('client_connected',     onRtcClientConnect);
             
             appClient.connect(appUrl);
@@ -67,7 +62,6 @@ export default function App() {
             appClient.off('client_connected',    onAppClientConnect);
             appClient.off('client_disconnected', onDisconnect);
             appClient.off("logout_response",     onLogOut);
-            
             rtcClient.off('client_connected',    onRtcClientConnect);
 
             appClient.disconnect();

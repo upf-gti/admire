@@ -7,7 +7,7 @@ import post from 'extra/post';
 
 
 
-export default function  ({show, setShow }) {
+export default function RegisterModal({show, setShow }) {
     const Log = useContext(ToastContext);
 
     const registerRef = useRef(null);

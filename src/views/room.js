@@ -2,7 +2,7 @@ import Helmet from 'react-helmet';
 import { useState, useEffect, useRef, useContext } from 'react';
 import { Container, Row, Col, Button, Modal, Form, OverlayTrigger } from 'react-bootstrap';
 import { useParams, useHistory, Link } from 'react-router-dom';
-import { rtcClient, appClient, mediaAdapter, dummyStream } from 'extra/bra';
+import { RTCEvent, rtcClient, appClient, mediaAdapter, dummyStream } from 'extra/bra';
 
 import "./room.scss";
 import V404 from 'views/v404';
@@ -10,96 +10,64 @@ import Video from 'components/video';
 import VideoStream from 'components/videostream';
 import { StreamSettings } from 'components/streamSettings';
 import { Toasts, ToastContext } from 'components/toasts';
+import ForwardStreamModal from 'components/forwardStreamModal';
 
 
 
 export default function Room({ user, setNavItems }) {
-    let history = useHistory();
-    const Log = useContext(ToastContext);
-    //All stream properties
-    const { videoRef, devices: [devices, setDevices], settings: [settings, setSettings], localStream: [localStream, setLocalStream] } = useContext(StreamSettings);
-
-    //Retrieved from URL
-    let { roomId } = useParams();
+    //Params    
     let [state, setState] = useState(0);
-    let [calls, setCalls] = useState(0);
-    let [liveCallId, setLiveCallId] = useState(null);    
-
-    function forcerefresh() {
-        setState(state + 1)
-        setTimeout(forcerefresh, 2000);
-    }
-
-    let livestreamRef = useRef(null);
     let [streams, setStreams] = useState({});
-    let [forwardStreams, setForwardStreams] = useState({});
-
+    let [liveCalls, setLiveCalls] = useState({});
     let [roomInfo, setRoomInfo] = useState(null);
-    let [selected, setSelected] = useState('local');
     let [showModal, setShowModal] = useState(null);
 
-    //let   [ users,        setUsers ]        = useState( [] );
-    //const [ settings,     setSettings ]     = useState(null);
-    //const [ resolutions,  setResolutions ]  = useState(null);
-    //const [ audioDevices, setAudioDevices ] = useState(null);
-    //const [ videoDevices, setVideoDevices ] = useState(null);
+    //Retrieved from URL
+    const Log = useContext(ToastContext);
+    let { roomId } = useParams();
+    
+    //Other stuff
+    let history = useHistory();
+    const { videoRef, devices: [devices, setDevices], settings: [settings, setSettings], localStream: [localStream, setLocalStream] } = useContext(StreamSettings);
 
     useEffect(() => {//Executes when this component is mounted
-        console.log('mount');
-        let onGuestJoin, onGuestLeft, onMasterLeft, onGetRooms;
-        appClient.on('join_room_response', onJoinRoom);
-        appClient.on('get_rooms_response', onGetRooms = ({ id, status, description, roomInfos }) => { setRoomInfo(Object.assign({}, roomInfos[roomId])); });
-        appClient.on('master_left_room', onMasterLeft = (message) => { Log.warn('Master left'); /* modal master left, on ok return lobby*/history.push('/') }); //Tal vez estos tres podrian devolver la info de la room 
-        appClient.on('guest_joined_room', onGuestJoin = (message) => { Log.info('Guest joined'); appClient.getRooms(); }); //asi no lo he de pedir cada vez.
-        appClient.on('guest_left_room', onGuestLeft = (message) => { Log.warn('Guest left'); appClient.getRooms(); }); //
+        let onGuestJoin, onGuestLeft, onMasterLeft, onUnload, onGetRoom;
+        appClient.on('get_room_response'    , onGetRoom    = ({roomInfo})   => setRoomInfo(Object.assign({}, roomInfo)));
+        appClient.on('guest_left_room'      , onGuestLeft  = (message)      => { Log.warn('Guest left');   appClient.getRoom(); }); //
+        appClient.on('master_left_room'     , onMasterLeft = (message)      => { Log.warn('Master left'); /* modal master left, on ok return lobby*/ history.push('/') });  //Tal vez estos tres podrian devolver la info de la room 
+        appClient.on('guest_joined_room'    , onGuestJoin  = (message)      => { Log.info('Guest joined'); appClient.getRoom(); }); //asi no lo he de pedir cada vez.
 
-        rtcClient.on("incoming_call", onIncomingCall);
-        rtcClient.on("call_opened", onCallOpened);
-        rtcClient.on("call_response", onCallResponse);
-        rtcClient.on('call_closed', onCallClosed);
-        rtcClient.on('user_hangup', onCallHangup);
+        rtcClient.on(RTCEvent.IncomingCall  , onIncomingCall );
+        rtcClient.on(RTCEvent.CallOpened    , onCallOpened   );
+        rtcClient.on(RTCEvent.CallClosed    , onCallClosed   );
+        rtcClient.on(RTCEvent.UserHangup    , onCallHangup   );
 
         //This is to be sure when user is leaving the room because a refresh/closing/leaving the tab
-        let onBeforeUnload, onUnload;
-        //window.addEventListener('beforeunload', onBeforeUnload = (e) => { e.preventDefault(); e.returnValue = ''; });
         window.addEventListener('unload', onUnload = (e) => { appClient.leaveRoom(); });
-
-        //Validate the room exists before joining // do we really need this?
-        let validationCallback;
-        appClient.getRooms();
-        appClient.on('get_rooms_response', validationCallback = ({ id, status, description, roomInfos }) => {
-            appClient.off('get_rooms_response', validationCallback);
-            roomInfo = roomInfos[roomId];
-            setRoomInfo(Object.assign({}, roomInfos[roomId]));
-            if (!roomInfos[roomId]) {
-                Log.error("No RoomInfo");
-                history.push("/");
-                //window.location = '/';//Todo: como leches hago esto
-                return;
+        
+        (async function(){
+            roomInfo = await validateRoom(roomId);
+            setRoomInfo(Object.assign({}, roomInfo));
+            console.log(roomInfo);
+            if (roomInfo && [...roomInfo.guests ?? [], roomInfo.master].filter(v => v !== user.id).length){
+                console.log('join now!')
+                joinRoom(roomId)
+                .then(callUsers)
+                .then(forcerefresh);
             }
-
-            if ([...roomInfos[roomId].guests, roomInfos[roomId].master].filter(v => v !== user.id).length)
-                appClient.joinRoom(roomId);
-
-        });
-
-        forcerefresh();
-
+        })();
+            
         return () => {//Executes on dismount
-            Log.warn('room dismount');
-            appClient.off('get_rooms_response', onGetRooms);
-            appClient.off('join_room_response', onJoinRoom);
-            appClient.off('master_left_room', onMasterLeft);
-            appClient.off('guest_joined_room', onGuestJoin);
-            appClient.off('guest_left_room', onGuestLeft);
+            appClient.off('get_room_response'   , onGetRoom    );
+            appClient.off('master_left_room'    , onMasterLeft  );
+            appClient.off('guest_joined_room'   , onGuestJoin   );
+            appClient.off('guest_left_room'     , onGuestLeft   );
 
-            rtcClient.off('incoming_call', onIncomingCall);
-            rtcClient.off('call_opened', onCallOpened);
-            rtcClient.off('call_closed', onCallClosed);
-            rtcClient.off("call_response", onCallResponse);
-            rtcClient.off('user_hangup', onCallClosed);
+            rtcClient.off(RTCEvent.IncomingCall , onIncomingCall );
+            rtcClient.off(RTCEvent.CallOpened   , onCallOpened   );
+            rtcClient.off(RTCEvent.CallClosed   , onCallClosed   );
+            rtcClient.off(RTCEvent.UserHangup   , onCallHangup   );
 
-            //window.removeEventListener('beforeunload', onBeforeUnload);
             window.removeEventListener('unload', onUnload);
             
             Object.keys(rtcClient.getCalls()).forEach(callId => rtcClient.hangup(callId));
@@ -110,99 +78,104 @@ export default function Room({ user, setNavItems }) {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [roomId]);
 
-    function onJoinRoom({ status, description, userId, userType, channels }) {
-        if (status === 'error') {
-            Log.error(`Error onJoinRoom ${description}`);
-            return;
-        }
+    function forcerefresh() {
+        setState(state + 1)
+        setTimeout(forcerefresh, 2000);
+    }
 
-        if (!roomInfo) {
-            Log.error("No RoomInfo");
-            return;
-        }
+    function validateRoom(roomId) {
+        return new Promise((resolve, reject) => {
+            function success(data) {
+                let { id, status, description, roomInfos } = data;
+                appClient.off('get_rooms_response', success);
+                if (status === 'error') reject(data);
+                else resolve(roomInfos[roomId] ?? false);
+            }
+            appClient.on('get_rooms_response', success);
+            appClient.getRooms();
+        });
+    }
+    
+    function joinRoom(roomId) {
+        return new Promise((resolve, reject) => {
+            function success(data) {
+                appClient.off('join_room_response', success);
+                if (data?.status === 'error')
+                {
+                    Log.error(`Error onJoinRoom ${data?.description}`);
+                    reject(data);
+                    return;
+                } 
+                Log.success(`Joined to room ${roomId}`);
+                resolve(data);
+            }
+            appClient.on('join_room_response', success);
+            appClient.joinRoom(roomId);
+        });
+    }
 
-        Log.success(`Joined to room ${roomId}`);
-        //if(status === 'error') return console.error(status, description);
-
-        let stream = dummyStream.getStream();//localStream;// ?? dummyStream.getStream();
+    function callUsers() {
+        if(!roomInfo) return;
         let users = [...roomInfo.guests, roomInfo.master].filter((v, k, a) => { return v !== user.id });
-
-        for (let user of users) {
-            Log.warn(`Attempting call to ${user}`);
-
-            if (!rtcClient.call(user, stream))
+        for (let user of users) 
+        {
+            if (!rtcClient.call(user, () => console.log('call response')))
                 Log.error(`call missed to ${user}`);
         }
     }
 
     function onIncomingCall({ callId, callerId }) {
-        Log.warn(`onIncomingCall`);
-        let stream = dummyStream.getStream();// localStream;// ?? dummyStream.getStream();
-        Log.info(stream.id);
-        rtcClient.acceptCall(callId, stream);
+        rtcClient.acceptCall(callId);
         setState(state + 1);
-    }
-
-    function onCallResponse(message) {
-        Log.success(`onCallResponse`);
-        console.log(message)
     }
 
     function onCallOpened({ call, stream }) {
         const callId = call.callId;
 
-        Log.success(`Call ${callId} started`);
-
         window.streams = streams;
-
         streams[callId] = stream;
-        console.log('el stream de adri es:', stream.id, 'el stream de her es:', localStream.id);
-
         setStreams(Object.assign({}, streams));
         
-        const isForwardingHub = Object.entries(forwardStreams).some(
-            ([forwardingCallId, mediaHubtarget]) => {
-                if(mediaHubtarget !== call.calleeId) return false;
-
-                //Entonces es la que acabo de forwardear al mediahub
-                const forward_stream = streams[forwardingCallId];
-                //Replace video and audio stream tracks
-                let videotrack = forward_stream.getVideoTracks()[0];
-                let audiotrack = forward_stream.getAudioTracks()[0];
-                call.replaceLocalVideoTrack(videotrack);
-                call.replaceLocalAudioTrack(audiotrack);
-
-                return true;
-            });
+        const forwardingCallId = liveCalls[callId];
         
-        if( !isForwardingHub ) //calleeid es mediahub?
-        {
-            //Replace video and audio stream tracks
-            let videotrack = localStream.getVideoTracks()[0];
-            let audiotrack = localStream.getAudioTracks()[0];
+        //Live call
+        if(forwardingCallId){ 
+            const forward_stream = streams[forwardingCallId];
+            if(!forward_stream)
+            {
+                rtcClient.hangup(callId);
+                return;
+            }
+            let videotrack = forward_stream.getVideoTracks()[0];
+            let audiotrack = forward_stream.getAudioTracks()[0];   
             call.replaceLocalVideoTrack(videotrack);
             call.replaceLocalAudioTrack(audiotrack);
         }
+        
+        //Regular call
+        else{ 
+            let videotrack = localStream.getVideoTracks()[0];
+            let audiotrack = localStream.getAudioTracks()[0];   
+            call.replaceLocalVideoTrack(videotrack);
+            call.replaceLocalAudioTrack(audiotrack);
+        }
+        
+        Log.success(`Call ${callId} started`);
     }
 
     function onCallHangup({ callId }) { 
         if(!callId)
-        {
-            console.error("No call");
-            return;
-        }
+            return console.error("No call");
 
-        Log.warn(`Call ${callId} hangup`);
         delete streams[callId];
         setStreams(Object.assign({}, streams));
+
+        Log.warn(`Call ${callId} hangup`);
     }
     
     function onCallClosed({ call }) {
         if(!call)
-        {
-            console.error("No call");
-            return;
-        }
+            return console.error("No call");
         
         const callId = call.callId;
 
@@ -211,20 +184,11 @@ export default function Room({ user, setNavItems }) {
         setStreams(Object.assign({}, streams));
     }
 
-    function doUpgradeToLive() {
-        if (!livestreamRef || !livestreamRef.current || !showModal) {
-            console.error('livestreamref is null');
-            return;
-        }
-
-        const [forwardingCallId, mediaHubtarget] = [showModal, livestreamRef.current.value];
-
-        forwardStreams[forwardingCallId] = mediaHubtarget;
-        setForwardStreams( Object.assign({}, forwardStreams) );
-
-        if (!rtcClient.call(mediaHubtarget))
-            Log.error(`call missed to backend ${user}`);
+    function doUpgradeToLive(mediaHubCallId, forwardingCallId) {
+        liveCalls[mediaHubCallId] = forwardingCallId;
+        setLiveCalls( Object.assign({}, liveCalls) );
     }
+
 
     if (!roomInfo) return <V404 title={`Room '${roomId}' does not exist`} description='some description' />;
 
@@ -233,32 +197,7 @@ export default function Room({ user, setNavItems }) {
             <title>AdMiRe: {`${user.type !== "0" ? "Admin" : "User"} ${user.id}`}</title>
         </Helmet>
 
-        <Modal
-            centered
-            id="create-room-modal"
-            show={showModal ? true : false}
-            onHide={() => setShowModal(false)}
-            aria-labelledby="contained-modal-title-vcenter"
-            onKeyDown={(e) => {
-                if (e.keyCode === 13)
-                    doUpgradeToLive();
-            }} tabIndex="0"
-        >
-            <Modal.Header>
-                <Modal.Title> Send Peer to Live </Modal.Title>
-            </Modal.Header>
-
-            <Modal.Body>
-                <Form.Group className="mb-2">
-                    <Form.Control size="lg" ref={livestreamRef} placeholder='enter live Id' />
-                </Form.Group>
-            </Modal.Body>
-
-            <Modal.Footer className="text-center">
-                <Button variant="outline-secondary" onClick={() => setShowModal(false)} >Cancel</Button>
-                <Button variant="outline-primary" onClick={doUpgradeToLive} >Proceed!</Button>
-            </Modal.Footer>
-        </Modal>
+        <ForwardStreamModal show={showModal} setShow={setShowModal} callcack={doUpgradeToLive} />
 
         <Container id="room" className="text-center" fluid="lg" >
             {/*<h1 id="title" style={{color:"hsl(210, 11%, 85%)", marginTop:"1rem"}}></h1>*/}
