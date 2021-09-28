@@ -10,7 +10,7 @@ export default function ForwardStreamModal({show, setShow, callback}) {
     const ref = useRef(null);
     const [fetching, setFetching] = useState(0);//0: not fetching, 1: fetching, 2: sucess, 3: failed
 
-    function callback() {
+    function submit() {
 
         if ( !ref?.current || !show )
             return setShow(false);
@@ -64,10 +64,10 @@ export default function ForwardStreamModal({show, setShow, callback}) {
                 {  fetching === 1 && <Button variant="outline-primary"> 
                     <Spinner as="span"      animation="border"      size="sm"      role="status"      aria-hidden="true"/>
                  </Button> }
-                { fetching === 2 && <Button variant="outline-success" onClick={callback} > ✔️ Succeed! </Button> }
-                { fetching === 3 && <Button variant="outline-danger" onClick={callback} > ❌ Error </Button> }
+                { fetching === 2 && <Button variant="outline-success" > ✔️ Succeed! </Button> }
+                { fetching === 3 && <Button variant="outline-danger"  > ❌ Error </Button> }
                  
-                { !fetching && <Button variant="outline-primary" onClick={callback} >Proceed!</Button> }
+                { !fetching && <Button variant="outline-primary" onClick={submit} >Proceed!</Button> }
             </Modal.Footer>
         </Modal>
     </>;

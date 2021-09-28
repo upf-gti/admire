@@ -197,7 +197,7 @@ export default function Room({ user, setNavItems }) {
             <title>AdMiRe: {`${user.type !== "0" ? "Admin" : "User"} ${user.id}`}</title>
         </Helmet>
 
-        <ForwardStreamModal show={showModal} setShow={setShowModal} callcack={doUpgradeToLive} />
+        <ForwardStreamModal show={showModal} setShow={setShowModal} callback={doUpgradeToLive} />
 
         <Container id="room" className="text-center" fluid="lg" >
             {/*<h1 id="title" style={{color:"hsl(210, 11%, 85%)", marginTop:"1rem"}}></h1>*/}
