@@ -51,10 +51,10 @@ export default function Login({ setLogin }) {
 
     async function autoLogin() {
         const credentials = getCookie('credentials');
-        if (credentials) {
-            const { id, pass } = JSON.parse(credentials);
-            await login(id, pass);
-        }
+        if (!credentials) return;
+        const { id, pass } = JSON.parse(credentials);
+        if (!id || !pass) return;
+        await login(id, pass);
     }
 
     async function doSubmitLogin() {
@@ -128,7 +128,7 @@ export default function Login({ setLogin }) {
             </div>
         </Container>
 
-        <RegisterModal show={showRegister} setShow={setShowRecovery}/>
+        <RegisterModal show={showRegister} setShow={setShowRegister}/>
         <RecoveryModal show={showRecovery} setShow={setShowRecovery}/>
 
     </>);

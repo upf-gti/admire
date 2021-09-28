@@ -1,120 +1,152 @@
+export const RTCEvent =
+{
+	ClientConnected:        "client_connected",
+	ClientDisconnected:     "client_disconnected",
+    IncomingCall:           "incoming_call",
+    CallAccepted:           "call_accepted",
+    CallCanceled:           "call_canceled",
+    CallOpened:             "call_opened",
+    CallClosed:             "call_closed",
+    UserHangup:             "user_hangup"
+};
+
 export function RTCClient( settings )
 {
-//#region PRIVATE
-
-    let _settings =
+//#region Variables
+    let defaultSettings =
     {
-        // Debug messages to console?
         debug: false,
-
-        // Style used to debug messages.
         debugStyle: "background: hsla(0, 0%, 13%, 1); color: hsla(74, 64%, 60%, 1)",
-
-        // Period to send ping messages in ms.
         pingPeriod: 5 * 1000,
-
-        // The default stream to send.
         defaultStream: new MediaStream()
     };
 
     settings = (typeof settings !== "object") ? { } : settings;
-    settings = Object.assign(_settings, settings);
+    settings = Object.assign({ }, defaultSettings, settings);
 
     let console = (settings.debug) ? window.console : null;
 
-    let _events = { };
-    let _socket = null;
-    let _keepAliveTimeout = null;
-    let _calls = { };
+    let responses = { };
+    let events = { };
 
-    let _userId = null;
-    let _rtcConfiguration = { iceServers: null };
+    let calls = { };
+    let socket = null;
+    let keepAliveTimeout = null;
 
+    let userId = null;
+    let rtcConfiguration = { iceServers: null };
+//#endregion
+
+//#region Methods
     /**
      * Add a function that will be called whenever the specified event is emitted.
-     * @param {String} event - The event name.
-     * @param {Function} listener - The function to add.
      */
     let on = function( event, listener )
     {
-        if( typeof _events[event] !== "object" )
+        if( Object.values(RTCEvent).indexOf(event) == -1 )
         {
-            _events[event] = [];
+            return false;
         }
 
-        _events[event].push(listener);
+        if( !(listener instanceof Function) )
+        {
+            return false;
+        }
+
+        if( typeof events[event] !== "object" )
+        {
+            events[event] = [];
+        }
+
+        events[event].push(listener);
+
+        return true;
     };
 
     /**
      * Remove the function previously added to be called whenever the specified event is emitted.
-     * @param {String} event - The event name.
-     * @param {Function} listener - The previously added function.
      */
     let off = function( event, listener )
-    {   
-        if( typeof _events[event] === "object" )
+    {
+        if( Object.values(RTCEvent).indexOf(event) == -1 )
         {
-            let index = _events[event].indexOf(listener);
+            return false;
+        }
+
+        if( !(listener instanceof Function) )
+        {
+            return false;
+        }
+
+        if( typeof events[event] === "object" )
+        {
+            let index = events[event].indexOf(listener);
             if( index > -1 )
             {
-                _events[event].splice(index, 1);
+                events[event].splice(index, 1);
+                return true;
             }
         }
+
+        return false;
     };
 
     /**
      * Emit the specified event.
-     * @param {String} event - The event name.
      */
     let emit = function( event )
     {
+        if( Object.values(RTCEvent).indexOf(event) == -1 )
+        {
+            return false;
+        }
+
         let args = [].slice.call(arguments, 1);
 
-        if( typeof _events[event] === "object" )
+        if( typeof events[event] === "object" )
         {
-            let listeners = _events[event].slice();
+            let listeners = events[event].slice();
             for( let i = 0; i < listeners.length; i++ )
             {
                 listeners[i].apply(this, args);
             }
         }
+
+        return true;
     };
 
     /**
      * Get the call identified by the specified ID.
-     * @param {String} callId - The call ID.
-     * @return The call.
      */
     let getCall = function( callId )
     {
-        return (callId in _calls) ? _calls[callId] : null;
+        return (callId in calls) ? calls[callId] : null;
     };
  
     /**
      * Get all the calls.
-     * @return The calls collection.
      */
     let getCalls = function()
     {
-        return _calls;
+        return calls;
     };
 
     /**
      * Connect to the server.
-     * @param {String} url - The URL of the server.
      */
     let connect = function( url )
     {
-        if( _socket && _socket.readyState != 3 ) // Closed.
+        if( socket && socket.readyState != WebSocket.CLOSED )
         {
+            console?.error("WebSocket not closed");
             return;
         }
 
-        _socket = new WebSocket(url);
+        socket = new WebSocket(url);
 
-        _socket.onopen = onOpen;
-        _socket.onmessage = onMessage;
-        _socket.onclose = onClose;
+        socket.onopen = onOpen;
+        socket.onmessage = onMessage;
+        socket.onclose = onClose;
     };
 
     /**
@@ -122,106 +154,136 @@ export function RTCClient( settings )
      */
     let disconnect = function()
     {
-        if( !_socket || _socket.readyState == 1 ) // Open.
+        if( !socket || socket.readyState == WebSocket.OPEN )
         {
+            console?.error("WebSocket not opened");
             return;
         }
 
-        _socket?.close();
+        socket?.close();
     };
 
     /**
      * Event handler called when the connection is opened.
-     * @param {EventListener} event - The dispatched event.
      */
     let onOpen = function( event )
     {
-        // Start the keep alive routine.
-        keepAlive();
+        startKeepAlive();
 
-        console?.log("%c" + "client_connected" + "%o", settings.debugStyle, _socket.url);
+        console?.log("%c" + RTCEvent.ClientConnected + "%o", settings.debugStyle, socket.url);
 
-        emit("client_connected", { url: _socket.url });
-    };
-
-    /**
-     * Event handler called when a message is received from the server.
-     * @param {EventListener} msg - The message received.
-     */
-    let onMessage = function( msg )
-    {
-        let message = JSON.parse(msg.data);
-
-        // Check the message.
-        if( message.id in HANDLERS )
-        {
-            if( HANDLERS[message.id] === false )
-            {
-                return;
-            }
-
-            console?.log("%c%s" + "%o", settings.debugStyle, message.id, msg.data);
-
-            if( HANDLERS[message.id] instanceof Function )
-            {
-                HANDLERS[message.id](message);
-            }
-
-            emit(message.id, message);
-        }
-        else
-        {
-            console?.log("%cunknown_message" + "%o", settings.debugStyle, msg.data);
-        }
+        emit(RTCEvent.ClientConnected, { url: socket.url });
     };
 
     /**
      * Event handler called when the connection is closed.
-     * @param {EventListener} event - The dispatched event.
      */
     let onClose = function( event )
     {
-        _userId = null;
-        _rtcConfiguration.iceServers = null;
+        userId = null;
+        rtcConfiguration.iceServers = null;
 
-        // Stop the keep alive routine.
-        window.clearTimeout(_keepAliveTimeout);
+        stopKeepAlive();
 
-        console?.log("%c" + "client_disconnected" + "%o", settings.debugStyle, _socket.url);
-        emit("client_disconnected", { url: _socket.url });
+        console?.log("%c" + RTCEvent.ClientDisconnected + "%o", settings.debugStyle, socket.url);
+        emit(RTCEvent.ClientDisconnected, { url: socket.url });
+    };
+
+    /**
+     * Event handler called when a message is received from the server.
+     */
+    let onMessage = function( msg )
+    {
+        let message = JSON.parse(msg.data);
+        if( message.id === "pong" )
+        {
+            return;
+        }
+
+        console?.log(" %c%s" + "%o", settings.debugStyle, message.id, msg.data);
+
+        // Check whether the message needs internal handling.
+        switch( message.id )
+        {
+            case "register_response":       handleRegisterResponse(message);        break;
+            case "unregister_response":     handleUnregisterResponse(message);      break;
+            case "call_response":           handleCallResponse(message);            break;
+            case "incoming_call":           handleIncomingCall(message);            break;
+            case "call_accepted":           handleCallAccepted(message);            break;
+            case "call_canceled":           handleCallCanceled(message);            break;
+            case "remote_offer":            handleRemoteOffer(message);             break;
+            case "remote_answer":           handleRemoteAnswer(message);            break;
+            case "remote_candidate":        handleRemoteCandidate(message);         break;
+            case "user_hangup":             handleUserHangup(message);              break;
+        }
+
+        // Check whether the message has a response listener.
+        if( message.uuid in responses )
+        {
+            let response = responses[message.uuid];
+            delete responses[message.uuid];
+            delete message.uuid;
+            response(message);
+        }
+
+        // Check whether the message has an event.
+        emit(message.id, message);
     };
 
     /**
      * Send a message to the server.
-     * @param {Object} message - The message to send.
      */
-    let sendMessage = function( message )
+    let sendMessage = function( message, response )
     {
-        let msg = JSON.stringify(message);
-
-        // Log all messages except pings.
-        if( message.id !== "ping" )
+        if( !socket || socket.readyState !== WebSocket.OPEN )
         {
-            console?.log("%c%s" + "%o", settings.debugStyle, message.id, msg);
+            return false;
         }
 
-        _socket.send(msg);
+        // Generate a UUID.
+        message.uuid = uuid();
+
+        // Add the response listener.
+        if( response instanceof Function )
+        {
+            responses[message.uuid] = response;
+        }
+
+        // Send the message.
+        let msg = JSON.stringify(message);
+        socket.send(msg);
+        if( message.id !== "ping" )
+        {
+            console?.log(" %c%s" + "%o", settings.debugStyle, message.id, msg);
+        }
+
+        return true;
     };
 
     /**
-     * Start a keep alive routine.
+     * Start a keep alive timeout.
      */
-    let keepAlive = function()
+    let startKeepAlive = function()
     {
-        if( !_socket || _socket.readyState !== 1 ) // Open.
+        if( !socket || socket.readyState !== WebSocket.OPEN )
         {
-            console?.error("Socket state: " + _socket.readyState);
-            return;
+            console?.error("WebSocket not opened");
+            return false;
         }
 
         ping();
 
-        _keepAliveTimeout = window.setTimeout(keepAlive, settings.pingPeriod);
+        keepAliveTimeout = window.setTimeout(startKeepAlive, settings.pingPeriod);
+
+        return true;
+    };
+
+    /**
+     * Stop the keep alive timeout.
+     */
+    let stopKeepAlive = function()
+    {
+        window.clearTimeout(keepAliveTimeout);
     };
  
     /**
@@ -229,68 +291,38 @@ export function RTCClient( settings )
      */
     let ping = function()
     {
-        if( !_socket || _socket.readyState !== 1 ) // Open.
-        {
-            console?.error("Socket state: " + _socket.readyState);
-            return false;
-        }
-
         let message =
         {
             id: "ping"
         };
-        sendMessage(message);
-
-        return true;
+        return sendMessage(message);
     };
 
     /**
      * Register to the server.
-     * @param {String} userId - The user ID.
-     * @return {Boolean} Whether the register message has been sent.
      */
-    let register = function( userId )
+    let register = function( username, response )
     {
-        if( !_socket || _socket.readyState !== 1 ) // Open.
-        {
-            console?.error("Socket state: " + _socket.readyState);
-            return false;
-        }
-
-        if( _userId )
+        if( userId )
         {
             console?.error("Client already registered");
-            return false;
-        }
-
-        if( !validateId(userId) )
-        {
-            console?.error("Invalid user id " + userId);
             return false;
         }
 
         let message =
         {
             id: "register",
-            userId: userId
+            userId: username
         };
-        sendMessage(message);
-
-        return true;
+        return sendMessage(message, response);
     };
 
     /**
      * Unregister from the server.
      */
-    let unregister = function()
+    let unregister = function( response )
     {
-        if( !_socket || _socket.readyState !== 1 ) // Open.
-        {
-            console?.error("Socket state: " + _socket.readyState);
-            return false;
-        }
-
-        if( !_userId )
+        if( !userId )
         {
             console?.error("Client not registered");
             return false;
@@ -301,26 +333,17 @@ export function RTCClient( settings )
         let message =
         {
             id: "unregister",
-            userId: _userId
+            userId: userId
         };
-        sendMessage(message);
-
-        return true;
+        return sendMessage(message, response);
     };
 
     /**
-     * Call a user with the specified stream.
-     * @param {String} calleeId - The callee ID.
+     * Call a user.
      */
-    let call = function( calleeId )
+    let call = function( calleeId, response )
     {
-        if( !_socket || _socket.readyState !== 1 ) // Open.
-        {
-            console?.error("Socket state: " + _socket.readyState);
-            return false;
-        }
-
-        if( _userId === calleeId || !validateId(calleeId) )
+        if( userId === calleeId )
         {
             console?.error("Invalid user id " + calleeId);
             return false;
@@ -329,53 +352,43 @@ export function RTCClient( settings )
         let message =
         {
             id: "call",
-            callerId: _userId,
+            callerId: userId,
             calleeId: calleeId
         };
-        sendMessage(message);
-
-        return true;
+        return sendMessage(message, response);
     };
 
     /**
      * Close a call.
-     * @param {String} callId - The call ID.
      */
     let closeCall = function( callId )
     {
-        if( !(callId in _calls) )
+        if( !(callId in calls) )
         {
             return false;
         }
 
-        let call = _calls[callId];
-        call.connection?.close();
-        delete(_calls[callId]);
+        let call = calls[callId];
+        call.close();
+        delete(calls[callId]);
 
-        emit("call_closed", { call: call });
+        emit(RTCEvent.CallClosed, { call: call });
 
         return true;
     };
 
     /**
      * Accept a call.
-     * @param {String} callId - The call ID.
      */
-    let acceptCall = function( callId )
+    let acceptCall = function( callId, response )
     {
-        if( !_socket || _socket.readyState !== 1 ) // Open.
-        {
-            console?.error("Socket state: " + _socket.readyState);
-            return false;
-        }
-
-        if( !(callId in _calls) )
+        if( !(callId in calls) )
         {
             console?.error("Call " + callId + " not found");
             return false;
         }
 
-        let call = _calls[callId];
+        let call = calls[callId];
 
         let message =
         {
@@ -384,32 +397,23 @@ export function RTCClient( settings )
             callerId: call.callerId,
             calleeId: call.calleeId
         };
-        sendMessage(message);
-
-        return true;
+        return sendMessage(message, response);
     };
 
     /**
      * Cancel a call.
-     * @param {String} callId - The call ID.
      */
-    let cancelCall = function( callId )
+    let cancelCall = function( callId, response )
     {
-        if( !_socket || _socket.readyState !== 1 ) // Open.
-        {
-            console?.error("Socket state: " + _socket.readyState);
-            return false;
-        }
-
-        if( !(callId in _calls) )
+        if( !(callId in calls) )
         {
             console?.error("Call " + callId + " not found");
             return false;
         }
 
         // Delete the call.
-        let call = _calls[callId];
-        delete _calls[callId];
+        let call = calls[callId];
+        delete calls[callId];
 
         let message =
         {
@@ -418,47 +422,36 @@ export function RTCClient( settings )
             callerId: call.callerId,
             calleeId: call.calleeId
         };
-        sendMessage(message);
-
-        return true;
+        return sendMessage(message, response);
     };
 
     /**
      * Hang up a call. If call ID is undefined then all calls are hang up.
-     * @param {String} callId - The call ID.
      */
-    let hangup = function( callId )
+    let hangup = function( callId, response )
     {
-        if( !_socket || _socket.readyState !== 1 ) // Open.
+        if( callId ) // Close the call.
         {
-            console?.error("Socket state: " + _socket.readyState);
-            return false;
-        }
-
-        if( callId && !(callId in _calls) )
-        {
-            console?.error("Call " + callId + " not found");
-            return false;
-        }
-
-        if( callId )
-        {
-            closeCall(callId);
+            if( !closeCall(callId) )
+            {
+                return false;
+            }
 
             let message =
             {
                 id: "hangup",
                 callId: callId
             };
-            sendMessage(message);
-
-            return true;
+            return sendMessage(message, response);
         }
-        else // Hang up all calls.
+        else // Close all the calls.
         {
-            for( let callId in _calls )
+            for( let callId in calls )
             {
-                closeCall(callId);
+                if( !closeCall(callId) )
+                {
+                    continue;
+                }
 
                 let message =
                 {
@@ -468,80 +461,99 @@ export function RTCClient( settings )
                 sendMessage(message);
             }
 
+            calls = { };
+
             return true;
         }
     };
 
     /**
-     * Register response event handler.
-     * @param {Object} event - The event object.
+     * Generate a universally unique identifier.
+     * Reference: RFC 4122 https://www.ietf.org/rfc/rfc4122.txt
      */
-    let onRegisterResponse = function( event )
+    let uuid = function()
+    {
+        return uuidv4();
+    };
+ 
+    /**
+     * Generate a universally unique identifier v4.
+     * Reference: https://stackoverflow.com/questions/105034/how-to-create-a-guid-uuid
+     */
+    let uuidv4 = function()
+    {
+        return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
+        (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
+        );
+    };
+//#endregion
+
+//#region EventHandlers
+    /**
+     * Register response event handler.
+     */
+    let handleRegisterResponse = function( event )
     {
         if( event.status === "ok" )
         {
-            _userId = event.userId;
-            _rtcConfiguration.iceServers = JSON.parse(event.iceServers);
+            userId = event.userId;
+            rtcConfiguration.iceServers = JSON.parse(event.iceServers);
         }
     };
 
     /**
      * Unregister response event handler.
-     * @param {Object} event - The event object.
      */
-    let onUnregisterResponse = function( event )
+    let handleUnregisterResponse = function( event )
     {
         if( event.status === "ok" )
         {
-            _userId = null;
-            _rtcConfiguration.iceServers = null;
+            userId = null;
+            rtcConfiguration.iceServers = null;
         }
     };
 
     /**
      * Call response event handler.
-     * @param {Object} event - The event object.
      */
-    let onCallResponse = function( event )
+    let handleCallResponse = function( event )
     {
         if( event.status === "ok" )
         {
             // Create the call.
             let call = new RTCCall(event.callId, event.callerId, event.calleeId);
-            _calls[call.callId] = call;
+            calls[call.callId] = call;
         }
     };
 
     /**
      * Incoming call event handler.
-     * @param {Object} event - The event object.
      */
-    let onIncomingCall = function( event )
+    let handleIncomingCall = function( event )
     {
         // Create the call.
         let call = new RTCCall(event.callId, event.callerId, event.calleeId);
-        _calls[event.callId] = call;
+        calls[event.callId] = call;
     };
 
     /**
      * Call accepted event handler.
-     * @param {Object} event - The event object.
      */
-    let onCallAccepted = function( event )
+    let handleCallAccepted = function( event )
     {
         // Create the peer connection.
-        let peerConnection = new RTCPeerConnection(_rtcConfiguration);
-        let call = _calls[event.callId];
-        call.connection = peerConnection;
+        let peerConnection = new RTCPeerConnection(rtcConfiguration);
+        let call = calls[event.callId];
+        call.bind(peerConnection, true);
 
         // Handle the peer connection lifecycle.
-        call.connection.oniceconnectionstatechange = function( other )
+        peerConnection.oniceconnectionstatechange = function( other )
         {
-            onIceConnectionStateChange(call);
+            handleIceConnectionStateChange(call);
         }
 
         // Generate candidates.
-        call.connection.onicecandidate = function( other )
+        peerConnection.onicecandidate = function( other )
         {
             if( !other.candidate || other.candidate === "" ) // Empty if the RTCIceCandidate is an "end of candidates" indicator.
             {
@@ -559,13 +571,13 @@ export function RTCClient( settings )
             sendMessage(message);
         };
 
-        call.connection.onnegotiationneeded = function( other )
+        peerConnection.onnegotiationneeded = function( other )
         {
             // Generate offer.
-            call.connection.createOffer().then(function( sdp )
+            peerConnection.createOffer().then(function( sdp )
             {
                 // Set caller local description.
-                call.connection.setLocalDescription(sdp);
+                peerConnection.setLocalDescription(sdp);
 
                 let message =
                 {
@@ -580,44 +592,45 @@ export function RTCClient( settings )
         };
 
         // Add the tracks. This action triggers the ICE negotiation process.
-        let tracks = _settings.defaultStream.getTracks();
-        tracks.forEach(track => call.connection.addTrack(track));
+        let tracks = settings.defaultStream.getTracks();
+        tracks.forEach(track => peerConnection.addTrack(track));
+
+        // Create a default data channel to avoid renegotiation.
+        peerConnection.createDataChannel("default");
     };
 
     /**
      * Call canceled event handler.
-     * @param {Object} event - The event object.
      */
-    let onCallCanceled = function( event )
+    let handleCallCanceled = function( event )
     {
         closeCall(event.callId);
     };
 
     /**
      * Remote offer event handler.
-     * @param {Object} event - The event object.
      */
-    let onRemoteOffer = function( event )
+    let handleRemoteOffer = function( event )
     {
         // Create the peer connection.
-        let peerConnection = new RTCPeerConnection(_rtcConfiguration);
-        let call = _calls[event.callId];
-        call.connection = peerConnection;
+        let peerConnection = new RTCPeerConnection(rtcConfiguration);
+        let call = calls[event.callId];
+        call.bind(peerConnection, false);
 
         // Handle the peer connection lifecycle.
-        call.connection.oniceconnectionstatechange = function( other )
+        peerConnection.oniceconnectionstatechange = function( other )
         {
-            onIceConnectionStateChange(call);
+            handleIceConnectionStateChange(call);
         }
 
-        // Set callee remote description.
-        call.connection.setRemoteDescription(JSON.parse(event.offer));
+        // Set the callee remote description.
+        peerConnection.setRemoteDescription(JSON.parse(event.offer));
 
         // Gather the pending candidates.
         call.gatherPendingCandidates();
 
-        // Generate candidates.
-        call.connection.onicecandidate = function( other )
+        // Generate the candidates.
+        peerConnection.onicecandidate = function( other )
         {
             if( !other.candidate || other.candidate === "" ) // Empty if the RTCIceCandidate is an "end of candidates" indicator.
             {
@@ -636,16 +649,16 @@ export function RTCClient( settings )
         };
 
         // Add the tracks.
-        let tracks = _settings.defaultStream.getTracks();
-        tracks.forEach(track => call.connection.addTrack(track));
+        let tracks = settings.defaultStream.getTracks();
+        tracks.forEach(track => peerConnection.addTrack(track));
 
-        // Generate answer.
+        // Create the answer.
         window.setTimeout(function()
         {
-            call.connection.createAnswer().then(function( sdp )
+            peerConnection.createAnswer().then(function( sdp )
             {
-                // Set callee local description.
-                call.connection.setLocalDescription(sdp);
+                // Set the callee local description.
+                peerConnection.setLocalDescription(sdp);
 
                 let message =
                 {
@@ -662,24 +675,22 @@ export function RTCClient( settings )
 
     /**
      * Remote answer event handler.
-     * @param {Object} event - The event object.
      */
-    let onRemoteAnswer = function( event )
+    let handleRemoteAnswer = function( event )
     {
-        if( event.callId in _calls )
+        if( event.callId in calls )
         {
             let answer = JSON.parse(event.answer);
 
-            // Set caller remote description.
-            _calls[event.callId].connection.setRemoteDescription(answer);
+            // Set the caller remote description.
+            calls[event.callId].setRemoteDescription(answer);
         }
     };
 
     /**
      * Remote candidate event handler.
-     * @param {Object} event - The event object.
      */
-    let onRemoteCandidate = function( event )
+    let handleRemoteCandidate = function( event )
     {
         let candidate = JSON.parse(event.candidate);
         if( !candidate || !candidate.candidate || candidate.candidate === "" ) // Empty if the RTCIceCandidate is an "end of candidates" indicator.
@@ -687,27 +698,25 @@ export function RTCClient( settings )
             return;
         }
 
-        if( event.callId in _calls )
+        if( event.callId in calls )
         {
-            let call = _calls[event.callId];
+            let call = calls[event.callId];
             call.addCandidate(candidate);
         }
     };
 
     /**
      * User hangup event handler.
-     * @param {Object} event - The event object.
      */
-    let onUserHangup = function( event )
+    let handleUserHangup = function( event )
     {
         closeCall(event.callId);
     };
 
     /**
-     * Handle the ICE connection state change event.
-     * @param {RTCCall} call - The call.
+     * ICE connection state change event handler.
      */
-    let onIceConnectionStateChange = async function( call )
+    let handleIceConnectionStateChange = async function( call )
     {
         let state = call.getState();
         console?.log("%c" + "Connection State" + "%o%o", settings.debugStyle, call.callId, state);
@@ -730,65 +739,13 @@ export function RTCClient( settings )
             case "connected":
             {
                 let stream = call.getRemoteStream();
-                console?.log("%c" + "call_opened" + "%o%o", settings.debugStyle, call.callId, stream);
-                emit("call_opened", { call: call, stream: stream });
-
-                break;
-            }
-            default:
-            {
+                console?.log("%c" + RTCEvent.CallOpened + "%o%o", settings.debugStyle, call.callId, stream);
+                emit(RTCEvent.CallOpened, { call: call, stream: stream });
                 break;
             }
         }
     };
-
-    /**
-     * Validates the specified ID following a regular expression.
-     * @param {String} id - The ID to validate.
-     * @return Whether or not the ID is valid.
-     */
-    let validateId = function( id )
-    {
-        if( !id || id === "" )
-        {
-            return false;
-        }
-
-        let regex = new RegExp("^([a-zA-Z])(([a-zA-Z0-9]+)([.\-_]?))*([a-zA-Z0-9])$");
-        return regex.test(id);
-    };
-
-    /**
-     * Handlers used to listen messages from the server.
-     *      function - The message is valid, emitted and managed.
-     *      true - The message is valid, emitted and not managed.
-     *      false - The message is valid, not emitted and not managed.
-     *      undefined - The message is not valid.
-     */
-    const HANDLERS =
-    {
-        "pong":                     false,
-        "register_response":        onRegisterResponse,
-        "unregister_response":      onUnregisterResponse,
-        "call_response":            onCallResponse,
-        "incoming_call":            onIncomingCall,
-        "accept_call_response":     false,
-        "cancel_call_response":     false,
-        "call_accepted":            onCallAccepted,
-        "call_canceled":            onCallCanceled,
-        "offer_response":           false,
-        "remote_offer":             onRemoteOffer,
-        "answer_response":          false,
-        "remote_answer":            onRemoteAnswer,
-        "candidate_response":       false,
-        "remote_candidate":         onRemoteCandidate,
-        "hangup_response":          true,
-        "user_hangup":              onUserHangup
-    };
-
 //#endregion
-
-//#region PUBLIC
 
     return {
         on,
@@ -804,68 +761,108 @@ export function RTCClient( settings )
         cancelCall,
         hangup
     };
-
-//#endregion
 }
 
 export function RTCCall( callId, callerId, calleeId )
 {
-//#region PRIVATE
+//#region Variables
+    let connection = null;
+    let candidates = [];
+    let channels = { };
+    let initiator = false;
+//#endregion
 
-    let _callId = callId;
-    let _callerId = callerId;
-    let _calleeId = calleeId;
+//#region Methods
+    /**
+     * Bind the call to a peer connection.
+     */
+    let bind = function( peerConnection, isInitiator )
+    {
+        if( !(peerConnection instanceof RTCPeerConnection) )
+        {
+            return false;
+        }
 
-    let _connection = null;
-    let _candidates = [];
+        connection = peerConnection;
+        initiator = isInitiator;
+
+        // Handle the data channel event internally to track the data channels lifecycle.
+        connection.addEventListener("datachannel", function( event )
+        {
+            channels[event.channel.label] = event.channel;
+
+            // Handle the close event.
+            event.channel.addEventListener("onclose", function( event )
+            {
+                delete channels[event.channel.label];
+            });
+        });
+
+        return true;
+    };
+
+    /**
+     * Close the call.
+     */
+    let close = function()
+    {
+        connection?.close();
+    };
+
+    /**
+     * Return whether the user is the initiator.
+     */
+    let isInitiator = function()
+    {
+        return initiator;
+    };
 
     /**
      * Get the call state.
-     * @return {String} The call state.
      */
     let getState = function()
     {
-        return (_connection) ? _connection.iceConnectionState : "closed";
-    }
+        return (connection) ? connection.iceConnectionState : "closed";
+    };
 
     /**
      * Get the call stats.
-     * @return {Object} The call stats.
      */
     let getStats = async function()
     {
-        if( !_connection )
+        if( !connection )
         {
             return;
         }
 
-        return await _connection.getStats(null).then(function( stats )
-        {
-            let callStats = { callId: _callId, callerId: _callerId, calleeId: _calleeId };
+        let callStats = { callId: callId, callerId: callerId, calleeId: calleeId };
 
+        return await connection.getStats(null).then(function( stats )
+        {
             // Get the stats of the succeeded candidate pair.
-            let candidatePair = null;
+            let pairStats = null;
             stats.forEach(report =>
             {
+                //console.log(report);
                 if( report.type === "candidate-pair" && (report.selected === true || report.state === "succeeded") )
                 {
-                    candidatePair = report;
+                    pairStats = report;
                 }
             });
 
             // Get the stats of the local and remote candidates.
-            if( candidatePair )
+            if( pairStats )
             {
                 stats.forEach(report =>
                 {
-                    if( report.id === candidatePair.localCandidateId )
+                    if( report.id === pairStats.localCandidateId )
                     {
                         callStats.localType = report.candidateType;
                         callStats.localAddress = report.address ?? report.ip;
                         callStats.localPort = report.port;
                         callStats.localProtocol = report.protocol;
                     }
-                    if( report.id === candidatePair.remoteCandidateId )
+                    if( report.id === pairStats.remoteCandidateId )
                     {
                         callStats.remoteType = report.candidateType;
                         callStats.remoteAddress = report.address ?? report.ip;
@@ -881,17 +878,16 @@ export function RTCCall( callId, callerId, calleeId )
 
     /**
      * Add a candidate or save it for gathering.
-     * @param {Object} candidate 
      */
     let addCandidate = function( candidate )
     {
-        if( !_connection )
+        if( !connection )
         {
-            _candidates.push(candidate);
+            candidates.push(candidate);
         }
         else
         {
-            _connection.addIceCandidate(candidate);
+            connection.addIceCandidate(candidate);
         }
     };
 
@@ -900,26 +896,75 @@ export function RTCCall( callId, callerId, calleeId )
      */
     let gatherPendingCandidates = function()
     {
-        if( _candidates.length > 0 )
+        if( candidates.length > 0 )
         {
-            _candidates.forEach(candidate => _connection.addIceCandidate(candidate));
-            _candidates = [];
+            candidates.forEach(candidate => connection.addIceCandidate(candidate));
+            candidates = [];
         }
     };
 
     /**
+     * Set the remote session description.
+     */
+    let setRemoteDescription = function( description )
+    {
+        if( !connection )
+        {
+            return false;
+        }
+
+        connection.setRemoteDescription(description);
+
+        return true;
+    };
+
+    /**
+     * [NYI] Set the stream's bandwidth.
+     * References:
+     * https://webrtchacks.com/limit-webrtc-bandwidth-sdp/
+     * https://stackoverflow.com/questions/57653899/how-to-increase-the-bitrate-of-webrtc
+     */
+    let setBandwidth = function( bandwidth )
+    {
+        if( !connection )
+        {
+            return false;
+        }
+
+        let senders = connection.getSenders();
+        if( !senders )
+        {
+            return false;
+        }
+
+        for( let i = 0; i < senders.length; i++ )
+        {
+            let sender = senders[i];
+            let parameters = sender.getParameters();
+            if( !parameters.encodings )
+            {
+                parameters.encodings = [{ }];
+            }
+
+            parameters.encodings[0].maxBitrate = bandwidth * 1000;
+
+            sender.setParameters(parameters);
+        }
+
+        return true;
+    };
+
+    /**
      * Get the remote audio track specified by index.
-     * @param {Number} index
-     * @return {MediaStreamTrack} The audio track.
      */
     let getRemoteAudioTrack = function ( index = 0 )
     {
-        if( !_connection )
+        if( !connection )
         {
             return null;
         }
 
-        let receivers = _connection.getReceivers();
+        let receivers = connection.getReceivers();
         if( !receivers )
         {
             return null;
@@ -945,17 +990,15 @@ export function RTCCall( callId, callerId, calleeId )
 
     /**
      * Get the remote video track specified by index.
-     * @param {Number} index
-     * @return {MediaStreamTrack} The video track.
      */
     let getRemoteVideoTrack = function ( index = 0 )
     {
-        if( !_connection )
+        if( !connection )
         {
             return null;
         }
 
-        let receivers = _connection.getReceivers();
+        let receivers = connection.getReceivers();
         if( !receivers )
         {
             return null;
@@ -981,16 +1024,15 @@ export function RTCCall( callId, callerId, calleeId )
 
     /**
      * Get the remote stream of the peer connection composed by all the audio and video tracks.
-     * @return {MediaStream} The remote stream.
      */
     let getRemoteStream = function()
     {
-        if( !_connection )
+        if( !connection )
         {
             return null;
         }
 
-        let receivers = _connection.getReceivers();
+        let receivers = connection.getReceivers();
         if( !receivers )
         {
             return null;
@@ -1023,19 +1065,16 @@ export function RTCCall( callId, callerId, calleeId )
 
     /**
      * Replace the local audio track specified by index.
-     * @param {MediaStreamTrack} track - The audio track.
-     * @param {Number} index
-     * @return Whether the track has been replaced.
      */
     let replaceLocalAudioTrack = function( track, index = 0 )
     {
-        if( !_connection || !track )
+        if( !connection || !track )
         {
             return false;
         }
 
         let audioSenders = [];
-        let senders = _connection.getSenders();
+        let senders = connection.getSenders();
         for( let i = 0; i < senders.length; i++ )
         {
             let sender = senders[i];
@@ -1056,19 +1095,16 @@ export function RTCCall( callId, callerId, calleeId )
 
     /**
      * Replace the local video track specified by index.
-     * @param {MediaStreamTrack} track - The video track.
-     * @param {Number} index
-     * @returns Whether the track has been replaced.
      */
     let replaceLocalVideoTrack = function( track, index = 0 )
     {
-        if( !_connection || !track )
+        if( !connection || !track )
         {
             return false;
         }
 
         let videoSenders = [];
-        let senders = _connection.getSenders();
+        let senders = connection.getSenders();
         for( let i = 0; i < senders.length; i++ )
         {
             let sender = senders[i];
@@ -1086,27 +1122,174 @@ export function RTCCall( callId, callerId, calleeId )
 
         return false;
     };
-
 //#endregion
 
-//#region PUBLIC
+//#region DataChannel
+    /**
+     * Open a data channel.
+     */
+    let openChannel = function( label )
+    {
+        if( !connection || label in channels )
+        {
+            return false;
+        }
+
+        let channel = connection.createDataChannel(label);
+        channels[label] = channel;
+
+        // Handle the close event.
+        channel.addEventListener("onclose", function( event )
+        {
+            delete channels[channel.label];
+        });
+
+        return true;
+    };
+
+    /**
+     * Close a data channel.
+     */
+    let closeChannel = function( label )
+    {
+        if( !connection || !(label in channels) )
+        {
+            return false;
+        }
+
+        let channel = channels[label];
+        channel.close();
+        delete channels[label];
+
+        return true;
+    };
+
+    /**
+     * Set a callback for the data channel event.
+     */
+    let onDataChannel = function( callback )
+    {
+        if( !connection )
+        {
+            return false;
+        }
+
+        connection.addEventListener("datachannel", callback);
+
+        return true;
+    };
+
+    /**
+     * Set a callback to a data channel open event.
+     */
+    let onChannelOpen = function( label, callback )
+    {
+        if( !connection || !(label in channels) || !(callback instanceof Function) )
+        {
+            return false;
+        }
+
+        let channel = channels[label];
+        channel.onopen = callback;
+
+        return true;
+    };
+
+    /**
+     * Set a callback to a data channel close event.
+     */
+    let onChannelClose = function( label, callback )
+    {
+        if( !connection || !(label in channels) || !(callback instanceof Function) )
+        {
+            return false;
+        }
+
+        let channel = channels[label];
+        channel.addEventListener("onclose", callback);
+
+        return true;
+    };
+
+    /**
+     * Set a callback to a data channel error event.
+     */
+    let onChannelError = function( label, callback )
+    {
+        if( !connection || !(label in channels) || !(callback instanceof Function) )
+        {
+            return false;
+        }
+
+        let channel = channels[label];
+        channel.onerror = callback;
+
+        return true;
+    };
+
+    /**
+     * Set a callback to a data channel message event.
+     */
+    let onChannelMessage = function( label, callback )
+    {
+        if( !connection || !(label in channels) || !(callback instanceof Function) )
+        {
+            return false;
+        }
+
+        let channel = channels[label];
+        channel.onmessage = callback;
+
+        return true;
+    };
+
+    /**
+     * Send data through an opened channel.
+     */
+    let sendData = function( label, data )
+    {
+        if( !connection || !(label in channels) )
+        {
+            return false;
+        }
+
+        let channel = channels[label];
+        if( channel.readyState !== "open" )
+        {
+            return false;
+        }
+
+        channel.send(data);
+
+        return true;
+    };
+//#endregion
 
     return {
-        get callId() { return _callId; },
-        get callerId() { return _callerId; },
-        get calleeId() { return _calleeId; },
-        get connection() { return _connection; },
-        set connection( value ) { _connection = value; },
+        get callId() { return callId; },
+        get callerId() { return callerId; },
+        get calleeId() { return calleeId; },
+        bind,
+        close,
+        isInitiator,
         getState,
         getStats,
         addCandidate,
         gatherPendingCandidates,
+        setRemoteDescription,
+        setBandwidth,
         getRemoteAudioTrack,
         getRemoteVideoTrack,
         getRemoteStream,
         replaceLocalAudioTrack,
-        replaceLocalVideoTrack
+        replaceLocalVideoTrack,
+        openChannel,
+        closeChannel,
+        onDataChannel,
+        onChannelOpen,
+        onChannelClose,
+        onChannelError,
+        onChannelMessage,
+        sendData
     };
-
-//#endregion
 }

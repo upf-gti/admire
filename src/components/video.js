@@ -18,10 +18,10 @@ export default function Video({id, user, master, local, fref, stream, setLiveCal
         if(!settings) return;
         setAudio(settings.audio && settings.audio !== 'None');
         setVideo(settings.video && settings.video !== 'None');
-    },[settings?.audio, settings?.video]);
+    },[settings, settings?.audio, settings?.video]);
 
     useEffect(()=>{ 
-        if(stream && ref && ref.current )
+        if(stream && ref?.current )
             ref.current.srcObject = stream;
     },[stream]);
 
