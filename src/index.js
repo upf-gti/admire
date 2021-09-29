@@ -18,7 +18,6 @@ import App from "views/app";
 
 function ContextContainer({ children }) {
   useEffect(() => window.toast = toast, [])
-  const [state, setState] = useState(0);
 
   return <>
     <Helmet>

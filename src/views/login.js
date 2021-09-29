@@ -14,8 +14,6 @@ import RecoveryModal from 'components/recoveryModal';
 import login_img from "assets/img/logo.png"
 import "./login.scss";
 
-
-
 export default function Login({ setLogin }) {
 
     const loginRef = useRef(null);
@@ -32,21 +30,14 @@ export default function Login({ setLogin }) {
         await post(`${API}/auth/basic`, { email, password })
             .then(response => {
                 switch (response.status) {
-                    case 401: //Invalid credentials
-                    case 404: //Not found
-                        Log.error(`Error ${response.error}: ${response.message}`, { id: toastId });
-                        break;
-                    default:
-                        Log.success('Success', { id: toastId });
-                        if (loginRef.current) {
-                            setCookie('credentials', JSON.stringify({ id: email, pass: password }), 30);
-                        }
+                    case 404: Log.error(`Error ${response.error}: ${response.message}`, { id: toastId }); break;
+                    default: Log.success('Success', { id: toastId });
                         appClient.login(response.access_token);
+                        if (loginRef.current)
+                            setCookie('credentials', JSON.stringify({ id: email, pass: password }), 30);
                 }
             })
-            .catch(err => {
-                Log.error(`Error catch: ${err}`, { id: toastId });
-            });
+            .catch(err => Log.error(`Error catch: ${err}`, { id: toastId }));
     }
 
     async function autoLogin() {
@@ -63,22 +54,14 @@ export default function Login({ setLogin }) {
         await login(email, password);
     }
 
-    function onLogin(event) {
-
-        const { status, userId, userType, description } = event;
-
+    function onLogin({ status, userId, userType, description }) {
         switch (status) {
-            case 'ok':
+            case 'ok': Log.success(`Logged as '${userId}'`);
                 setLogin({ id: userId, type: userType });
                 rtcClient.register(userId);
-                Log.success(`Logged as '${event.userId}'`);
                 break;
-            case 'error':
-                //TODO: show error toast
-                Log.error(description);
-                break;
-            default:
-                Log.warn(description);
+            case 'error': Log.error(description); break;
+            default: Log.warn(description);
         }
     }
 
@@ -92,9 +75,7 @@ export default function Login({ setLogin }) {
     }, []);
 
     return (<>
-        <Helmet>
-            <title>AdMiRe: LogIn</title>
-        </Helmet>
+        <Helmet><title>AdMiRe: LogIn</title></Helmet>
         <AnimatedBackground color1="#1B222E" color2="#666" speed={3} />
 
         <Container className="login d-flex vh-100">
@@ -128,8 +109,8 @@ export default function Login({ setLogin }) {
             </div>
         </Container>
 
-        <RegisterModal show={showRegister} setShow={setShowRegister}/>
-        <RecoveryModal show={showRecovery} setShow={setShowRecovery}/>
+        <RegisterModal show={showRegister} setShow={setShowRegister} />
+        <RecoveryModal show={showRecovery} setShow={setShowRecovery} />
 
     </>);
 }

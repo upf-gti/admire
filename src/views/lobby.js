@@ -6,7 +6,7 @@ import { Container, Card, Button, Modal, Form, Row, Col } from 'react-bootstrap'
 import {Toasts, ToastContext} from 'components/toasts';
 
 import RoomList from 'components/roomlist';
-
+import CreateRoomModal from 'components/createRoomModal';	
 import "./lobby.scss";
 
 export default function Lobby({user, setLogin, setNavItem}) {
@@ -31,13 +31,6 @@ export default function Lobby({user, setLogin, setNavItem}) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user]);
     
-    function doCreateRoom()
-    {
-        //console.log('create room');
-        appClient.createRoom(roomIdRef.current.value);
-        //document.location(`/rooms/${roomIdRef.current.value}`);
-    }
-
     function onCreateRoom({id, status, description, roomId})
     {
         switch(status)
@@ -46,12 +39,10 @@ export default function Lobby({user, setLogin, setNavItem}) {
                 Log.success(`Room '${roomId}' created`);
                 setShowModal(false);
                 history.push(`/rooms/${roomId}`)
-                //appClient.getRooms();
-                //document.location = `/rooms/${roomId}`;
-            break;
+                break;
+
             case 'error': Log.error(`onCreateRoom '${roomId}': ${description}`); break;
             default:      Log.warn( `onCreateRoom '${roomId}': ${description}`); break;
-
         }
     }
 
@@ -67,34 +58,7 @@ export default function Lobby({user, setLogin, setNavItem}) {
     }
 
     return (<>
-    <Helmet>
-        <title>AdMiRe: {`${user.type !== "0" ? "Admin" : "User"} ${ user.id }`}</title>
-    </Helmet>
-    <Modal 
-        id="create-room-modal" 
-        show={showModal?true:false}
-        onHide={() => setShowModal(null)}
-        onKeyDown={ (e)=> { if(e.keyCode === 13)doCreateRoom();} } 
-        
-        centered 
-        tabIndex="0"
-        aria-labelledby="contained-modal-title-vcenter"
-    >
-        <Modal.Header>
-            <Modal.Title>Create new teleporting room</Modal.Title>
-        </Modal.Header>
-
-        <Modal.Body>
-            <Form.Group className="mb-2" controlId="formCreateRoomID">
-                <Form.Control  size="lg" ref={roomIdRef} placeholder='roomId' />
-            </Form.Group>
-        </Modal.Body>
-
-        <Modal.Footer className="text-center">
-            <Button variant="outline-secondary" onClick={()=>setShowModal(false)} >Cancel</Button>
-            <Button variant="outline-primary" onClick={doCreateRoom} >Proceed!</Button>
-        </Modal.Footer>
-    </Modal>
+    <Helmet><title>AdMiRe: {`${user.type !== "0" ? "Admin" : "User"} ${ user.id }`}</title></Helmet>
 
     <Container fluid="xs" id="lobby" className="text-center">
         <Row className="justify-content-md-center">
@@ -107,16 +71,16 @@ export default function Lobby({user, setLogin, setNavItem}) {
                 Lobby: 
             </h1>
 
+            {  rooms && <RoomList rooms={rooms}/> }
             { !rooms && <span>No rooms found</span> }
-            { rooms && <RoomList rooms={rooms}/> }
 
-            
             <div className="footer">
                 {user.type !== "0" && <Button onClick={()=>setShowModal(true)}> <i className="bi bi-plus"/> New Room </Button>}
             </div>
-
         </Col>
         </Row>
     </Container>
+
+    <CreateRoomModal show={showModal} setShow={setShowModal} callback={()=>{}} />
     </>);
 }

@@ -19,8 +19,6 @@ const Wizzard = lazy(() => import('views/wizzard'));
 const ResetPassword = lazy(() => import('views/reset-password'));
 const Navbar = lazy(() => import('components/navbar'));
 
-
-let timeoutId; 
 export default function App() {
 
     const rtcUrl = "wss://admire-dev-rtc.brainstorm3d.com/";
@@ -77,30 +75,12 @@ export default function App() {
 
     function onRtcClientConnect(event) {
         Log.info(`Rtc client connected`);
-        //appClient.autologin();
         mediaAdapter.start();
     }
 
     function onDisconnect() {
         Log.warn(`App client disconnected`);
     }
-
-    /*function onAutoLoginResponse(event){
-        let {status, description, userId, userType} = event;
-        //setFetching(false);
-
-        switch(status)
-        {
-            case 'ok': {
-                Log.success(`Autlogin for ${userId}`);
-                setLogin({id:userId, type:userType}); 
-                rtcClient.register(userId);
-                break;
-            }
-            case 'error': Log.error(description);break;
-            default: Log.warn(description); break;
-        }
-    }*/
 
     function doLogOut(){
         setCookie('credentials',null, 0);

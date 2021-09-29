@@ -11,29 +11,13 @@ export default function ForwardStreamModal({show, setShow, callback}) {
     const [fetching, setFetching] = useState(0);//0: not fetching, 1: fetching, 2: sucess, 3: failed
 
     function submit() {
-
         if ( !ref?.current || !show )
             return setShow(false);
-
-        setFetching(true);            
-        const [forwardingCallId, mediaHubtarget] = [show, ref.current.value];
-        if (!rtcClient.call(mediaHubtarget, ({mediaHubCallId, status, description}) => {
-            if(status === 'error'){
-                setFetching(3);           
-                Log.error(`Call response error: ${description}`);
-            }
-            else {
-                setFetching(2);   
-                callback(mediaHubCallId, forwardingCallId);
-            }
-
+            
+            setFetching(true);            
+            setFetching(2);   
+            appClient.createRoom(ref.current.value);
             setTimeout( () => { setFetching(0); setShow(false); } , 1000);
-
-        })){
-            setFetching(3);   
-            Log.error(`call missed to backend`);
-            setTimeout( () => { setFetching(0); setShow(false); } , 1000);
-        }
     }
     return <>
         <Modal
@@ -46,16 +30,16 @@ export default function ForwardStreamModal({show, setShow, callback}) {
             dialogClassName="modal-shadow-lg"
             onKeyDown={(e) => {
                 if (e.keyCode === 13)
-                    callback();
+                    submit();
             }} tabIndex="0"
         >
             <Modal.Header>
-                <Modal.Title> Send Peer to Live </Modal.Title>
+                <Modal.Title>Create new teleporting room</Modal.Title>
             </Modal.Header>
 
            <Modal.Body>
-                <Form.Group className="mb-2">
-                    <Form.Control size="lg" ref={ref} placeholder='enter live Id' />
+                <Form.Group className="mb-2" controlId="formCreateRoomID">
+                    <Form.Control  size="lg" ref={ref} placeholder='roomId' />
                 </Form.Group>
             </Modal.Body>
 
@@ -66,8 +50,7 @@ export default function ForwardStreamModal({show, setShow, callback}) {
                  </Button> }
                 { fetching === 2 && <Button variant="outline-success" > ✔️ Succeed! </Button> }
                 { fetching === 3 && <Button variant="outline-danger"  > ❌ Error </Button> }
-                 
-                { !fetching && <Button variant="outline-primary" onClick={submit} >Proceed!</Button> }
+                { fetching === 0 && <Button variant="outline-primary" onClick={submit} >Proceed!</Button> }
             </Modal.Footer>
         </Modal>
     </>;
