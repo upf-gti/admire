@@ -129,10 +129,12 @@ export function MediaAdapter( settings )
 
         let initialize = async function()
         {
-            await window.navigator.mediaDevices.getUserMedia({ audio: true });
-            await window.navigator.mediaDevices.getUserMedia({ video: true });
-            await findDevices();
-            await setDefaultDevices();
+            const catchCallback = error => console?.trace("%c" + "Media Devices Error" + "%o", settings.debugStyle, error);
+
+            await window.navigator.mediaDevices.getUserMedia({ audio: true }).catch(catchCallback);
+            await window.navigator.mediaDevices.getUserMedia({ video: true }).catch(catchCallback);
+            await findDevices().catch(catchCallback);
+            await setDefaultDevices().catch(catchCallback);
         };
 
         initialize();

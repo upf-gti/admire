@@ -18,7 +18,6 @@ export default function ForwardStreamModal({show, setShow, callback}) {
         setFetching(true);            
         const [forwardingCallId, mediaHubtarget] = [show, ref.current.value];
         if (!rtcClient.call(mediaHubtarget, ({callId, status, description}) => {
-            debugger;
             if(status === 'error'){
                 setFetching(3);           
                 Log.error(`Call response error: ${description}`);

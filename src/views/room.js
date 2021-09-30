@@ -1,5 +1,5 @@
 import Helmet from 'react-helmet';
-import { useState, useEffect, useRef, useContext } from 'react';
+import { useState, useEffect, useRef,useReducer, useContext } from 'react';
 import { Container, Row, Col, Button, Modal, Form, OverlayTrigger } from 'react-bootstrap';
 import { useParams, useHistory, Link } from 'react-router-dom';
 import { RTCEvent, rtcClient, appClient, mediaAdapter, dummyStream } from 'extra/bra';
@@ -12,16 +12,17 @@ import { StreamSettings } from 'components/streamSettings';
 import { Toasts, ToastContext } from 'components/toasts';
 import ForwardStreamModal from 'components/forwardStreamModal';
 
-
-
 export default function Room({ user, setNavItems }) {
     //Params    
     let [state, setState] = useState(0);
-    let [streams, setStreams] = useState({});
-    let [liveCalls, setLiveCalls] = useState({});
+    let [streams, setStreams] = useState({}); 
     let [roomInfo, setRoomInfo] = useState(null);
     let [showModal, setShowModal] = useState(null);
-
+    //let [liveCalls, setLiveCalls] = useState({});
+    let [liveCalls, setLiveCalls] = useReducer((value, newvalue)=>{
+        return newvalue;
+    }, {});
+    
     //Retrieved from URL
     const Log = useContext(ToastContext);
     let { roomId } = useParams();
@@ -40,17 +41,16 @@ export default function Room({ user, setNavItems }) {
         rtcClient.on(RTCEvent.IncomingCall  , onIncomingCall );
         rtcClient.on(RTCEvent.CallOpened    , onCallOpened   );
         rtcClient.on(RTCEvent.CallClosed    , onCallClosed   );
-        rtcClient.on(RTCEvent.UserHangup    , onCallHangup   );
+        rtcClient.on(RTCEvent.UserHangup    , onUserHangup   );
 
         //This is to be sure when user is leaving the room because a refresh/closing/leaving the tab
         window.addEventListener('unload', onUnload = (e) => { appClient.leaveRoom(); });
         
         (async function(){
+            // eslint-disable-next-line react-hooks/exhaustive-deps
             roomInfo = await validateRoom(roomId);
             setRoomInfo(Object.assign({}, roomInfo));
-            console.log(roomInfo);
             if (roomInfo && [...roomInfo.guests ?? [], roomInfo.master].filter(v => v !== user.id).length){
-                console.log('join now!')
                 joinRoom(roomId)
                 .then(callUsers)
                 .then(forcerefresh);
@@ -66,14 +66,12 @@ export default function Room({ user, setNavItems }) {
             rtcClient.off(RTCEvent.IncomingCall , onIncomingCall );
             rtcClient.off(RTCEvent.CallOpened   , onCallOpened   );
             rtcClient.off(RTCEvent.CallClosed   , onCallClosed   );
-            rtcClient.off(RTCEvent.UserHangup   , onCallHangup   );
+            rtcClient.off(RTCEvent.UserHangup   , onUserHangup   );
 
             window.removeEventListener('unload', onUnload);
             
             Object.keys(rtcClient.getCalls()).forEach(callId => rtcClient.hangup(callId));
             appClient.leaveRoom();
-
-            console.log('dismount');
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [roomId]);
@@ -132,20 +130,22 @@ export default function Room({ user, setNavItems }) {
     function onCallOpened({ call, stream }) {
         const callId = call.callId;
 
-        window.streams = streams;
+        //window.streams = streams;
         streams[callId] = stream;
         setStreams(Object.assign({}, streams));
         
-        const forwardingCallId = liveCalls[callId];
         //Live call
+        const forwardingCallId = liveCalls[callId];
         if(forwardingCallId){ 
+            
             const forward_stream = streams[forwardingCallId];
             if(!forward_stream)
             {
                 rtcClient.hangup(callId);
-                return;
+                return Log.error(`Live Call Error: ${callId}, callerId: ${call.callerId}, calleeId: ${call.calleeId} `);;
             }
-            Log.success(`Live Call: ${callId}`);
+
+            Log.success(`Live Call: ${callId}, callerId: ${call.callerId}, calleeId: ${call.calleeId} `);
             let videotrack = forward_stream.getVideoTracks()[0];
             let audiotrack = forward_stream.getAudioTracks()[0];   
             call.replaceLocalVideoTrack(videotrack);
@@ -154,20 +154,19 @@ export default function Room({ user, setNavItems }) {
         
         //Regular call
         else{ 
-            Log.success(`Incoming Call: ${callId}`);
+            Log.success(`Incoming Call: ${callId}, callerId: ${call.callerId}, calleeId: ${call.calleeId} `);
             let videotrack = localStream.getVideoTracks()[0];
             let audiotrack = localStream.getAudioTracks()[0];   
             call.replaceLocalVideoTrack(videotrack);
             call.replaceLocalAudioTrack(audiotrack);
         }
-        
-        
     }
 
-    function onCallHangup({ callId }) { 
+    function onUserHangup({ callId }) { 
         if(!callId)
             return console.error("No call");
-
+            
+        manageLiveCallClosed(callId);
         delete streams[callId];
         setStreams(Object.assign({}, streams));
 
@@ -179,22 +178,41 @@ export default function Room({ user, setNavItems }) {
             return console.error("No call");
         
         const callId = call.callId;
-
-        Log.warn(`Call ${callId} closed`);
+        manageLiveCallClosed(callId);
+        
         delete streams[callId];
         setStreams(Object.assign({}, streams));
+        Log.warn(`Call ${callId} closed`);
+    }
+
+    function manageLiveCallClosed(callId){
+        let result = null;
+        for( const [mId,fId] of Object.entries(liveCalls) )
+        {
+            if(callId !== mId && fId !== callId)
+                continue;
+        
+            result = [mId,fId];
+            break;
+        }
+
+        if(result)
+        {
+            const [ mediaHubCallId, forwardedCallId ] = result;
+            delete liveCalls[mediaHubCallId];
+            setLiveCalls(liveCalls); 
+        }
     }
 
     function doUpgradeToLive(mediaHubCallId, forwardingCallId) {
+        if(!mediaHubCallId || !forwardingCallId) 
+            return console.error(`mediahubcallid or forwardcallid are undefined`);
         liveCalls[mediaHubCallId] = forwardingCallId;
-        liveCalls = Object.assign({}, liveCalls);
-        window.liveCalls = liveCalls;
-        setLiveCalls( liveCalls );
+        setLiveCalls(liveCalls);
     }
 
 
     if (!roomInfo) return <V404 title={`Room '${roomId}' does not exist`} description='some description' />;
-
     return (<>
         <Helmet>
             <title>AdMiRe: {`${user.type !== "0" ? "Admin" : "User"} ${user.id}`}</title>
@@ -221,7 +239,6 @@ export default function Room({ user, setNavItems }) {
 
                             let { calleeId, callerId } = rtcClient.getCalls()[v[0]];
                             let id = (calleeId === user.id) ? callerId : calleeId;
-                                    
                             return <Col key={k} className='p-1'> <Video user={user} master={roomInfo.master} id={id} key={id} stream={v[1]} playsInline setLiveCallback={() => { setShowModal( v[0] ); }} /></Col>
                         })}
                     </Row>
