@@ -137,7 +137,6 @@ export default function Room({ user, setNavItems }) {
         setStreams(Object.assign({}, streams));
         
         const forwardingCallId = liveCalls[callId];
-        
         //Live call
         if(forwardingCallId){ 
             const forward_stream = streams[forwardingCallId];
@@ -146,6 +145,7 @@ export default function Room({ user, setNavItems }) {
                 rtcClient.hangup(callId);
                 return;
             }
+            Log.success(`Live Call: ${callId}`);
             let videotrack = forward_stream.getVideoTracks()[0];
             let audiotrack = forward_stream.getAudioTracks()[0];   
             call.replaceLocalVideoTrack(videotrack);
@@ -154,13 +154,14 @@ export default function Room({ user, setNavItems }) {
         
         //Regular call
         else{ 
+            Log.success(`Incoming Call: ${callId}`);
             let videotrack = localStream.getVideoTracks()[0];
             let audiotrack = localStream.getAudioTracks()[0];   
             call.replaceLocalVideoTrack(videotrack);
             call.replaceLocalAudioTrack(audiotrack);
         }
         
-        Log.success(`Call ${callId} started`);
+        
     }
 
     function onCallHangup({ callId }) { 
@@ -186,7 +187,9 @@ export default function Room({ user, setNavItems }) {
 
     function doUpgradeToLive(mediaHubCallId, forwardingCallId) {
         liveCalls[mediaHubCallId] = forwardingCallId;
-        setLiveCalls( Object.assign({}, liveCalls) );
+        liveCalls = Object.assign({}, liveCalls);
+        window.liveCalls = liveCalls;
+        setLiveCalls( liveCalls );
     }
 
 
@@ -218,7 +221,7 @@ export default function Room({ user, setNavItems }) {
 
                             let { calleeId, callerId } = rtcClient.getCalls()[v[0]];
                             let id = (calleeId === user.id) ? callerId : calleeId;
-
+                                    
                             return <Col key={k} className='p-1'> <Video user={user} master={roomInfo.master} id={id} key={id} stream={v[1]} playsInline setLiveCallback={() => { setShowModal( v[0] ); }} /></Col>
                         })}
                     </Row>
