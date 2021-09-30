@@ -8,7 +8,7 @@
             "type": "edge",
             "request": "launch",
             "name": "Launch Edge against localhost",
-            "url": "https://localhost:3000",
+            "url": "https://localhost:9000",
             "webRoot": "${workspaceFolder}/client_uf/"
         }
     ]

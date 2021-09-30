@@ -22,8 +22,6 @@ export default function Login({ setLogin }) {
     const [showRegister, setShowRegister] = useState(false);
 
     let API = 'https://admire-dev-auth.brainstorm3d.com';
-    const CORS = "https://cors-anywhere.herokuapp.com/"
-    API = CORS + API;//Comment this on development
 
     async function login(email, password) {
         const toastId = Log.loading('Logging in...');

@@ -16,8 +16,6 @@ export default function RegisterModal({show, setShow }) {
     const [gravatar_url, setGravatarImage] = useState('');
 
     let API = 'https://admire-dev-auth.brainstorm3d.com';
-    const CORS = "https://cors-anywhere.herokuapp.com/"
-    API = CORS + API;//Comment this on development
 
     function checkImageURL(url) {
         return (url.match(/\.(jpeg|jpg|gif|png)$/) != null);

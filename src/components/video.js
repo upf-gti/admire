@@ -6,7 +6,7 @@ import { Button, SplitButton, Dropdown, ButtonGroup } from 'react-bootstrap';
 import {StreamSettings} from 'components/streamSettings';
 import "./video.scss"
 
-export default function Video({id, user, master, local, fref, stream, setLiveCallback, style}){
+export default function Video({id, user, master, local, fref, stream, setLiveCallback, style, ...props}){
 
     const { videoRef, devices:[devices,setDevices], settings:[settings,setSettings], localStream:[localStream,setLocalStream] } = useContext(StreamSettings);
     
@@ -26,8 +26,8 @@ export default function Video({id, user, master, local, fref, stream, setLiveCal
     },[stream]);
 
     //style={{maxHeight:'33vh', width:'auto'}}
-    return <div key={id} className="Video" style={style} >
-        {/*<h1 style={{zIndex:2000}}>{id}</h1>*/}
+    return <div key={id} className="Video" style={style} {...props}>
+        <span style={{zIndex:2000}}>{id}</span>
         
         <div className="stream-status">
             <i className={`bi bi-mic-mute-fill ${audioEnabled?"":"active"}`}/>

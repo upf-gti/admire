@@ -11,8 +11,6 @@ export default function RecoveryModal({show, setShow}) {
     const recoveryRef = useRef(null);
 
     let API = 'https://admire-dev-auth.brainstorm3d.com';
-    const CORS = "https://cors-anywhere.herokuapp.com/"
-    API = CORS + API;//Comment this on development
 
     async function doSubmitRecovery(e) {
         e.preventDefault();
