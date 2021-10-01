@@ -44,6 +44,7 @@ export default function App() {
 
     
     useEffect(() => { //Acts like 'componentWillMount'
+            let onUnload;
             console.clear();    
             setNavItem( 'wizzard',<Link to='/wizzard'> <li> <Image src={img3} style={{filter:'invert(1)'}} width={24}/> Wizzard</li> </Link> );
 
@@ -53,17 +54,24 @@ export default function App() {
             rtcClient.on('client_connected',     onRtcClientConnect);
             
             appClient.connect(appUrl);
+
+            window.addEventListener('unload', onUnload = (e) => { 
+                rtcClient.disconnect();
+                appClient.disconnect(); 
+            });
             
         return () => {//Acts like /componentWillUnmount'
             setNavItem('wizzard', null);
-
+                
             appClient.off('client_connected',    onAppClientConnect);
             appClient.off('client_disconnected', onDisconnect);
             appClient.off("logout_response",     onLogOut);
             rtcClient.off('client_connected',    onRtcClientConnect);
-
+            
             appClient.disconnect();
             rtcClient.disconnect();
+            
+            window.removeEventListener('unload', onUnload);
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [appUrl, rtcUrl]); //This are the direct dependencies, the useEffect applies an observer pattern, whenever the value changes, the useEffect is called again.

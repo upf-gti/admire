@@ -15,13 +15,11 @@ import ForwardStreamModal from 'components/forwardStreamModal';
 export default function Room({ user, setNavItems }) {
     //Params    
     let [state, setState] = useState(0);
-    let [streams, setStreams] = useState({}); 
-    let [roomInfo, setRoomInfo] = useState(null);
     let [showModal, setShowModal] = useState(null);
     //let [liveCalls, setLiveCalls] = useState({});
-    let [liveCalls, setLiveCalls] = useReducer((value, newvalue)=>{
-        return newvalue;
-    }, {});
+    let [streams, setStreams] = useReducer((value, newvalue)=>{forcerefresh(); return newvalue;}, {});
+    let [roomInfo, setRoomInfo] = useReducer((value, newvalue)=>{forcerefresh(); return newvalue;}, {});
+    let [liveCalls, setLiveCalls] = useReducer((value, newvalue)=>{forcerefresh(); return newvalue;}, {});
     
     //Retrieved from URL
     const Log = useContext(ToastContext);
@@ -49,12 +47,20 @@ export default function Room({ user, setNavItems }) {
         (async function(){
             // eslint-disable-next-line react-hooks/exhaustive-deps
             roomInfo = await validateRoom(roomId);
-            setRoomInfo(Object.assign({}, roomInfo));
-            if (roomInfo && [...roomInfo.guests ?? [], roomInfo.master].filter(v => v !== user.id).length){
-                joinRoom(roomId)
-                .then(callUsers)
-                .then(forcerefresh);
+            if(!roomInfo) return;
+            setRoomInfo(roomInfo);
+
+            //If we are not already in the room, join it
+            if ([...roomInfo.guests ?? [], roomInfo.master].filter(v => v !== user.id).length){
+                await joinRoom(roomId)
+                .catch( e => {
+                    Log.error(e);
+                    history.push('/');
+                });
             }
+            
+            callUsers();
+            forcerefresh();
         })();
             
         return () => {//Executes on dismount
@@ -77,7 +83,7 @@ export default function Room({ user, setNavItems }) {
     }, [roomId]);
 
     function forcerefresh() {
-        setState(state + 1)
+        setState(state + 1);
         setTimeout(forcerefresh, 2000);
     }
 
@@ -100,8 +106,7 @@ export default function Room({ user, setNavItems }) {
                 appClient.off('join_room_response', success);
                 if (data?.status === 'error')
                 {
-                    Log.error(`Error onJoinRoom ${data?.description}`);
-                    reject(data);
+                    reject(`Error onJoinRoom ${data?.description}`);
                     return;
                 } 
                 Log.success(`Joined to room ${roomId}`);
@@ -132,7 +137,7 @@ export default function Room({ user, setNavItems }) {
 
         //window.streams = streams;
         streams[callId] = stream;
-        setStreams(Object.assign({}, streams));
+        setStreams(streams);
         
         //Live call
         const forwardingCallId = liveCalls[callId];
@@ -168,7 +173,7 @@ export default function Room({ user, setNavItems }) {
             
         manageLiveCallClosed(callId);
         delete streams[callId];
-        setStreams(Object.assign({}, streams));
+        setStreams(streams);
 
         Log.warn(`Call ${callId} hangup`);
     }
@@ -181,7 +186,7 @@ export default function Room({ user, setNavItems }) {
         manageLiveCallClosed(callId);
         
         delete streams[callId];
-        setStreams(Object.assign({}, streams));
+        setStreams(streams);
         Log.warn(`Call ${callId} closed`);
     }
 
