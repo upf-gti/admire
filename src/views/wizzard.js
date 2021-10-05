@@ -6,7 +6,6 @@ import { Container, Row, Col, Card, Tab, Nav, Image, Button, FormRange } from 'r
 import img1 from 'assets/img/bg1.jpg';
 import img2 from 'assets/img/bg2.jpg';
 import img3 from 'assets/img/wizard2.png';
-import VideoStream from 'components/videostream';
 import Video from 'components/video';
 import {StreamSettings} from 'components/streamSettings';
 
@@ -18,7 +17,7 @@ export default function Wizzard( {user, ready:{ready, setReady}, setNavItem}){
     const { videoRef, devices:[devices,setDevices], settings:[settings,setSettings], localStream:[localStream,setLocalStream] } = useContext(StreamSettings);
 
     let items = {
-        'Video':      [<i className="bi bi-cast"></i>, <VideoStream/>],
+        'Video':      [<i className="bi bi-cast"></i>, <Video stream={localStream}/>],
         'Brightness': [<i className="bi bi-brightness-high"></i>, <img alt='' src={img1}/>],
         'Contrast':   [<i className="bi bi-octagon-half"></i>, <img alt='' src={img2}/>],
     }
@@ -82,39 +81,3 @@ export default function Wizzard( {user, ready:{ready, setReady}, setNavItem}){
         </Container>
     </>)
 }
-
-/*
-<Row className="justify-content-center">
-        <Col xs={11}>
-            <h1 id="title" style={{color:"hsl(210, 11%, 85%)", marginTop:"1rem"}}>Wizzard</h1>
-            
-            <Card className='vh-90'>
-                
-            <Tab.Container id="left-tabs-example" defaultActiveKey="first">
-            <Row>
-
-                <Col sm={12} className='h-80'>
-                <Tab.Content>
-
-                    { Object.entries(items).map((v,k,a)=>{
-                        return <Tab.Pane eventKey={k}>{v[1][1]}</Tab.Pane>;
-                    })}
-
-                </Tab.Content>
-                </Col>
-
-                <Col sm={12}>
-                <Nav variant="pills" justify={true} fill={true} >
-                    { Object.entries(items).map((v,k,a)=>{
-                        return <Nav.Item><Nav.Link eventKey={k}>{v[1][0]} {v[0]}</Nav.Link> </Nav.Item>;
-                    })}
-                </Nav>
-                </Col>
-
-            </Row>
-            </Tab.Container>
-            </Card>
-
-        </Col>
-        </Row>
-*/

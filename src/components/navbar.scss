@@ -6,12 +6,12 @@
 ----------------------------------------------------- */
 #content {
     position: fixed;
-    width: calc(100% - 236px);
+    width: calc(100% - 216px);
     min-height: 100vh;
     top: 0;
     right: 0;
     &.active {
-        width: calc(100% - 236px);
+        width: calc(100% - 216px);
     }
 }
 
@@ -27,7 +27,7 @@
     SIDEBAR STYLE
 ----------------------------------------------------- */
 #sidebar {
-    width:235px;
+    width:215px;
     height:100%;
     
     padding-top:1rem;

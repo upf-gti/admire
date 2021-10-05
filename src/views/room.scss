@@ -1,153 +1,97 @@
 @import 'variables.scss';
 @import "bootstrap/scss/bootstrap.scss";
 
+//main-video-col
+//main-video
+//stream-controls
+//carousel-col
+//carousel
+
 #room{
+    
     color:white;
     height: 100vh;
+    .Video{
+        video{
+            height: 100%;
+            width:100%;
+        }
+        &:hover{
+            background-size: contain;
+        }
 
-    video{
-        object-fit: cover !important;
+        .bi::before{
+            margin:0;
+            margin-top: 5px;
+            margin-bottom: 2px;
+        }
+    }
+
+    .badge{
+        padding: 0.15em 0.45em;
+    }
+
+
+    #content-row{
+        height:100%;
+    }
+
+    #main-video-col {
         height: 100%;
-    }
+        overflow: hidden;
+        //background: magenta;
 
-    .stream-status
-    {
-        position:relative;
-  
-        bottom: -30px;
-        margin-top: -30px;
-        min-height:30px;
-        text-align: left;
-
-        .bi
+        .Video
         {
-            width: 30px;
-            display: none;
-            position:relative;
-            top:1px;
-            margin: 0 .25rem;
-            filter: invert(.5);
-
-            &:hover{
-                filter: inherit;
-                transition: all .25s;
-            }
-
-            &.active{
-                display: initial;
-            }
-        }
-
-
-    }
-
-    .stream-controls
-    {
-        position: relative;
-        display: inline;
-        top:-2.5rem;
-        
-        .bi
-        {
-            position:relative;
-            top:1px;
-            margin: 0 .25rem;
-            filter: invert(.5);
-
-            &:hover{
-                filter: invert(0);
-                transition: all .25s;
-            }
-        }
-
-        .live-btn{
-            margin: 0 .25rem;
-            position:relative;
-            top:-1px;
-            //right:.25rem;
-    
-            font-size:x-small;
-            border: 1px solid black;
-            background-color: rgba(0,0,0,.25);
-            backdrop-filter: blur(27px);
-            border-radius:2px;
-
-            color:gray;
-    
-            &.active{
-                color: white;
-                mix-blend-mode: difference;
-                background-color: rgba(255,0,0,1);
-    
-                animation: blink 1.5s ease infinite;
-            }
-
-            &:hover{
-                color:white;
-                background-color: rgba(255,0,0,1);
-                transition: all .25s;
-            }
+            width:100%;
+            height:100%;
+            object-fit: cover;
         }
     }
-    #mainstream, #otherstreams{
-        transition: all .125s ease-out;
-    }
-
-    #otherstreams{
-        background-color: rgba(0,0,0,.5);
-        min-height:128px;
-        min-width:128px;
-    }
     
-        @include media-breakpoint-down(sm) {  
-            #mainstream{
-                height: calc(100% - 136px);
-            }
+    #stream-controls {
+        //background:rgba(255, 166, 0, 0.171); 
+        width:100%; 
+        height:60px; 
+        margin-top: -60px; 
+        width: calc( 100% - 166px - .5rem ); 
+        position: absolute; 
+        bottom: .5rem;
+    }
 
-            #otherstreams{
-                .row
-                {     
-                    height: 128px;
-                    display: flex;
-                    justify-content: flex-start;
-                    flex-direction: row;
-                    flex-wrap: nowrap;
-                    overflow-x: scroll;
-                    flex-direction: row;
-                }
-                .Video
-                {
-                    height:128px;
-                }
-                //height:136px;
-                //width: 100000px;   
-            }
+    #carousel-col {
+        height: 100%;
+        width:166px;
+        overflow-x: hidden;
+        overflow-y: scroll;
+    }
+
+    #carousel {
+        display: flex;
+        flex-direction: column;
+        .Video, .Video video{ 
+            width: 166px; 
+            height:124px; 
+            object-fit: cover;
+        }
+    }
+
+    @media (orientation: landscape){}
+    @media (orientation: portrait){
+        #content-row{ flex-direction: column-reverse; }
+        #main-video-col{width:100%;}
+        #stream-controls{width:100%;}
+        #carousel-col{ 
+            width:100%; height:124px; 
+            overflow-x: scroll;
+            overflow-y: hidden;
+        }
+        #carousel .Video{
+            height:100%;
         }
 
-        @include media-breakpoint-up(md) {  
-            #mainstream{
-                //height: calc(100% - 60px);
-                display: flex;
-            }
+        #carousel{ flex-direction: row;}
+    }
 
-            #otherstreams{
-                height: calc( 100vh );
-                width:150px;
-                overflow-y: scroll;
-                .Video
-                {
-                    width:128px;
-                }
-            }
-
-        }
-
-        @media (max-height: 575.98px)
-        {
-
-            #title
-            {
-                display:none;
-            }
-        }
+    
 }
