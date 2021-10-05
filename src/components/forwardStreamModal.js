@@ -20,19 +20,18 @@ export default function ForwardStreamModal({show, setShow, callback}) {
         if (!rtcClient.call(mediaHubtarget, ({callId, status, description}) => {
             if(status === 'error'){
                 setFetching(3);           
+                setTimeout( () => { setFetching(0); } , 2000);
                 Log.error(`Call response error: ${description}`);
             }
             else {
                 setFetching(2);   
+                setTimeout( () => { setFetching(0); setShow(false); } , 1000);
                 callback(callId, forwardingCallId);
             }
-
-            setTimeout( () => { setFetching(0); setShow(false); } , 1000);
-
         })){
             setFetching(3);   
             Log.error(`call missed to backend`);
-            setTimeout( () => { setFetching(0); setShow(false); } , 1000);
+            setTimeout( () => { setFetching(0); } , 2000);
         }
     }
     return <>
@@ -60,7 +59,6 @@ export default function ForwardStreamModal({show, setShow, callback}) {
             </Modal.Body>
 
             <Modal.Footer className="text-center">
-                <Button variant="outline-secondary" onClick={() => setShow(false)} >Cancel</Button>
                 {  fetching === 1 && <Button variant="outline-primary"> 
                     <Spinner as="span"      animation="border"      size="sm"      role="status"      aria-hidden="true"/>
                  </Button> }
@@ -68,6 +66,7 @@ export default function ForwardStreamModal({show, setShow, callback}) {
                 { fetching === 3 && <Button variant="outline-danger"  > ❌ Error </Button> }
                  
                 { !fetching && <Button variant="outline-primary" onClick={submit} >Proceed!</Button> }
+                <Button variant="outline-secondary" onClick={() => setShow(false)} >Close</Button>
             </Modal.Footer>
         </Modal>
     </>;

@@ -222,6 +222,7 @@ export default function Room({ user, setNavItems }) {
     if (!roomInfo) return <V404 title={`Room '${roomId}' does not exist`} description='some description' />;
 
     let clients = Object.entries(Object.assign({ local: localStream }, streams));
+    console.log(selected, clients);
     return (<>
         <Helmet>
             <title>AdMiRe: {`${user.type !== "0" ? "Admin" : "User"} ${user.id}`}</title>
@@ -232,16 +233,7 @@ export default function Room({ user, setNavItems }) {
         <Row id="content-row" className="p-1" style={{ height:"100%" }}>
 
             <Col id="main-video-col" className="p-0" >
-                {   
-                    (() => {
-                        let id = user.id;
-                        if (selected && selected !== "local") {
-                            let { calleeId, callerId } = rtcClient.getCalls()[selected];
-                            id = (calleeId === user.id) ? callerId : calleeId;
-                        }
-                        return <Video id={id} stream={clients[selected??"local"] ?? localStream} local={selected === "local"} />
-                    })()
-                }
+                <Video stream={streams[selected] ?? localStream} local={selected === "local"}/>
 
                 <Col id="stream-controls">
                     <DeviceButton icon_enabled="bi-mic-fill"          icon_disabled="bi-mic-mute-fill"          tracks={localStream?.getAudioTracks() ?? []} selected={settings?.audio ?? "None"} options={devices?.audio ?? []} onClick={forcerefresh} onSelect = { (v) => mediaAdapter.setAudio(v) } />
@@ -254,8 +246,9 @@ export default function Room({ user, setNavItems }) {
                 <div id="carousel">
                     {clients.map(([callId, stream],k) => {
                             let id = user.id;
-                            if (callId !== "local") {
-                                let { calleeId, callerId } = rtcClient.getCalls()[callId];
+                            let call = rtcClient.getCalls()[callId];
+                            if (callId !== "local" && call) {
+                                let { calleeId, callerId } = call;
                                 id = (calleeId === user.id) ? callerId : calleeId;
                             }
                             return <Video 
@@ -264,7 +257,8 @@ export default function Room({ user, setNavItems }) {
                                     stream={stream} 
                                     local={callId === "local"} 
                                     active={selected === callId}
-                                    onClick={() => { setSelected(selected===callId?null:callId) }} 
+                                    onClick={() => { setSelected(selected===callId?null:callId) }}
+                                    onForward={ () => { setShowModal( callId ); }}
                             />
                     })}
                 </div>

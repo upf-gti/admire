@@ -20,13 +20,16 @@ export default function Lobby({user, setLogin, setNavItem}) {
     const [showModal, setShowModal] = useState(null);
 
     useEffect(() => {
+        
             setFetching(true);
             appClient.on('get_rooms_response',   onGetRooms);
             appClient.on('create_room_response', onCreateRoom);
-            appClient.getRooms();
+            const interval = setInterval(() => {appClient.getRooms();} , 2000);
+        
         return () => {
             appClient.off('get_rooms_response',   onGetRooms);
             appClient.off('create_room_response', onCreateRoom);
+            clearInterval(interval);
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user]);

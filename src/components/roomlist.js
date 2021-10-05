@@ -19,7 +19,17 @@ export default function RoomList({rooms}){
                         </Col>
                         <Col style={{paddingLeft: 0, textAlign:"left"}}>
                             <span>#{v.id}</span>
+                            <OverlayTrigger
+                                key={-1}
+                                placement='auto-start'
+                                overlay={<Tooltip id={`user-tooltip-${-1}`}>{v.master}</Tooltip>}
+                            >
+                                <Image className="user-icon" roundedCircle src={userIcon} height="48px" />
+                                {/*TODO:fetch for user image from somewhere*/}
+                            </OverlayTrigger>
+
                             {v.guests.map( (v,k,a) => {
+                                
                                 return (
                                     <OverlayTrigger
                                         key={k}

@@ -1,8 +1,8 @@
 import "./video.scss"
-import { Badge } from 'react-bootstrap';
+import { Badge, Button } from 'react-bootstrap';
 import { useEffect, useRef } from 'react';
 
-export default function Video({id, stream, pin, user, master, local, setLiveCallback, ...props}){
+export default function Video({id, stream, pin, user, master, local, onForward,onClick, ...props}){
 
     let ref = useRef(null);
     const audioEnabled = stream.getAudioTracks().every( v => !!v.enabled );
@@ -14,9 +14,12 @@ export default function Video({id, stream, pin, user, master, local, setLiveCall
     },[stream]);
 
     return <div className="Video" key={id} {...props}>
-        <video ref={ref} autoPlay playsInline muted={local}/>
+        <div className="stream-forward">
+            <Badge onClick={onForward}>⏩</Badge>
+        </div>
+        <video ref={ref} autoPlay playsInline muted={local} onClick={onClick}/>
         <div className="stream-status">
-            { (props.active || props.active === "true") && <Badge pill bg="primary" style={{padding:"2 2"}}><i className="bi bi-pin active"/></Badge>}
+            { (props.active || props.active === "true") && <Badge pill bg="primary"><i className="bi bi-pin active"/></Badge>}
             <span> {id}  </span>
             <i className={`bi bi-mic-mute-fill ${audioEnabled?"":"active"}`}/>
             <i className={`bi bi-camera-video-off-fill ${videoEnabled?"":"active"}`}/>
