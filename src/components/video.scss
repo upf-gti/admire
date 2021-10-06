@@ -80,17 +80,12 @@
         }
     }
 
-    .stream-forward{
-        padding:5px;
-        z-index:10000;
-        text-align: left;
-        position: relative;
-        margin-bottom: -40px;
-    }
+
 
     .stream-status,.stream-forward{
         .badge{
             cursor: pointer;
+            padding: 0.45em 0.25em;
         }
     }
 

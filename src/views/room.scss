@@ -27,11 +27,6 @@
         }
     }
 
-    .badge{
-        padding: 0.45em 0.25em;
-    }
-
-
     #content-row{
         height:100%;
     }
@@ -57,6 +52,20 @@
         width: calc( 100% - 166px - .5rem ); 
         position: absolute; 
         bottom: .5rem;
+    }
+
+    .stream-forward{
+        height:1.9rem;
+        position:relative;
+        margin-bottom:-1.9rem;
+        text-align:left;
+        padding:3px 6px;
+        z-index:10000;
+
+        .badge{
+            cursor:pointer;
+            padding:.44em .45em;
+        }
     }
 
     #carousel-col {

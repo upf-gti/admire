@@ -233,8 +233,11 @@ export default function Room({ user, setNavItems }) {
         return id;
     }
     
-    let clients = Object.entries(Object.assign({ local: localStream }, streams));
+    if(!!selected && !streams[selected])
+        setSelected(null);
+    
     if (!roomInfo) return <V404 title={`Room '${roomId}' does not exist`} description='some description' />;
+    let clients = Object.entries(Object.assign({ local: localStream }, streams));
     return (<>
         <Helmet>
             <title>AdMiRe: {`${user.type !== "0" ? "Admin" : "User"} ${user.id}`}</title>
@@ -246,7 +249,7 @@ export default function Room({ user, setNavItems }) {
 
             <Col id="main-video-col" className="p-0" >
                     
-                <Video id={getUserId(selected)} stream={streams[selected] ?? localStream} local={selected === "local"} onForward={ (getUserId(selected) !== roomInfo?.master && selected !== "local")? () => { setShowModal( selected ); } : null }/>
+                <Video id={getUserId(selected)} stream={streams[selected] ?? localStream} local={selected === "local"} onForward={ (false && getUserId(selected) !== roomInfo?.master && selected !== "local")? () => { setShowModal( selected ); } : null }/>
 
                 <Col id="stream-controls">
                     <DeviceButton icon_enabled="bi-mic-fill"          icon_disabled="bi-mic-mute-fill"          tracks={localStream?.getAudioTracks() ?? []} selected={settings?.audio ?? "None"} options={devices?.audio ?? []} onClick={forcerefresh} onSelect = { (v) => mediaAdapter.setAudio(v) } />
@@ -258,17 +261,28 @@ export default function Room({ user, setNavItems }) {
             <Col id="carousel-col" xs="auto" className="p-0" >
                 <div id="carousel">
                     {clients.map(([callId, stream],k) => {
-                            let id = getUserId(callId);
+                            if(liveCalls[callId] !== undefined)
+                                return<></>;
 
-                            return <Video 
+                            let id = getUserId(callId);
+                            let [mediaHubCallId, forwardedCallId] = Object.entries(liveCalls).find( v => v[1] === callId ) ?? [null,null];
+                            console.log(mediaHubCallId, forwardedCallId);
+                            let isForwardCall = !!forwardedCallId; //Object.values(liveCalls).includes(callId);
+                            return <>
+                            <div className="stream-forward">
+                                { (!isForwardCall && id !== roomInfo?.master && id !== user.id) && <Badge pill bg="danger" onClick={() => setShowModal( callId )}><i class="bi bi-cast"></i></Badge> }
+                                { ( isForwardCall && id !== roomInfo?.master && id !== user.id) && <Badge pill bg="danger" onClick={() => rtcClient.hangup( mediaHubCallId )}><i class="bi bi-x"></i></Badge> }
+                                { (selected === callId || (!selected && k === 0)) && <Badge pill bg="primary"><i className="bi bi-eye active"/></Badge> }
+                            </div>
+
+                            <Video 
                                     id={id}
                                     key={k} 
                                     stream={stream} 
                                     local={callId === "local"} 
-                                    active={selected === callId}
                                     onClick={() => { setSelected(selected===callId?null:callId) }}
-                                    onForward={ (id !== roomInfo?.master && id !== user.id)? () => { setShowModal( callId ); } : null }
                             />
+                            </>
                     })}
                 </div>
             </Col>
