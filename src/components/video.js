@@ -11,6 +11,7 @@ export default function Video({id, stream, pin, user, master, local,onClick, ...
     useEffect(()=>{ 
         if(!stream || !ref?.current ) return;
         ref.current.srcObject = stream;
+
     },[stream]);
 
     return <div className="Video" key={id} {...props}>

@@ -124,20 +124,26 @@ export default function App() {
       
         <Suspense fallback={renderLoader()}>
         <Router>
-            { !login && <Route exact path='/reset-password/:token'> <ResetPassword/> </Route> }
-            { !login && <Route><Login login={login} setLogin={setLogin}/></Route> }
+            {   !login &&  
+                <Switch>
+                    <Route path="/reset-password/:token"><ResetPassword /></Route>
+                    <Route><Login login={login} setLogin={setLogin}/></Route>
+                </Switch>
+            }
 
-            { login && <div className="app wrapper">
+            {   login && <div className="app wrapper">
                 <Navbar user={login} doLogOut={doLogOut} items={Object.values(NavItems)}/>
                 <div id="content">
                 <Switch>
-                        { !ready && <Wizzard user={login} ready={{ready, setReady}} setNavItem={setNavItem}/> }
+                        { !ready && <Route><Wizzard user={login} ready={{ready, setReady}} setNavItem={setNavItem}/></Route> }
                         <Route exact path='/wizzard'> <Wizzard user={login} ready={{ready, setReady}} setNavItem={setNavItem}/> </Route>
                         <Route exact path='/rooms/:roomId'> <Room user={login} setNavItem={setNavItem}/> </Route>
                         <Route> <Lobby setLogin={setLogin} user={login} setNavItem={setNavItem} key={Math.floor((Math.random() * 10000))} /> </Route>
                 </Switch>
+
                 </div>
-            </div> }
+                </div> 
+            }
         </Router>
         </Suspense>
     </>);

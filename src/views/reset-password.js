@@ -38,6 +38,7 @@ export default function ResetPassword(){
     const Log = useContext(ToastContext);
 
     let API = 'https://admire-dev-auth.brainstorm3d.com';
+    console.log(token);
 
     async function doSubmitPassword(e) {
         e.preventDefault();
@@ -77,7 +78,8 @@ export default function ResetPassword(){
                     </Modal.Header>
                     <Modal.Body as={Form} ref={passwordRef}>
 
-                        <span>Please enter a new password.</span>
+                        <span>Please enter a new password. 
+                            <br/>Length has to be at least 8 characters long.</span>
 
                         <Form.Group className="mb-2 mt-4" >
                             <Form.Control placeholder='password' type="password" />

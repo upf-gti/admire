@@ -33,11 +33,8 @@ export default function Room({ user, setNavItems }) {
     useEffect(() => {//Executes when this component is mounted
         let onGuestJoin, onGuestLeft, onMasterLeft, onUnload, onGetRoom;
         appClient.on('get_room_response', onGetRoom    = ({ roomInfo }) => {
-            console.log(roomInfo);
-            if(roomInfo)
-                setRoomInfo(Object.assign({}, roomInfo));
-            else
-                setRoomInfo(null);
+            if(roomInfo)    setRoomInfo(Object.assign({}, roomInfo));
+            else            setRoomInfo(null);
         });
         appClient.on('guest_left_room',   onGuestLeft  = (message) => { Log.warn('Guest left'); appClient.getRoom(); }); //
         appClient.on('master_left_room',  onMasterLeft = (message) => { Log.warn('Master left'); /* modal master left, on ok return lobby*/ history.push('/') });  //Tal vez estos tres podrian devolver la info de la room 
@@ -130,7 +127,12 @@ export default function Room({ user, setNavItems }) {
         if (!roomInfo) return;
         let users = [...roomInfo.guests, roomInfo.master].filter((v, k, a) => { return v !== user.id });
         for (let user of users) {
-            if (!rtcClient.call(user, () => console.log('call response')))
+            const isOk = !rtcClient.call(user, ({callId, status, description}) => {
+                if(status === 'error')
+                    Log.error(`Call response error: ${description}`);
+            })
+
+            if (!isOk)
                 Log.error(`call missed to ${user}`);
         }
     }
@@ -145,17 +147,17 @@ export default function Room({ user, setNavItems }) {
 
         streams[callId] = stream;
         setStreams(streams);
-
+        window.streams = streams;
         //Live call
         const forwardingCallId = liveCalls[callId];
         if (forwardingCallId) {
 
+            console.log("forward call")
             const forward_stream = streams[forwardingCallId];
             if (!forward_stream) {
                 rtcClient.hangup(callId);
                 return Log.error(`Live Call Error: ${callId}, callerId: ${call.callerId}, calleeId: ${call.calleeId} `);;
             }
-
             Log.success(`Live Call: ${callId}, callerId: ${call.callerId}, calleeId: ${call.calleeId} `);
             let videotrack = forward_stream.getVideoTracks()[0];
             let audiotrack = forward_stream.getAudioTracks()[0];
@@ -165,14 +167,14 @@ export default function Room({ user, setNavItems }) {
 
         //Regular call
         else {
+            console.log("regular call")
             Log.success(`Incoming Call: ${callId}, callerId: ${call.callerId}, calleeId: ${call.calleeId} `);
             let videotrack = localStream.getVideoTracks()[0];
             let audiotrack = localStream.getAudioTracks()[0];
             call.replaceLocalVideoTrack(videotrack);
             call.replaceLocalAudioTrack(audiotrack);
 
-            if (!selected)
-                setSelected(callId);
+            //if(!selected)setSelected(callId);
         }
     }
 
@@ -248,9 +250,7 @@ export default function Room({ user, setNavItems }) {
         <Row id="content-row" className="p-1" style={{ height:"100%" }}>
 
             <Col id="main-video-col" className="p-0" >
-                    
-                <Video id={getUserId(selected)} stream={streams[selected] ?? localStream} local={selected === "local"} onForward={ (false && getUserId(selected) !== roomInfo?.master && selected !== "local")? () => { setShowModal( selected ); } : null }/>
-
+                <Video id={getUserId(selected)} stream={streams[selected] ?? localStream} local={selected === "local"} />
                 <Col id="stream-controls">
                     <DeviceButton icon_enabled="bi-mic-fill"          icon_disabled="bi-mic-mute-fill"          tracks={localStream?.getAudioTracks() ?? []} selected={settings?.audio ?? "None"} options={devices?.audio ?? []} onClick={forcerefresh} onSelect = { (v) => mediaAdapter.setAudio(v) } />
                     <DeviceButton icon_enabled="bi-camera-video-fill" icon_disabled="bi-camera-video-off-fill"  tracks={localStream?.getVideoTracks() ?? []} selected={settings?.video ?? "None"} options={devices?.video ?? []} onClick={forcerefresh} onSelect = { (v) => mediaAdapter.setVideo(v) } />
@@ -265,24 +265,17 @@ export default function Room({ user, setNavItems }) {
                                 return<></>;
 
                             let id = getUserId(callId);
+                            let imTheMaster = user.id == roomInfo?.master;
                             let [mediaHubCallId, forwardedCallId] = Object.entries(liveCalls).find( v => v[1] === callId ) ?? [null,null];
-                            console.log(mediaHubCallId, forwardedCallId);
-                            let isForwardCall = !!forwardedCallId; //Object.values(liveCalls).includes(callId);
-                            return <>
-                            <div className="stream-forward">
-                                { (!isForwardCall && id !== roomInfo?.master && id !== user.id) && <Badge pill bg="danger" onClick={() => setShowModal( callId )}><i class="bi bi-cast"></i></Badge> }
-                                { ( isForwardCall && id !== roomInfo?.master && id !== user.id) && <Badge pill bg="danger" onClick={() => rtcClient.hangup( mediaHubCallId )}><i class="bi bi-x"></i></Badge> }
-                                { (selected === callId || (!selected && k === 0)) && <Badge pill bg="primary"><i className="bi bi-eye active"/></Badge> }
+                            let isForwardCall = !!forwardedCallId;
+                            return <div key={k}>
+                                <div className="stream-forward">
+                                    { imTheMaster && (!isForwardCall && id !== roomInfo?.master && id !== user.id) && <Badge pill bg="danger" onClick={() => setShowModal( callId )}><i class="bi bi-cast"></i></Badge> }
+                                    { imTheMaster && ( isForwardCall && id !== roomInfo?.master && id !== user.id) && <Badge pill bg="danger" onClick={() => rtcClient.hangup( mediaHubCallId )}><i class="bi bi-x"></i></Badge> }
+                                    { (selected === callId || (!selected && k === 0)) && <Badge pill bg="primary"><i className="bi bi-eye active"/></Badge> }
+                                </div>
+                                <Video id={id} stream={stream} local={callId === "local"} onClick={() => { setSelected(selected===callId?null:callId) }}/>
                             </div>
-
-                            <Video 
-                                    id={id}
-                                    key={k} 
-                                    stream={stream} 
-                                    local={callId === "local"} 
-                                    onClick={() => { setSelected(selected===callId?null:callId) }}
-                            />
-                            </>
                     })}
                 </div>
             </Col>
