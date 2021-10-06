@@ -14,9 +14,9 @@ export default function Video({id, stream, pin, user, master, local, onForward,o
     },[stream]);
 
     return <div className="Video" key={id} {...props}>
-        <div className="stream-forward">
+        {onForward && <div className="stream-forward">
             <Badge onClick={onForward}>⏩</Badge>
-        </div>
+        </div>}
         <video ref={ref} autoPlay playsInline muted={local} onClick={onClick}/>
         <div className="stream-status">
             { (props.active || props.active === "true") && <Badge pill bg="primary"><i className="bi bi-pin active"/></Badge>}
