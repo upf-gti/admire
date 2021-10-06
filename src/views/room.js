@@ -19,7 +19,7 @@ export default function Room({ user, setNavItems }) {
     let [showModal, setShowModal] = useState(null);
     let [selected, setSelected]   = useState(null);
     let [streams, setStreams]     = useReducer((value, newvalue) => { forcerefresh(); return newvalue; }, {});
-    let [roomInfo, setRoomInfo]   = useReducer((value, newvalue) => { forcerefresh(); return newvalue; }, {});
+    let [roomInfo, setRoomInfo]   = useReducer((value, newvalue) => { forcerefresh(); return newvalue; }, null);
     let [liveCalls, setLiveCalls] = useReducer((value, newvalue) => { forcerefresh(); return newvalue; }, {});
 
     //Retrieved from URL
@@ -29,13 +29,16 @@ export default function Room({ user, setNavItems }) {
     //Other stuff
     let history = useHistory();
     const { videoRef, devices: [devices, setDevices], settings: [settings, setSettings], localStream: [localStream, setLocalStream] } = useContext(StreamSettings);
-    window.streams = streams;
-    window.localStream = localStream;
-    console.log("repaint")
 
     useEffect(() => {//Executes when this component is mounted
         let onGuestJoin, onGuestLeft, onMasterLeft, onUnload, onGetRoom;
-        appClient.on('get_room_response', onGetRoom    = ({ roomInfo }) => setRoomInfo(Object.assign({}, roomInfo)));
+        appClient.on('get_room_response', onGetRoom    = ({ roomInfo }) => {
+            console.log(roomInfo);
+            if(roomInfo)
+                setRoomInfo(Object.assign({}, roomInfo));
+            else
+                setRoomInfo(null);
+        });
         appClient.on('guest_left_room',   onGuestLeft  = (message) => { Log.warn('Guest left'); appClient.getRoom(); }); //
         appClient.on('master_left_room',  onMasterLeft = (message) => { Log.warn('Master left'); /* modal master left, on ok return lobby*/ history.push('/') });  //Tal vez estos tres podrian devolver la info de la room 
         appClient.on('guest_joined_room', onGuestJoin  = (message) => { Log.info('Guest joined'); appClient.getRoom(); });  //asi no lo he de pedir cada vez.
@@ -51,7 +54,10 @@ export default function Room({ user, setNavItems }) {
         (async function () {
             // eslint-disable-next-line react-hooks/exhaustive-deps
             roomInfo = await validateRoom(roomId);
-            if (!roomInfo) return;
+            if (!roomInfo) {
+                Log.error(`Room ${roomId} does not exist.`);
+                history.push('/');
+            };
             setRoomInfo(roomInfo);
 
             //If we are not already in the room, join it
@@ -88,7 +94,6 @@ export default function Room({ user, setNavItems }) {
     }, [roomId]);
 
     function forcerefresh() {
-        console.log("refresh");
         setState(state + 1);
     }
 
@@ -138,7 +143,6 @@ export default function Room({ user, setNavItems }) {
     function onCallOpened({ call, stream }) {
         const callId = call.callId;
 
-        //window.streams = streams;
         streams[callId] = stream;
         setStreams(streams);
 
@@ -219,10 +223,18 @@ export default function Room({ user, setNavItems }) {
         setLiveCalls(liveCalls);
     }
 
-    if (!roomInfo) return <V404 title={`Room '${roomId}' does not exist`} description='some description' />;
-
+    function getUserId(callId){
+        let id = user.id;
+        let call = rtcClient.getCalls()[callId];
+        if (callId !== "local" && call) {
+            let { calleeId, callerId } = call;
+            id = (calleeId === user.id) ? callerId : calleeId;
+        }
+        return id;
+    }
+    
     let clients = Object.entries(Object.assign({ local: localStream }, streams));
-    console.log(selected, clients);
+    if (!roomInfo) return <V404 title={`Room '${roomId}' does not exist`} description='some description' />;
     return (<>
         <Helmet>
             <title>AdMiRe: {`${user.type !== "0" ? "Admin" : "User"} ${user.id}`}</title>
@@ -233,7 +245,8 @@ export default function Room({ user, setNavItems }) {
         <Row id="content-row" className="p-1" style={{ height:"100%" }}>
 
             <Col id="main-video-col" className="p-0" >
-                <Video stream={streams[selected] ?? localStream} local={selected === "local"}/>
+                    
+                <Video id={getUserId(selected)} stream={streams[selected] ?? localStream} local={selected === "local"} onForward={ (getUserId(selected) !== roomInfo?.master && selected !== "local")? () => { setShowModal( selected ); } : null }/>
 
                 <Col id="stream-controls">
                     <DeviceButton icon_enabled="bi-mic-fill"          icon_disabled="bi-mic-mute-fill"          tracks={localStream?.getAudioTracks() ?? []} selected={settings?.audio ?? "None"} options={devices?.audio ?? []} onClick={forcerefresh} onSelect = { (v) => mediaAdapter.setAudio(v) } />
@@ -245,12 +258,8 @@ export default function Room({ user, setNavItems }) {
             <Col id="carousel-col" xs="auto" className="p-0" >
                 <div id="carousel">
                     {clients.map(([callId, stream],k) => {
-                            let id = user.id;
-                            let call = rtcClient.getCalls()[callId];
-                            if (callId !== "local" && call) {
-                                let { calleeId, callerId } = call;
-                                id = (calleeId === user.id) ? callerId : calleeId;
-                            }
+                            let id = getUserId(callId);
+
                             return <Video 
                                     id={id}
                                     key={k} 
@@ -258,7 +267,7 @@ export default function Room({ user, setNavItems }) {
                                     local={callId === "local"} 
                                     active={selected === callId}
                                     onClick={() => { setSelected(selected===callId?null:callId) }}
-                                    onForward={ () => { setShowModal( callId ); }}
+                                    onForward={ (id !== roomInfo?.master && id !== user.id)? () => { setShowModal( callId ); } : null }
                             />
                     })}
                 </div>
