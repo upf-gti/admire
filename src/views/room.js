@@ -265,7 +265,7 @@ export default function Room({ user, setNavItems }) {
                                 return<></>;
 
                             let id = getUserId(callId);
-                            let imTheMaster = user.id == roomInfo?.master;
+                            let imTheMaster = user.id === roomInfo?.master;
                             let [mediaHubCallId, forwardedCallId] = Object.entries(liveCalls).find( v => v[1] === callId ) ?? [null,null];
                             let isForwardCall = !!forwardedCallId;
                             return <div key={k}>
