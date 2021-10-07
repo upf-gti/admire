@@ -127,7 +127,7 @@ export default function Room({ user, setNavItems }) {
         if (!roomInfo) return;
         let users = [...roomInfo.guests, roomInfo.master].filter((v, k, a) => { return v !== user.id });
         for (let user of users) {
-            const isOk = !rtcClient.call(user, ({callId, status, description}) => {
+            const isOk = rtcClient.call(user, ({callId, status, description}) => {
                 if(status === 'error')
                     Log.error(`Call response error: ${description}`);
             })
