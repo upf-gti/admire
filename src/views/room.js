@@ -4,7 +4,6 @@ import { useState, useEffect, useRef, useReducer, useContext } from 'react';
 import { RTCEvent, rtcClient, appClient, mediaAdapter, dummyStream } from 'extra/bra';
 import { Container, Row, Col, Button, Modal, Form, OverlayTrigger, SplitButton, Dropdown, ButtonGroup, Badge } from 'react-bootstrap';
 
-import "./room.scss";
 import V404 from 'views/v404';
 import Video from 'components/video';
 import DeviceButton from 'components/deviceButton';
@@ -29,6 +28,8 @@ export default function Room({ user, setNavItems }) {
     //Other stuff
     let history = useHistory();
     const { videoRef, devices: [devices, setDevices], settings: [settings, setSettings], localStream: [localStream, setLocalStream] } = useContext(StreamSettings);
+
+    window.localStream = localStream;
 
     useEffect(() => {//Executes when this component is mounted
         let onGuestJoin, onGuestLeft, onMasterLeft, onUnload, onGetRoom;
@@ -250,7 +251,7 @@ export default function Room({ user, setNavItems }) {
         <Row id="content-row" className="p-1" style={{ height:"100%" }}>
 
             <Col id="main-video-col" className="p-0" >
-                <Video id={getUserId(selected)} stream={streams[selected] ?? localStream} local={selected === "local"} />
+                <Video id={getUserId(selected)} stream={streams[selected] ?? localStream} local={(streams[selected] ?? localStream) === localStream} />
                 <Col id="stream-controls">
                     <DeviceButton icon_enabled="bi-mic-fill"          icon_disabled="bi-mic-mute-fill"          tracks={localStream?.getAudioTracks() ?? []} selected={settings?.audio ?? "None"} options={devices?.audio ?? []} onClick={forcerefresh} onSelect = { (v) => mediaAdapter.setAudio(v) } />
                     <DeviceButton icon_enabled="bi-camera-video-fill" icon_disabled="bi-camera-video-off-fill"  tracks={localStream?.getVideoTracks() ?? []} selected={settings?.video ?? "None"} options={devices?.video ?? []} onClick={forcerefresh} onSelect = { (v) => mediaAdapter.setVideo(v) } />
@@ -268,13 +269,14 @@ export default function Room({ user, setNavItems }) {
                             let imTheMaster = user.id === roomInfo?.master;
                             let [mediaHubCallId, forwardedCallId] = Object.entries(liveCalls).find( v => v[1] === callId ) ?? [null,null];
                             let isForwardCall = !!forwardedCallId;
+                            
                             return <div key={k}>
                                 <div className="stream-forward">
                                     { imTheMaster && (!isForwardCall && id !== roomInfo?.master && id !== user.id) && <Badge pill bg="danger" onClick={() => setShowModal( callId )}><i class="bi bi-cast"></i></Badge> }
                                     { imTheMaster && ( isForwardCall && id !== roomInfo?.master && id !== user.id) && <Badge pill bg="danger" onClick={() => rtcClient.hangup( mediaHubCallId )}><i class="bi bi-x"></i></Badge> }
                                     { (selected === callId || (!selected && k === 0)) && <Badge pill bg="primary"><i className="bi bi-eye active"/></Badge> }
                                 </div>
-                                <Video id={id} stream={stream} local={callId === "local"} onClick={() => { setSelected(selected===callId?null:callId) }}/>
+                                <Video id={id} stream={stream} local={ stream === localStream} onClick={() => { setSelected(selected===callId?null:callId) }}/>
                             </div>
                     })}
                 </div>
@@ -285,5 +287,109 @@ export default function Room({ user, setNavItems }) {
         </Row>
         </Container>
 
+        <style global jsx>{` 
+            @import 'variables.scss';
+            #room{
+    
+                color:white;
+                height: 100vh;
+                .Video{
+                    video{
+                        height: 100%;
+                        width:100%;
+                    }
+                    &:hover{
+                        background-size: contain;
+                    }
+
+                    .bi::before{
+                        margin:0;
+                        margin-top:1px;
+                        margin-bottom: 2px;
+                    }
+                }
+
+                #content-row{
+                    height:100%;
+                }
+
+                #main-video-col {
+                    height: 100%;
+                    overflow: hidden;
+                    //background: magenta;
+
+                    .Video
+                    {
+                        width:100%;
+                        height:100%;
+                        object-fit: cover;
+                    }
+                }
+                
+                #stream-controls {
+                    //background:rgba(255, 166, 0, 0.171); 
+                    width:100%; 
+                    height:60px; 
+                    //width: calc( 100% - 166px - .5rem ); 
+                    transform: translateY(-100%) !important;
+                    margin-bottom:.5em;
+
+                    margin-top: -60px; 
+                    //position: absolute; 
+                    //bottom: .5rem;
+                }
+
+                .stream-forward{
+                    height:1.9rem;
+                    position:relative;
+                    margin-bottom:-1.9rem;
+                    text-align:left;
+                    padding:3px 6px;
+                    z-index:10000;
+
+                    .badge{
+                        cursor:pointer;
+                        padding:.44em .45em;
+                    }
+                }
+
+                #carousel-col {
+                    height: 100%;
+                    width:166px;
+                    overflow-x: hidden;
+                    overflow-y: scroll;
+                }
+
+                #carousel {
+                    display: flex;
+                    flex-direction: column;
+                    .Video, .Video video{ 
+                        width: 166px; 
+                        height:124px; 
+                        object-fit: cover;
+                    }
+                }
+
+                @media (orientation: landscape){}
+                @media (orientation: portrait){
+                    #content-row{ flex-direction: column-reverse; }
+                    #main-video-col{width:100%;}
+                    #stream-controls{width:100%;}
+                    #carousel-col{ 
+                        width:100%; height:124px; 
+                        overflow-x: scroll;
+                        overflow-y: hidden;
+                    }
+                    #carousel .Video{
+                        height:100%;
+                    }
+
+                    #carousel{ flex-direction: row;}
+                }
+
+                
+            }
+
+        `}</style>
     </>)
 }

@@ -50,7 +50,7 @@ export default function RecoveryModal({show, setShow}) {
                 <span>Please enter the adress mail you registered with. Check mail the next 5 minutes to receive next steps.</span>
 
                 <Form.Group className="mb-2 mt-4" >
-                    <Form.Control placeholder='someone@myprovider.com' />
+                    <Form.Control className="text-lowercase" placeholder='someone@myprovider.com' />
                 </Form.Group>
 
             </Modal.Body>

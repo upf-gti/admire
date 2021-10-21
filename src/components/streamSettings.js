@@ -28,20 +28,21 @@ export default function({children})
         localStream: [ localStream, setLocalStream ],
     }
 
-    function onGotResolutions({resolutions})
+    function onGotResolutions({resolutions, settings})
     { 
+        setSettings({...settings});
         setResolutions(resolutions); 
     }
     
     function onGotDevices ({ audioDevices: audio, videoDevices: video, settings }) 
     { 
-        setSettings(settings);
+        setSettings({...settings});
         setDevices({audio, video});
     }
 
     function onGotStream( {stream, settings})
     { 
-        setSettings(settings);
+        setSettings({...settings});
         setLocalStream(stream);
 
         for( const callId in rtcClient.getCalls() )

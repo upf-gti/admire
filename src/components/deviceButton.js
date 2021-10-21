@@ -16,6 +16,11 @@ export default function DeviceButton({ tracks, selected, options, onSelect, onCl
     } , [settings, settings?.audio, settings?.video, devices?.audio, devices?.video]);
     
     const placement = "top";
+    const select = <>
+        {!options && <Dropdown.Item key={0} disabled eventKey={0}>No options available</Dropdown.Item>}
+        {options && Object.entries(options).map(([id, value], k) => <Dropdown.Item key={k} eventKey={k} value={id} className={id === selected?"active":""}> {id} </Dropdown.Item>)}
+        <Button size="sm" variant="outline-primary" style={{ marginLeft: "1rem" }} onClick={mediaAdapter.findDevices}><i className="bi bi-arrow-repeat"></i> Refresh</Button>
+    </>;
     return (
  
         <SplitButton  {...props}
@@ -42,9 +47,7 @@ export default function DeviceButton({ tracks, selected, options, onSelect, onCl
                     onSelect(option.getAttribute("value"), set);
             }}
         >
-            {!options && <Dropdown.Item key={0} disabled eventKey={0}>No options available</Dropdown.Item>}
-            {options && Object.entries(options).map(([id, value], k) => <Dropdown.Item key={k} eventKey={k} value={id} className={id === selected?"active":""}> {id} </Dropdown.Item>)}
-            <Button size="sm" variant="outline-primary" style={{ marginLeft: "1rem" }} onClick={mediaAdapter.findDevices}><i className="bi bi-arrow-repeat"></i> Refresh</Button>
+            {select}
         </SplitButton>
 
 

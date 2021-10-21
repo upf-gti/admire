@@ -7,7 +7,6 @@ import {Toasts, ToastContext} from 'components/toasts';
 
 import RoomList from 'components/roomlist';
 import CreateRoomModal from 'components/createRoomModal';	
-import "./lobby.scss";
 
 export default function Lobby({user, setLogin, setNavItem}) {
     
@@ -85,5 +84,39 @@ export default function Lobby({user, setLogin, setNavItem}) {
     </Container>
 
     <CreateRoomModal show={showModal} setShow={setShowModal} callback={()=>{}} />
+
+    <style global jsx>{`
+        @import "variables.scss";
+        #create-room-modal
+        {
+            .modal-header
+            {
+                color:white;
+            }
+
+            .modal-content
+            {
+                box-shadow: 0 0 30px rgba(0,0,0,.5);
+
+                background-color: $color1 !important;
+                input{
+                    color:white;
+                    border-radius:10px;
+                    border-color:$color2;
+                    background-color: $color2;
+                    font-family: $principal_font;
+                }
+            }
+
+            .modal-footer{
+                text-align: center;
+                
+                button{
+                    font-family: $principal_font;
+                    border-radius:20px;
+                }
+            }
+        }    
+    `}</style>
     </>);
 }

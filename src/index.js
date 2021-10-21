@@ -21,7 +21,6 @@ function ContextContainer({ children }) {
 
   return <>
     <Helmet>
-      <link rel="preload" as="stylesheet" href="bootstrap-icons/font/bootstrap-icons.css"/>
     </Helmet>
     <ToastContext>
 

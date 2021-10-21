@@ -78,17 +78,18 @@ export default function RegisterModal({show, setShow }) {
 
         const ref = registerRef.current;
         const data = Object.assign({}, { username, email, password, avatar, name, surname, birthdate, role });
-
+        data.email = data.email.toLowerCase();
+        
         const toastId = Log.loading('Registering...');
         await post(`${API}/register`, data)
             .then(({ error, message, status }) => {
                 switch (status) {
-                    case 400:
-                        Log.error(`Error ${error}: ${message}`, { id: toastId });
-                        break;
-                    default:
+                    case 200:
                         setTimeout( () => { setFetching(0); setShow(false); } , 1000);
                         Log.success('Success', { id: toastId });
+                        break;
+                    default:
+                        Log.error(`Error ${error}: ${message}`, { id: toastId });
                 }
             })
             .catch(err => {
@@ -138,8 +139,8 @@ export default function RegisterModal({show, setShow }) {
                     <span>Fullfill your contact information to continue.</span>
 
                     <Form.Group className="mb-1" children={<FloatingLabel label="username">     <Form.Control placeholder='username' type="text" />    </FloatingLabel>} />
-                    <Form.Group className="mb-1" children={<FloatingLabel label="email">        <Form.Control placeholder='email' type="email" value={userEmail} onChange={event => setEmail(event.target.value)} isInvalid={!isEmailValid} /></FloatingLabel>} />
-                    <Form.Group className="mb-1" children={<FloatingLabel label="password">     <Form.Control placeholder='password (8) ' type="password" /></FloatingLabel>} />
+                    <Form.Group className="mb-1" children={<FloatingLabel label="email">        <Form.Control placeholder='email' type="email" className="text-lowercase" value={userEmail} onChange={event => setEmail(event.target.value)} isInvalid={!isEmailValid} /></FloatingLabel>} />
+                    <Form.Group className="mb-1" children={<FloatingLabel label="password">     <Form.Control placeholder='password (8) ' type="password"/></FloatingLabel>} />
                     <Form.Group className="mb-1" children={<FloatingLabel label="avatar URL">   <Form.Control placeholder='avatar URL' type="text" value={image_url !== '' ? image_url : userEmail !== '' ? gravatar_url : ''} onChange={event => setImageURL(event.target.value)} /></FloatingLabel>} />
                     <Form.Group className="mb-1" children={<FloatingLabel label="name">         <Form.Control placeholder='name' type="text" />    </FloatingLabel>} />
                     <Form.Group className="mb-1" children={<FloatingLabel label="surname">      <Form.Control placeholder='surname' type="text" />    </FloatingLabel>} />

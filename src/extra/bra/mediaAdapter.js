@@ -241,7 +241,7 @@ export function MediaAdapter( settings )
         console?.log("%c" + "got_devices" + "%o%o%o", settings.debugStyle, JSON.stringify(audioDevices), JSON.stringify(videoDevices), JSON.stringify(streamSettings));
         console?.log("%c" + "got_resolutions" + "%o%o", settings.debugStyle, JSON.stringify(resolutions), JSON.stringify(streamSettings));
 
-        emit("got_devices", { audioDevices: audioDevices, videoDevices: videoDevices, settings: streamSettings });
+        emit("got_devices",     { audioDevices: audioDevices, videoDevices: videoDevices, settings: streamSettings });
         emit("got_resolutions", { resolutions: resolutions, settings: streamSettings });
     };
 
@@ -312,7 +312,7 @@ export function MediaAdapter( settings )
      * @param {String} device - The video device.
      * @param {String} resolution - The video resolution.
      */
-    let setVideo = function( device, resolution = "Undefined" )
+    let setVideo = function( device, resolution = "640x480" )
     {
         // Check whether the device exists.
         if( !(device in videoDevices) )

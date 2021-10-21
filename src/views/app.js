@@ -8,14 +8,14 @@ import { rtcClient, appClient, mediaAdapter } from 'extra/bra';
 import {ToastContext} from 'components/toasts';
 import {StreamSettings} from 'components/streamSettings';
 
-import "./app.scss";
+
 import img3 from 'assets/img/wizard2.png';
 
 
 const Room = lazy(() => import('views/room'));
 const Login = lazy(() => import('views/login'));
 const Lobby = lazy(() => import('views/lobby'));
-const Wizzard = lazy(() => import('views/wizzard'));
+const Wizard = lazy(() => import('components/wizardModal'));
 const ResetPassword = lazy(() => import('views/reset-password'));
 const Navbar = lazy(() => import('components/navbar'));
 
@@ -28,6 +28,7 @@ export default function App() {
     const Log = useContext(ToastContext);
     const { videoRef, devices:[devices,setDevices], settings:[settings,setSettings], localStream:[localStream,setLocalStream] } = useContext(StreamSettings);
     
+    const [showWiz, setShowWiz] = useState(true);
     const [login, setLogin]       = useState(null);
     const [NavItems, setNavItems] = useState({});
     const [ready, setReady] = useReducer((state, newState)=>{ 
@@ -46,7 +47,7 @@ export default function App() {
     useEffect(() => { //Acts like 'componentWillMount'
             let onUnload;
             console.clear();    
-            setNavItem( 'wizzard',<Link to='/wizzard'> <li> <Image src={img3} style={{filter:'invert(1)'}} width={24}/> Wizzard</li> </Link> );
+            setNavItem( 'wizzard', <li onClick={ () => setShowWiz(1) }> <Image src={img3} style={{filter:'invert(1)'}} width={24}/> Wizzard</li> );
 
             appClient.on("logout_response",      onLogOut);
             appClient.on('client_connected',     onAppClientConnect);
@@ -132,11 +133,10 @@ export default function App() {
             }
 
             {   login && <div className="app wrapper">
+                <Wizard show={showWiz} setShow={setShowWiz}/>               
                 <Navbar user={login} doLogOut={doLogOut} items={Object.values(NavItems)}/>
                 <div id="content">
                 <Switch>
-                        { !ready && <Route><Wizzard user={login} ready={{ready, setReady}} setNavItem={setNavItem}/></Route> }
-                        <Route exact path='/wizzard'> <Wizzard user={login} ready={{ready, setReady}} setNavItem={setNavItem}/> </Route>
                         <Route exact path='/rooms/:roomId'> <Room user={login} setNavItem={setNavItem}/> </Route>
                         <Route> <Lobby setLogin={setLogin} user={login} setNavItem={setNavItem} key={Math.floor((Math.random() * 10000))} /> </Route>
                 </Switch>
@@ -146,5 +146,13 @@ export default function App() {
             }
         </Router>
         </Suspense>
+        <style global jsx>{`
+            @import "variables.scss";
+
+            .app{
+                background-color: $background !important;
+                min-height:100%;
+            }
+        `}</style>
     </>);
 }

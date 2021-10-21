@@ -69,3 +69,12 @@ Bootstrap Icons and Font-Awesome icons may be used
 * [Bootstrap Icons](https://icons.getbootstrap.com/)
 
 * [Bootstrap Sidebar](https://bootstrapious.com/p/bootstrap-sidebar)
+//https://github.com/react-component/gesture
+
+## Some bugs that ocurr sometimes
+*     error:06065064:digital envelope routines:EVP_DecryptFinal_ex:bad decrypt 
+    
+    *  Switch node version to lts v14, i recommend using NVM
+
+*     something about postcss-loader
+    * run npm upgrade to update the package
