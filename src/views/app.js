@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useReducer, useContext, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useReducer, useContext, lazy, Suspense, useRef } from 'react';
 import { BrowserRouter as Router, Switch, Route, Redirect, Link, useHistory } from 'react-router-dom';
 import { Image, Button, ProgressBar  } from 'react-bootstrap';
 
@@ -10,6 +10,7 @@ import {StreamSettings} from 'components/streamSettings';
 
 
 import img3 from 'assets/img/wizard2.png';
+import DisconnectedModal from 'components/disconnectedModal';
 
 
 const Room = lazy(() => import('views/room'));
@@ -28,10 +29,12 @@ export default function App() {
     const Log = useContext(ToastContext);
     const { videoRef, devices:[devices,setDevices], settings:[settings,setSettings], localStream:[localStream,setLocalStream] } = useContext(StreamSettings);
     
-    const [showWiz, setShowWiz] = useState(true);
-    const [login, setLogin]       = useState(null);
-    const [NavItems, setNavItems] = useState({});
-    const [ready, setReady] = useReducer((state, newState)=>{ 
+    const [showReconnect, setShowReconnect ]= useState(false);
+    const [connected, setConnected]         = useState(false);
+    const [showWiz, setShowWiz]             = useState(true);
+    const [login, setLogin]                 = useState(null);
+    const [NavItems, setNavItems]           = useState({});
+    const [ready, setReady]                 = useReducer((state, newState)=>{ 
         localStorage.setItem('admire-user-ready', newState);
         sessionStorage.setItem('admire-user-ready', newState);
         return newState; 
@@ -84,11 +87,24 @@ export default function App() {
 
     function onRtcClientConnect(event) {
         Log.info(`Rtc client connected`);
-        mediaAdapter.start();
+        setConnected(true);
+        mediaAdapter.start(); //TODO: move this where we are actually using the camera to avoid battery burn
+    }
+
+    function reconnect(){
+        function reconnected(){ 
+            appClient.off('client_connected', reconnected); 
+            setShowReconnect(false);
+        }
+        appClient.off('client_connected', reconnected);
+        appClient.on('client_connected',  reconnected);
+        setShowReconnect(true);
     }
 
     function onDisconnect() {
         Log.warn(`App client disconnected`);
+        setConnected(false);
+        reconnect();
     }
 
     function doLogOut(){
@@ -116,8 +132,9 @@ export default function App() {
     const renderLoader = () => (<>
         <ProgressBar animated now={100} />
     </>);
-
+    
     return (<>
+        <DisconnectedModal show={showReconnect} callback={ ()=>appClient.connect(appUrl)}/>
         {
             document.fullscreenEnabled && 
             <Button onClick={()=>document.fullscreen?document.exitFullscreen():document.body.requestFullscreen()} variant="link" style={{zIndex:10000, position:"absolute", top:10, right:10, border:"none", boxShadow:"none"}}> <i className={"bi " + document.fullscreen?"bi-fullscreen-exit":"bi-fullscreen"}></i> </Button>    
@@ -128,7 +145,7 @@ export default function App() {
             {   !login &&  
                 <Switch>
                     <Route path="/reset-password/:token"><ResetPassword /></Route>
-                    <Route><Login login={login} setLogin={setLogin}/></Route>
+                    <Route><Login connected={connected} login={login} setLogin={setLogin}/></Route>
                 </Switch>
             }
 
