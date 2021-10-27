@@ -86,12 +86,12 @@ export default function Login({ connected, login, setLogin }) {
                 <Card className="shadow-lg" style={{ width: '18rem' }}>
                     <Card.Body>
                         <Row>
-                            <Col xs={6} sm={12}>
+                            <Col xs={12} sm={12}>
                                 <ReactImage id="login-logo" alt="logo" src={login_img} fluid width={254} height={254} />
                                 <h1 id="title" className="mb-2 text-center">admire</h1>
                                 {/*<h4 id="subtitle">Login</h4>*/}
                             </Col>
-                            <Col xs={6} sm={12}>
+                            <Col xs={12} sm={12}>
                                 <Form noValidate ref={loginRef} onKeyDown={(e) => { if (e.keyCode === 13) doSubmitLogin(); }} >
 
                                     <Form.Group className="mb-2">
