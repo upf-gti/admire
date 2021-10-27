@@ -78,6 +78,7 @@ export default function ({children}){
         info,
         warn,
     }
+    window.Log = store;
 
     return (<ToastContext.Provider value={store}>{children}</ToastContext.Provider>);
 }

@@ -1,7 +1,7 @@
 import Page from "pages/page"
 
-export default () => {
+export default () => { //eslint-disable-line import/no-anonymous-default-export
     return <Page>
-        <h1>#PAM</h1>
+        <h1>Lighing</h1>
     </Page>
 }

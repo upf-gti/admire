@@ -80,11 +80,12 @@ export default function Video({ id, stream, pin, user, master, local, onClick, .
 
                 .stream-status
                 {
+                    color:white;
                     padding:5px;
                     text-align: left;
                     margin-top: -40px;
                     position: relative;
-
+                    text-shadow: 0 0 1px rgba(0,0,0,.5);
                     .bi
                     {
                         width: 30px;

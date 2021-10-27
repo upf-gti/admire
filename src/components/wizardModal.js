@@ -6,6 +6,7 @@ import icon from 'assets/img/wizard2.png';
 import Gesture from 'rc-gesture';
 import 'react-slideshow-image/dist/styles.css'
 import { Slide, goTo} from 'react-slideshow-image';
+import toast from 'react-hot-toast';
 
 export default function({show, setShow, callback}) {
     const ref = useRef(null);
@@ -14,7 +15,7 @@ export default function({show, setShow, callback}) {
     const [selected, setSelected] = useState(0);
     const [page, setPage] = useState(null);
     const [views, setViews] = useState([]);
-    const pages = ["Devices","Position","Lighting"];
+    const pages = ["Devices","Position","Lighting","Shader" ];
 
     //use useEffect to fetch page views dynamically
     useEffect(() => {
@@ -23,25 +24,28 @@ export default function({show, setShow, callback}) {
             for(let p of pages)
                 await import(`pages/${p}.js`).then(v => vs.push(<v.default />))
             setViews( [...vs] );
+            setPage(vs[selected]);
         })();
     }, []);
 
     useEffect(() => {
-        ref.current?.goTo(selected);
+        setPage(views[selected]);
     }, [selected]);
 
     return <div
     onKeyDown={(e) => {
         switch(e?.keyCode)
         {
+            //case 37: return ref.current?.goBack();
+            //case 39: return ref.current?.goNext();
             case 37: return setSelected( s => (s-1 < 0)? pages.length-1 : s-1 );
             case 39: return setSelected( s => (s+1)%pages.length );
         }
     }} tabIndex="0"
     >
     <Gesture
-            onSwipeLeft={ () => {setSelected( s => (s+1)%pages.length) } } 
-            onSwipeRight={() => {setSelected( s => (s-1 < 0)? pages.length-1 : s-1 )}}
+            onSwipeLeft={ () => setSelected( s => (s+1)%pages.length ) } 
+            onSwipeRight={() => setSelected( s => (s-1 < 0)? pages.length-1 : s-1 ) }
         >
         < Modal
             centered
@@ -49,14 +53,7 @@ export default function({show, setShow, callback}) {
             onHide={() => setShow(false)}
             keyboard={true}
             dialogClassName="modal-shadow-lg"
-            size="xl"
         >
-            <Modal.Header className="position-absolute bottom-0 start-0" style={{padding:".5em"}}>
-                <Modal.Title>
-                    <Image src={icon} alt="wizard icon" height="32" />
-                    <span className="fw-bolder">Wizard</span>
-                </Modal.Title>
-            </Modal.Header>
 
            <Modal.Body>
                 <ul className="nav nav-tabs justify-content-start">
@@ -64,28 +61,36 @@ export default function({show, setShow, callback}) {
                             <div className={`nav-link ${selected === k?"active":""}`} onClick={()=>setSelected(k)}>{v}</div>  
                     </li>)}
                 </ul>
-                <Slide easing="cubic-out" autoplay={false} ref={ref} indicators={true} transitionDuration={300}>
+                {/*<Slide 
+                    ref={ref} 
+                    duration={0}
+                    infinite={true}
+                    autoplay={false} 
+                    indicators={true} 
+                    easing="cubic-out" 
+                    defaultIndex={-1}
+                    transitionDuration={150}
+                >
                 {views.map((p, index)=> (
                     <div key={index}>{p}</div>
                 ))} 
-                </Slide>
-                <Button variant="secondary" size="sm" className="position-absolute bottom-0 end-0 m-2" onClick={() => setShow(false)}><i className="bi bi-x-circle"></i> Close</Button>
+                </Slide>*/}
+                {page}
             </Modal.Body>
 
-            {/*<Modal.Footer className="justify-content-center">
-                { page && pages.map((p, i) => <div key={i} className={`bullet ${i === selected?"active":""}`} onClick={ ()=>setSelected(i) }/>)}
-            </Modal.Footer>
-            
-            <Modal.Title>
+            <Modal.Footer className="justify-content-between p-0">
+                <Modal.Title> 
                     <Image src={icon} alt="wizard icon" height="32" />
                     <span className="fw-bolder">Wizard</span>
                 </Modal.Title>
-            */}
+                <Button variant="secondary" size="sm" className="m-2" onClick={() => setShow(false)}><i className="bi bi-x-circle"></i> Close</Button>
+            </Modal.Footer>
         </Modal>
     </Gesture>
         <style global jsx>{`
             .modal-dialog {
                 margin: auto;
+                height: 100%;
                 &:focus {
                     outline: none;
                 }
@@ -110,6 +115,15 @@ export default function({show, setShow, callback}) {
             }
             .nav-tabs{
                 margin-top: -42px;
+
+                .nav-link{
+                    color:white;
+                    user-select: none;
+                    cursor: pointer;
+                    &.active{
+                        color:black;
+                    }
+                }
             }
 
             .nav-item{

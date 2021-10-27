@@ -1,7 +1,7 @@
 import {useEffect, useRef, useState} from 'react';
 let time = performance.now();
 
-export default({stream, show}) => {
+export default function AudioGain({stream, show}) {
     let [ctx,setCtx] = useState(null);
     let [analyser,setAnalyser] = useState(null);
     let [microphone,setMicrophone] = useState(null);
@@ -31,14 +31,18 @@ export default({stream, show}) => {
         javascriptNode.onaudioprocess = onAudioProcess;
 
         setCtx(ctx);setAnalyser(analyser);setMicrophone(microphone);setJavascriptNode(javascriptNode);
+
+  
     }, [stream]);
 
     useEffect(()=>{
         if(!ctx) return;
-        console.log("gainEnabled:",show)
         switch(show){
             case true:return ctx.resume();
             case false: return ctx.suspend();
+        }
+        return ()=>{
+            ctx.suspend();
         }
     }, [show]);
 
