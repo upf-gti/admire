@@ -10,7 +10,7 @@ export default function RecoveryModal({show, setShow}) {
 
     const recoveryRef = useRef(null);
 
-    let API = 'https://admire-dev-auth.brainstorm3d.com';
+    let API = process.env.REACT_APP_SERVER_URL;
 
     async function doSubmitRecovery(e) {
         e.preventDefault();

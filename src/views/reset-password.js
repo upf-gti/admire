@@ -37,21 +37,22 @@ export default function ResetPassword(){
     const passwordRef = useRef(null);
     const Log = useContext(ToastContext);
 
-    let API = 'https://admire-dev-auth.brainstorm3d.com';
-    console.log(token);
+    let API = process.env.REACT_APP_SERVER_URL;
 
     async function doSubmitPassword(e) {
         e.preventDefault();
         const [password] = Array.from(passwordRef.current.elements).map(v => v.value);
         const toastId = toast.loading('Resetting password...');
         await post(`${API}/reset-password/${token}`, { password })
-        .then(response => {
-            if(!response){
-                Log.error(`Error: ${response.message}`, {id: toastId});
-                return;
+        .then( ({status, description, message }) => {
+            switch (status) {
+                case 'ok':
+                    Log.success('Success', {id: toastId});
+                    setTimeout( ()=>history.push(`/`), 1000);
+                    break;
+                case 'error': Log.error(description, {id: toastId}); break;
+                default: Log.warn(description, {id: toastId});
             }
-            Log.success('Success', {id: toastId});
-            setTimeout( ()=>history.push(`/`), 1000);
         })
         .catch(err => {
             Log.error(`Error: ${err}`, {id: toastId});

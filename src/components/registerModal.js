@@ -16,7 +16,7 @@ export default function RegisterModal({show, setShow }) {
     const [isEmailValid, setEmailValid] = useState(false);
     const [gravatar_url, setGravatarImage] = useState('');
 
-    let API = 'https://admire-dev-auth.brainstorm3d.com';
+    let API = process.env.REACT_APP_SERVER_URL;
 
     function checkImageURL(url) {
         return (url.match(/\.(jpeg|jpg|gif|png)$/) != null);
